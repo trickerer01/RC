@@ -101,7 +101,7 @@ SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hbGJ1bXM
 """Params required: **album_id**, **album_name** - **int**, **str**\n
 Ex. SITE_AJAX_REQUEST_ALBUM % (11111, 'sfw')"""
 
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.3 Firefox/102.0 PaleMoon/32.4.0.1'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.0'
 HOST = urlparse(SITE).netloc
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
 

@@ -243,8 +243,6 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 Log.error(f'{sfilename}: error #{retries:d}...')
             if r is not None and r.closed is False:
                 r.close()
-            if Config.continue_mode is False and path.isfile(ii.my_fullpath):
-                remove(ii.my_fullpath)
             # Network error may be thrown before item is added to active downloads
             if ii.my_fullpath in idwn.writes_active:
                 idwn.writes_active.remove(ii.my_fullpath)
@@ -253,6 +251,9 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if retries < CONNECT_RETRIES_BASE:
                 ii.set_state(ImageInfo.ImageState.DOWNLOADING)
                 await sleep(frand(1.0, 7.0))
+            elif Config.continue_mode is False and path.isfile(ii.my_fullpath):
+                Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
+                remove(ii.my_fullpath)
 
     ret = (ret if ret == DownloadResult.DOWNLOAD_FAIL_NOT_FOUND else
            DownloadResult.DOWNLOAD_SUCCESS if retries < CONNECT_RETRIES_BASE else
