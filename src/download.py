@@ -251,7 +251,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if retries < CONNECT_RETRIES_BASE:
                 ii.set_state(ImageInfo.ImageState.DOWNLOADING)
                 await sleep(frand(1.0, 7.0))
-            elif Config.continue_mode is False and path.isfile(ii.my_fullpath):
+            elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 remove(ii.my_fullpath)
 
