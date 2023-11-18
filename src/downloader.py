@@ -11,7 +11,7 @@ from __future__ import annotations
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import sleep, as_completed
 from os import path, remove
-from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable
+from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable, Union
 
 from aiohttp import ClientSession
 
@@ -47,16 +47,16 @@ class AlbumDownloadWorker:
         AlbumDownloadWorker._instance = self
 
         self._func = func
-        self.session = session
+        self._session = session
         self._seq = [ai for ai in sequence]  # form our own container to erase from
         self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]]
-        self.orig_count = len(self._seq)
-        self.scanned_count = 0
-        self.filtered_count_after = 0
-        self.skipped_count = 0
+        self._orig_count = len(self._seq)
+        self._scanned_count = 0
+        self._filtered_count_after = 0
+        self._skipped_count = 0
 
         self._scans_active = list()  # type: List[AlbumInfo]
-        self.failed_items = list()  # type: List[int]
+        self._failed_items = list()  # type: List[int]
 
         self._total_queue_size_last = 0
         self._scan_queue_size_last = 0
@@ -69,13 +69,13 @@ class AlbumDownloadWorker:
         self._scans_active.remove(ai)
         Log.trace(f'[queue] album {prefixp()}{ai.my_id:d} removed from queue')
         if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
-            self.filtered_count_after += 1
+            self._filtered_count_after += 1
         elif result == DownloadResult.DOWNLOAD_FAIL_SKIPPED:
-            self.skipped_count += 1
+            self._skipped_count += 1
         elif result == DownloadResult.DOWNLOAD_FAIL_RETRIES:
-            self.failed_items.append(ai.my_id)
+            self._failed_items.append(ai.my_id)
         elif result == DownloadResult.DOWNLOAD_SUCCESS:
-            self.scanned_count += 1
+            self._scanned_count += 1
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -118,18 +118,22 @@ class AlbumDownloadWorker:
     async def _after_download(self) -> None:
         self._done = True
         newline = '\n'
-        Log.info(f'\n[albums] {self.scanned_count:d} / {self.orig_count:d} albums enqueued for download, '
-                 f'{self.filtered_count_after:d} already existed, '
-                 f'{self.skipped_count:d} skipped')
+        Log.info(f'\n[albums] {self._scanned_count:d} / {self._orig_count:d} albums enqueued for download, '
+                 f'{self._filtered_count_after:d} already existed, '
+                 f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
-        if len(self.failed_items) > 0:
-            Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self.failed_items))}')
+        if len(self._failed_items) > 0:
+            Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
 
     async def run(self) -> None:
         for cv in as_completed([self._prod(), self._state_reporter()] + [self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE)]):
             await cv
         await self._after_download()
+
+    @property
+    def session(self) -> ClientSession:
+        return self._session
 
 
 class ImageDownloadWorker:
@@ -154,30 +158,22 @@ class ImageDownloadWorker:
         ImageDownloadWorker._instance = self
 
         self._func = func
-        self.session = session
+        self._session = session
         self._seq = list()  # type: List[ImageInfo]
         self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]]
-        self.orig_count = 0
-        self.downloaded_count = 0
-        self.filtered_count_after = 0
-        self.skipped_count = 0
+        self._orig_count = 0
+        self._downloaded_count = 0
+        self._filtered_count_after = 0
+        self._skipped_count = 0
 
         self._downloads_active = list()  # type: List[ImageInfo]
-        self.writes_active = list()  # type: List[str]
-        self.failed_items = list()  # type: List[str]
+        self._writes_active = list()  # type: List[str]
+        self._failed_items = list()  # type: List[str]
 
         self._my_start_time = 0
         self._total_queue_size_last = 0
         self._download_queue_size_last = 0
         self._write_queue_size_last = 0
-
-    def store_image_info(self, ii: ImageInfo) -> None:
-        self.orig_count += 1
-        self._seq.append(ii)
-
-    @property
-    def processed_count(self) -> int:
-        return self.downloaded_count + self.filtered_count_after + self.skipped_count + len(self.failed_items)
 
     async def _at_task_start(self, ii: ImageInfo) -> None:
         self._downloads_active.append(ii)
@@ -191,13 +187,13 @@ class ImageDownloadWorker:
             ii.my_album.my_images.clear()
             ii.my_album.set_state(AlbumInfo.AlbumState.PROCESSED)
         if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
-            self.filtered_count_after += 1
+            self._filtered_count_after += 1
         elif result == DownloadResult.DOWNLOAD_FAIL_SKIPPED:
-            self.skipped_count += 1
+            self._skipped_count += 1
         elif result == DownloadResult.DOWNLOAD_FAIL_RETRIES:
-            self.failed_items.append(ii.my_shortname)
+            self._failed_items.append(ii.my_shortname)
         elif result == DownloadResult.DOWNLOAD_SUCCESS:
-            self.downloaded_count += 1
+            self._downloaded_count += 1
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -227,7 +223,7 @@ class ImageDownloadWorker:
             await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             download_count = len(self._downloads_active)
-            write_count = len(self.writes_active)
+            write_count = len(self._writes_active)
             queue_last = self._total_queue_size_last
             downloading_last = self._download_queue_size_last
             write_last = self._write_queue_size_last
@@ -246,15 +242,15 @@ class ImageDownloadWorker:
 
     async def _after_download(self) -> None:
         newline = '\n'
-        Log.info(f'\nDone. {self.downloaded_count:d} / {self.orig_count:d} files downloaded, '
-                 f'{self.filtered_count_after:d} already existed, '
-                 f'{self.skipped_count:d} skipped')
+        Log.info(f'\nDone. {self._downloaded_count:d} / {self._orig_count:d} files downloaded, '
+                 f'{self._filtered_count_after:d} already existed, '
+                 f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
-        if len(self.writes_active) > 0:
-            Log.fatal(f'active writes count is still at {len(self.writes_active):d} != 0!')
-        if len(self.failed_items) > 0:
-            Log.fatal(f'failed items:\n{newline.join(sorted(self.failed_items))}')
+        if len(self._writes_active) > 0:
+            Log.fatal(f'active writes count is still at {len(self._writes_active):d} != 0!')
+        if len(self._failed_items) > 0:
+            Log.fatal(f'failed items:\n{newline.join(sorted(self._failed_items))}')
 
     async def run(self) -> None:
         self._my_start_time = get_elapsed_time_i()
@@ -265,18 +261,39 @@ class ImageDownloadWorker:
         await self._after_download()
 
     def at_interrupt(self) -> None:
-        if len(self.writes_active) > 0:
+        if len(self._writes_active) > 0:
             if Config.keep_unfinished:
-                unfinished_str = '\n '.join(f'{i + 1:d}) {s}' for i, s in enumerate(sorted(self.writes_active)))
-                Log.debug(f'at_interrupt: keeping {len(self.writes_active):d} unfinished files:\n {unfinished_str}')
+                unfinished_str = '\n '.join(f'{i + 1:d}) {s}' for i, s in enumerate(sorted(self._writes_active)))
+                Log.debug(f'at_interrupt: keeping {len(self._writes_active):d} unfinished files:\n {unfinished_str}')
                 return
-            Log.debug(f'at_interrupt: cleaning {len(self.writes_active):d} unfinished files...')
-            for unfinished in sorted(self.writes_active):
+            Log.debug(f'at_interrupt: cleaning {len(self._writes_active):d} unfinished files...')
+            for unfinished in sorted(self._writes_active):
                 Log.debug(f'at_interrupt: trying to remove \'{unfinished}\'...')
                 if path.isfile(unfinished):
                     remove(unfinished)
                 else:
                     Log.debug(f'at_interrupt: file \'{unfinished}\' not found!')
+
+    def store_image_info(self, ii: ImageInfo) -> None:
+        self._orig_count += 1
+        self._seq.append(ii)
+
+    @property
+    def processed_count(self) -> int:
+        return self._downloaded_count + self._filtered_count_after + self._skipped_count + len(self._failed_items)
+
+    @property
+    def session(self) -> ClientSession:
+        return self._session
+
+    def is_writing(self, videst: Union[ImageInfo, str]) -> bool:
+        return (videst.my_fullpath if isinstance(videst, ImageInfo) else videst) in self._writes_active
+
+    def add_to_writes(self, vi: ImageInfo) -> None:
+        self._writes_active.append(vi.my_fullpath)
+
+    def remove_from_writes(self, vi: ImageInfo) -> None:
+        self._writes_active.remove(vi.my_fullpath)
 
 #
 #

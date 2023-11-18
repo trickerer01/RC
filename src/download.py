@@ -148,7 +148,7 @@ async def check_image_download_status(idi: int, dest: str, resp: ClientResponse)
         last_size = -1
         while True:
             await sleep(check_timer)
-            if dest not in idwn.writes_active:  # finished already
+            if idwn.is_writing(dest):  # finished already
                 Log.error(f'{sname} status checker is still running for finished download!')
                 break
             file_size = stat(dest).st_size if path.isfile(dest) else 0
@@ -196,7 +196,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 break
 
             file_size = stat(ii.my_fullpath).st_size if path.isfile(ii.my_fullpath) else 0
-            hkwargs = dict(headers={'Range': f'bytes={file_size:d}-'} if file_size > 0 else {})  # type: Dict[str, Dict[str, str]]
+            hkwargs = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}  # type: Dict[str, Dict[str, str]]
             r = None
             async with await wrap_request(idwn.session, 'GET', ii.my_link, **hkwargs) as r:
                 content_len = r.content_length or 0
@@ -219,14 +219,14 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 total_str = f' / {ii.my_expected_size / Mem.MB:.2f}' if file_size else ''
                 Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
 
-                idwn.writes_active.append(ii.my_fullpath)
+                idwn.add_to_writes(ii)
                 ii.set_state(ImageInfo.ImageState.WRITING)
                 status_checker = get_running_loop().create_task(check_image_download_status(ii.my_id, ii.my_fullpath, r))
                 async with async_open(ii.my_fullpath, 'ab') as outf:
                     async for chunk in r.content.iter_chunked(512 * Mem.KB):
                         await outf.write(chunk)
                 status_checker.cancel()
-                idwn.writes_active.remove(ii.my_fullpath)
+                idwn.remove_from_writes(ii)
 
                 file_size = stat(ii.my_fullpath).st_size
                 if ii.my_expected_size and file_size != ii.my_expected_size:
@@ -244,8 +244,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if r is not None and r.closed is False:
                 r.close()
             # Network error may be thrown before item is added to active downloads
-            if ii.my_fullpath in idwn.writes_active:
-                idwn.writes_active.remove(ii.my_fullpath)
+            if idwn.is_writing(ii):
+                idwn.remove_from_writes(ii)
             if status_checker is not None:
                 status_checker.cancel()
             if retries < CONNECT_RETRIES_BASE:
