@@ -148,7 +148,7 @@ async def check_image_download_status(idi: int, dest: str, resp: ClientResponse)
         last_size = -1
         while True:
             await sleep(check_timer)
-            if idwn.is_writing(dest):  # finished already
+            if not idwn.is_writing(dest):  # finished already
                 Log.error(f'{sname} status checker is still running for finished download!')
                 break
             file_size = stat(dest).st_size if path.isfile(dest) else 0
