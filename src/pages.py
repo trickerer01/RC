@@ -12,7 +12,7 @@ from re import compile as re_compile
 from typing import Sequence
 
 from cmdargs import prepare_arglist_pages, read_cmdfile, is_parsed_cmdfile
-from defs import Log, Config, LoggingFlags, HelpPrintExitException, prefixp, at_startup, SITE_AJAX_REQUEST_PAGE, SEARCH_RULE_ALL
+from defs import Log, Config, LoggingFlags, HelpPrintExitException, prefixp, at_startup, SITE_AJAX_REQUEST_SEARCH_PAGE, SEARCH_RULE_ALL
 from download import download, at_interrupt
 from fetch_html import make_session, fetch_html
 from iinfo import AlbumInfo
@@ -87,7 +87,7 @@ async def main(args: Sequence[str]) -> None:
                 Log.info('reached parsed max page, page scan completed')
                 break
 
-            page_addr = SITE_AJAX_REQUEST_PAGE % (search_tags, search_arts, search_cats, search_str, pi)
+            page_addr = SITE_AJAX_REQUEST_SEARCH_PAGE % (search_tags, search_arts, search_cats, search_str, pi)
             a_html = await fetch_html(page_addr, session=s)
             if not a_html:
                 Log.error(f'Error: cannot get html for page {pi:d}')

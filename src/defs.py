@@ -91,12 +91,12 @@ class BaseConfig(object):
 Config = BaseConfig()
 
 SITE = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
-SITE_AJAX_REQUEST_PAGE = b64decode(
+SITE_AJAX_REQUEST_SEARCH_PAGE = b64decode(
     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hZHZhbmNlZC1zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2FsYnVtc1'
     '9saXN0X3NlYXJjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1z'
     'PSVk').decode()
 """Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
-Ex. SITE_AJAX_REQUEST_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
+Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
 SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hbGJ1bXMvJWQvJXMv').decode()
 """Params required: **album_id**, **album_name** - **int**, **str**\n
 Ex. SITE_AJAX_REQUEST_ALBUM % (11111, 'sfw')"""
