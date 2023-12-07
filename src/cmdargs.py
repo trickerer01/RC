@@ -11,18 +11,19 @@ from os import path
 from typing import List, Sequence, Tuple
 
 from defs import (
-    Log, HelpPrintExitException, UTF8, APP_NAME, APP_VERSION, ACTION_STORE_TRUE, HELP_ARG_PATH, HELP_ARG_SEARCH_STR, HELP_ARG_PROXY,
+    HelpPrintExitException, UTF8, APP_NAME, APP_VERSION, ACTION_STORE_TRUE, HELP_ARG_PATH, HELP_ARG_SEARCH_STR, HELP_ARG_PROXY,
     HELP_ARG_BEGIN_STOP_ID, HELP_ARG_GET_MAXID, HELP_ARG_EXTRA_TAGS, HELP_ARG_UTPOLICY, UALBUM_POLICIES, DOWNLOAD_POLICY_DEFAULT,
     DOWNLOAD_MODES, DOWNLOAD_MODE_DEFAULT, NAMING_FLAGS_DEFAULT, LOGGING_FLAGS_DEFAULT, HELP_ARG_DMMODE, HELP_ARG_DWN_SCENARIO,
     HELP_ARG_CMDFILE, HELP_ARG_NAMING, HELP_ARG_LOGGING, HELP_ARG_IDSEQUENCE, HELP_ARG_CONTINUE, HELP_ARG_UNFINISH, HELP_ARG_DUMP_INFO,
     HELP_ARG_TIMEOUT, HELP_ARG_VERSION, HELP_ARG_SEARCH_ACT, HELP_ARG_SEARCH_RULE, SEARCH_RULES, SEARCH_RULE_DEFAULT,
     HELP_ARG_NO_DEDUPLICATE,
 )
+from logger import Log
 from scenario import DownloadScenario
 from tagger import valid_extra_tag, valid_tags, valid_artists, valid_categories
 from validators import positive_nonzero_int, valid_path, valid_filepath_abs, valid_search_string, valid_proxy, naming_flags, log_level
 
-__all__ = ('prepare_arglist_pages', 'prepare_arglist_ids', 'read_cmdfile', 'is_parsed_cmdfile')
+__all__ = ('prepare_arglist',)
 
 UTP_DEFAULT = DOWNLOAD_POLICY_DEFAULT
 """'nofilters'"""
@@ -88,6 +89,8 @@ def execute_parser(parser: ArgumentParser, default_sub: ArgumentParser, args: Se
                     parsed.start = parsed.end = None
                 elif parsed.end < parsed.start + parsed.count - 1:
                     parsed.end = parsed.start + parsed.count - 1
+        while is_parsed_cmdfile(parsed):
+            parsed = prepare_arglist(read_cmdfile(parsed.path), pages)
         return parsed
     except SystemExit:
         raise HelpPrintExitException
@@ -159,6 +162,13 @@ def prepare_arglist_pages(args: Sequence[str]) -> Namespace:
 
     add_common_args(par_cmd)
     return execute_parser(parser, par_cmd, args, True)
+
+
+def prepare_arglist(args: Sequence[str], pages: bool) -> Namespace:
+    if pages:
+        return prepare_arglist_pages(args)
+    else:
+        return prepare_arglist_ids(args)
 
 #
 #

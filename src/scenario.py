@@ -9,7 +9,8 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from argparse import ArgumentParser, ZERO_OR_MORE
 from typing import List, Optional
 
-from defs import Log, UALBUM_POLICIES, DOWNLOAD_POLICY_DEFAULT, DOWNLOAD_POLICY_ALWAYS, ACTION_STORE_TRUE
+from defs import UALBUM_POLICIES, DOWNLOAD_POLICY_DEFAULT, DOWNLOAD_POLICY_ALWAYS, ACTION_STORE_TRUE
+from logger import Log
 from tagger import valid_extra_tag, try_parse_id_or_group, is_filtered_out_by_extra_tags
 
 __all__ = ('DownloadScenario')

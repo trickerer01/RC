@@ -10,12 +10,15 @@ import sys
 from asyncio import run as run_async, sleep
 from typing import Sequence
 
-from cmdargs import prepare_arglist_ids, read_cmdfile, is_parsed_cmdfile
-from defs import Log, Config, HelpPrintExitException, at_startup, SITE_AJAX_REQUEST_ALBUM
+from cmdargs import prepare_arglist
+from config import Config
+from defs import HelpPrintExitException, SITE_AJAX_REQUEST_ALBUM
 from download import download, at_interrupt
 from fetch_html import make_session
 from iinfo import AlbumInfo
+from logger import Log
 from tagger import try_parse_id_or_group
+from util import at_startup
 from validators import find_and_resolve_config_conflicts
 
 __all__ = ('main_sync',)
@@ -23,34 +26,19 @@ __all__ = ('main_sync',)
 
 async def main(args: Sequence[str]) -> None:
     try:
-        arglist = prepare_arglist_ids(args)
-        while is_parsed_cmdfile(arglist):
-            arglist = prepare_arglist_ids(read_cmdfile(arglist.path))
+        arglist = prepare_arglist(args, False)
     except HelpPrintExitException:
         return
-    except Exception:
-        Log.fatal(f'\nUnable to parse cmdline. Exiting.\n{sys.exc_info()[0]}: {sys.exc_info()[1]}')
-        return
 
-    try:
-        Config.read(arglist, False)
+    Config.read(arglist, False)
 
-        if arglist.use_id_sequence is True:
-            id_sequence = try_parse_id_or_group(Config.extra_tags)
-            if len(id_sequence) == 0:
-                Log.fatal(f'\nInvalid ID \'or\' group \'{Config.extra_tags[0] if len(Config.extra_tags) > 0 else ""}\'!')
-                raise ValueError
-        else:
-            id_sequence = list()
-            if Config.start_id > Config.end_id:
-                Log.fatal(f'\nError: invalid album id bounds: start ({Config.start_id:d}) > end ({Config.end_id:d})')
-                raise ValueError
+    id_sequence = try_parse_id_or_group(Config.extra_tags) if Config.use_id_sequence else [int()] * 0
+    if Config.use_id_sequence is True and len(id_sequence) == 0:
+        Log.fatal(f'\nInvalid ID \'or\' group \'{Config.extra_tags[0] if len(Config.extra_tags) > 0 else ""}\'!')
+        raise ValueError
 
-        if find_and_resolve_config_conflicts() is True:
-            await sleep(3.0)
-    except Exception:
-        Log.fatal(f'\nError reading parsed arglist!\n{sys.exc_info()[0]}: {sys.exc_info()[1]}')
-        return
+    if find_and_resolve_config_conflicts() is True:
+        await sleep(3.0)
 
     async with await make_session() as s:
         if len(id_sequence) == 0:

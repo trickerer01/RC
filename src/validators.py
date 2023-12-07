@@ -9,15 +9,30 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from argparse import ArgumentError
 from ipaddress import IPv4Address
 from os import path
-from re import compile as re_compile
 
-from defs import (
-    Config, Log, NamingFlags, LoggingFlags, normalize_path, unquote, SLASH, NON_SEARCH_SYMBOLS, NAMING_FLAGS, LOGGING_FLAGS,
-    DOWNLOAD_POLICY_DEFAULT,
-)
+from config import Config
+from defs import NamingFlags, LoggingFlags, SLASH, NAMING_FLAGS, LOGGING_FLAGS, DOWNLOAD_POLICY_DEFAULT, SEARCH_RULE_ALL
+from logger import Log
+from rex import re_non_search_symbols
+from util import normalize_path
 
 
 def find_and_resolve_config_conflicts() -> bool:
+    if Config.use_id_sequence in (False, None) and Config.start_id > Config.end_id:
+        Log.fatal(f'\nError: invalid album id bounds: start ({Config.start_id:d}) > end ({Config.end_id:d})')
+        raise ValueError
+
+    if Config.get_maxid:
+        Config.logging_flags = LoggingFlags.LOGGING_FATAL
+        Config.start = Config.end = Config.start_id = Config.end_id = 1
+
+    if Config.search_tags.find(',') != -1 and Config.search_rule_tag == SEARCH_RULE_ALL:
+        Config.search_tags = f'{SEARCH_RULE_ALL},{Config.search_tags}'
+    if Config.search_arts.find(',') != -1 and Config.search_rule_art == SEARCH_RULE_ALL:
+        Config.search_arts = f'{SEARCH_RULE_ALL},{Config.search_arts}'
+    if Config.search_cats.find(',') != -1 and Config.search_rule_cat == SEARCH_RULE_ALL:
+        Config.search_cats = f'{SEARCH_RULE_ALL},{Config.search_cats}'
+
     delay_for_message = False
     if Config.scenario is not None:
         if Config.utp != DOWNLOAD_POLICY_DEFAULT:
@@ -49,32 +64,26 @@ def positive_nonzero_int(val: str) -> int:
 
 def valid_path(pathstr: str) -> str:
     try:
-        newpath = normalize_path(unquote(pathstr))
-        if not path.isdir(newpath[:(newpath.find(SLASH) + 1)]):
-            raise ValueError
+        newpath = normalize_path(path.expanduser(pathstr.strip('\'"')))
+        assert path.isdir(newpath[:(newpath.find(SLASH) + 1)])
+        return newpath
     except Exception:
         raise ArgumentError
-
-    return newpath
 
 
 def valid_filepath_abs(pathstr: str) -> str:
     try:
-        newpath = normalize_path(unquote(pathstr), False)
-        if not path.isfile(newpath):
-            raise ValueError
-        if not path.isabs(newpath):
-            raise ValueError
+        newpath = normalize_path(path.expanduser(pathstr.strip('\'"')), False)
+        assert path.isfile(newpath) and path.isabs(newpath)
+        return newpath
     except Exception:
         raise ArgumentError
-
-    return newpath
 
 
 def valid_search_string(search_str: str) -> str:
     try:
-        re_invalid_search_string = re_compile(NON_SEARCH_SYMBOLS)
-        if len(search_str) > 0 and re_invalid_search_string.search(search_str):
+
+        if len(search_str) > 0 and re_non_search_symbols.search(search_str):
             raise ValueError
     except Exception:
         raise ArgumentError

@@ -6,20 +6,9 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-import sys
-from argparse import Namespace
 from base64 import b64decode
 from datetime import datetime
 from enum import IntEnum
-from locale import getpreferredencoding
-from re import compile as re_compile
-from typing import Optional, List
-from urllib.parse import urlparse
-
-from aiohttp import ClientTimeout
-from colorama import init as colorama_init, Fore
-
-colorama_init()
 
 APP_NAME = 'RC'
 APP_VERSION = '1.0.100'
@@ -32,63 +21,12 @@ MAX_IMAGES_QUEUE_SIZE = 10
 DOWNLOAD_STATUS_CHECK_TIMER = 60
 DOWNLOAD_QUEUE_STALL_CHECK_TIMER = 30
 
+PREFIX = 'rc_'
 SLASH = '/'
 UTF8 = 'utf-8'
 TAGS_CONCAT_CHAR = ','
 EXTENSIONS_I = ('jpg', 'jpeg')
 START_TIME = datetime.now()
-
-
-class BaseConfig(object):
-    """Parameters container for params used in both **pages** and **ids** modes"""
-    def __init__(self) -> None:
-        self.dest_base = None  # type: Optional[str]
-        self.proxy = None  # type: Optional[str]
-        self.un_album_policy = None  # type: Optional[str]
-        self.download_mode = None  # type: Optional[str]
-        self.continue_mode = None  # type: Optional[bool]
-        self.keep_unfinished = None  # type: Optional[bool]
-        self.save_tags = None  # type: Optional[bool]
-        self.save_comments = None  # type: Optional[bool]
-        self.extra_tags = None  # type: Optional[List[str]]
-        self.scenario = None  # type: Optional['DownloadScenario'] # noqa F821
-        self.naming_flags = self.logging_flags = 0
-        self.start = self.end = self.start_id = self.end_id = 0
-        self.timeout = None  # type: Optional[ClientTimeout]
-        self.get_maxid = None  # type: Optional[bool]
-        # extras (can't be set through cmdline arguments)
-        self.nodelay = False
-
-    def read(self, params: Namespace, pages: bool) -> None:
-        self.dest_base = params.path
-        self.proxy = params.proxy
-        self.un_album_policy = params.untagged_policy
-        self.download_mode = params.download_mode
-        self.continue_mode = params.continue_mode
-        self.keep_unfinished = params.keep_unfinished
-        self.save_tags = params.dump_tags
-        self.save_comments = params.dump_comments
-        self.extra_tags = params.extra_tags
-        self.scenario = params.download_scenario
-        self.naming_flags = params.naming
-        self.logging_flags = params.log_level
-        self.start = params.start
-        self.end = params.end
-        self.start_id = params.stop_id if pages else self.start
-        self.end_id = params.begin_id if pages else self.end
-        self.timeout = ClientTimeout(total=None, connect=params.timeout or CONNECT_TIMEOUT_BASE)
-        self.get_maxid = getattr(params, 'get_maxid') if hasattr(params, 'get_maxid') else self.get_maxid
-
-    @property
-    def utp(self) -> Optional[str]:
-        return self.un_album_policy
-
-    @property
-    def dm(self) -> Optional[str]:
-        return self.download_mode
-
-
-Config = BaseConfig()
 
 SITE = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
 SITE_AJAX_REQUEST_SEARCH_PAGE = b64decode(
@@ -102,13 +40,7 @@ SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hbGJ1bXM
 Ex. SITE_AJAX_REQUEST_ALBUM % (11111, 'sfw')"""
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.0'
-HOST = urlparse(SITE).netloc
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
-
-# language=PythonRegExp
-REPLACE_SYMBOLS = r'[^0-9a-zA-Z.,_+%\-()\[\] ]+'
-# language=PythonRegExp
-NON_SEARCH_SYMBOLS = r'[^\da-zA-Z._+\-\[\]]'
 
 # untagged albums download policy
 DOWNLOAD_POLICY_NOFILTERS = 'nofilters'
@@ -172,6 +104,8 @@ class LoggingFlags(IntEnum):
     """0x001"""
     LOGGING_EX_EXCLUDED_TAGS = LOGGING_INFO
     """0x004"""
+    LOGGING_EX_LOW_SCORE = LOGGING_INFO
+    """0x004"""
     LOGGING_ALL = LOGGING_FATAL | LOGGING_ERROR | LOGGING_WARN | LOGGING_INFO | LOGGING_DEBUG | LOGGING_TRACE
     """0x81F"""
 
@@ -191,7 +125,6 @@ LOGGING_FLAGS_DEFAULT = LoggingFlags.LOGGING_INFO
 """0x004"""
 
 ACTION_STORE_TRUE = 'store_true'
-ACTION_STORE_FALSE = 'store_false'
 
 HELP_ARG_VERSION = 'Show program\'s version number and exit'
 HELP_ARG_GET_MAXID = 'Print maximum id and exit'
@@ -254,138 +187,6 @@ HELP_ARG_NO_DEDUPLICATE = (
     'Disable deduplication of search results (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
 )
-
-re_media_filename = re_compile(fr'^(?:rc_)?(\d+).+?\.(?:{"|".join(EXTENSIONS_I)})$')
-re_replace_symbols = re_compile(REPLACE_SYMBOLS)
-
-
-class Log:
-    """
-    Basic logger supporting different log levels, colors and extra logging flags\n
-    **Static**
-    """
-    COLORS = {
-        LoggingFlags.LOGGING_TRACE: Fore.WHITE,
-        LoggingFlags.LOGGING_DEBUG: Fore.LIGHTWHITE_EX,
-        LoggingFlags.LOGGING_INFO: Fore.LIGHTCYAN_EX,
-        LoggingFlags.LOGGING_WARN: Fore.LIGHTYELLOW_EX,
-        LoggingFlags.LOGGING_ERROR: Fore.LIGHTYELLOW_EX,
-        LoggingFlags.LOGGING_FATAL: Fore.LIGHTRED_EX
-    }
-
-    @staticmethod
-    def log(text: str, flags: LoggingFlags) -> None:
-        # if flags & LoggingFlags.LOGGING_FATAL == 0 and Config.logging_flags & flags != flags:
-        if flags < Config.logging_flags:
-            return
-
-        for f in reversed(Log.COLORS.keys()):
-            if f & flags:
-                text = f'{Log.COLORS[f]}{text}{Fore.RESET}'
-                break
-
-        try:
-            print(text)
-        except UnicodeError:
-            try:
-                print(text.encode(UTF8).decode())
-            except Exception:
-                try:
-                    print(text.encode(UTF8).decode(getpreferredencoding()))
-                except Exception:
-                    print('<Message was not logged due to UnicodeError>')
-            finally:
-                print('Previous message caused UnicodeError...')
-
-    @staticmethod
-    def fatal(text: str) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_FATAL)
-
-    @staticmethod
-    def error(text: str, extra_flags=LoggingFlags.LOGGING_NONE) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_ERROR | extra_flags)
-
-    @staticmethod
-    def warn(text: str, extra_flags=LoggingFlags.LOGGING_NONE) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_WARN | extra_flags)
-
-    @staticmethod
-    def info(text: str, extra_flags=LoggingFlags.LOGGING_NONE) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_INFO | extra_flags)
-
-    @staticmethod
-    def debug(text: str, extra_flags=LoggingFlags.LOGGING_NONE) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_DEBUG | extra_flags)
-
-    @staticmethod
-    def trace(text: str, extra_flags=LoggingFlags.LOGGING_NONE) -> None:
-        return Log.log(text, LoggingFlags.LOGGING_TRACE | extra_flags)
-
-
-def prefixp() -> str:
-    return 'rc_'
-
-
-def format_time(seconds: int) -> str:
-    """Formats time from seconds to format: **hh:mm:ss**"""
-    mm, ss = divmod(seconds, 60)
-    hh, mm = divmod(mm, 60)
-    return f'{hh:02d}:{mm:02d}:{ss:02d}'
-
-
-def get_elapsed_time_i() -> int:
-    """Returns time since launch in **seconds**"""
-    return (datetime.now() - START_TIME).seconds
-
-
-def get_elapsed_time_s() -> str:
-    """Returns time since launch in format: **hh:mm:ss**"""
-    return format_time((datetime.now() - START_TIME).seconds)
-
-
-def unquote(string: str) -> str:
-    """Removes all leading/trailing single/double quotes. Non-matching quotes are removed too"""
-    try:
-        while True:
-            found = False
-            if len(string) > 1 and string[0] in ['\'', '"']:
-                string = string[1:]
-                found = True
-            if len(string) > 1 and string[-1] in ['\'', '"']:
-                string = string[:-1]
-                found = True
-            if not found:
-                break
-        return string
-    except Exception:
-        raise ValueError
-
-
-def normalize_path(basepath: str, append_slash=True) -> str:
-    """Converts path string to universal slash-concatenated string, enclosing slash is optional"""
-    normalized_path = basepath.replace('\\', SLASH)
-    if append_slash and len(normalized_path) != 0 and normalized_path[-1] != SLASH:
-        normalized_path += SLASH
-    return normalized_path
-
-
-def normalize_filename(filename: str, base_path: str) -> str:
-    """Returns full path to a file, normalizing base path and removing disallowed symbols from file name"""
-    return normalize_path(base_path) + re_replace_symbols.sub('_', filename)
-
-
-def has_naming_flag(flag: int) -> bool:
-    return not not (Config.naming_flags & flag)
-
-
-def calc_sleep_time(base_time: float) -> float:
-    """Returns either base_time for full download or shortened time otherwise"""
-    return base_time if Config.download_mode == DOWNLOAD_MODE_FULL else max(1.0, base_time / 3.0)
-
-
-def at_startup() -> None:
-    """Reports python version and run options"""
-    Log.debug(f'Python {sys.version}\nCommand-line args: {" ".join(sys.argv)}')
 
 
 class DownloadResult(IntEnum):

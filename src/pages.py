@@ -8,14 +8,17 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import sys
 from asyncio import run as run_async, sleep
-from re import compile as re_compile
 from typing import Sequence
 
-from cmdargs import prepare_arglist_pages, read_cmdfile, is_parsed_cmdfile
-from defs import Log, Config, LoggingFlags, HelpPrintExitException, prefixp, at_startup, SITE_AJAX_REQUEST_SEARCH_PAGE, SEARCH_RULE_ALL
+from cmdargs import prepare_arglist
+from config import Config
+from defs import HelpPrintExitException, PREFIX, SITE_AJAX_REQUEST_SEARCH_PAGE
 from download import download, at_interrupt
 from fetch_html import make_session, fetch_html
 from iinfo import AlbumInfo
+from logger import Log
+from rex import re_page_entry, re_paginator
+from util import at_startup
 from validators import find_and_resolve_config_conflicts
 
 __all__ = ('main_sync',)
@@ -23,50 +26,17 @@ __all__ = ('main_sync',)
 
 async def main(args: Sequence[str]) -> None:
     try:
-        arglist = prepare_arglist_pages(args)
-        while is_parsed_cmdfile(arglist):
-            arglist = prepare_arglist_pages(read_cmdfile(arglist.path))
+        arglist = prepare_arglist(args, True)
     except HelpPrintExitException:
         return
-    except Exception:
-        Log.fatal(f'\nUnable to parse cmdline. Exiting.\n{sys.exc_info()[0]}: {sys.exc_info()[1]}')
-        return
 
-    try:
-        Config.read(arglist, True)
-        search_str = arglist.search  # type: str
-        search_tags = arglist.search_tag  # type: str
-        search_arts = arglist.search_art  # type: str
-        search_cats = arglist.search_cat  # type: str
-        search_rule_tag = arglist.search_rule_tag  # type: str
-        search_rule_art = arglist.search_rule_art  # type: str
-        search_rule_cat = arglist.search_rule_cat  # type: str
-        allow_duplicates = arglist.no_deduplicate_names  # type: bool
+    Config.read(arglist, True)
 
-        re_page_entry = re_compile(r'albums/(\d+)/')
-        re_paginator = re_compile(r'from(?:_albums)?:(\d+)')
-        album_ref_class = 'th'
+    allow_duplicates = arglist.no_deduplicate_names  # type: bool
+    album_ref_class = 'th'
 
-        if Config.get_maxid:
-            Config.logging_flags = LoggingFlags.LOGGING_FATAL
-            Config.start = Config.end = Config.start_id = Config.end_id = 1
-
-        if Config.start_id > Config.end_id:
-            Log.fatal(f'\nError: invalid album id bounds: start ({Config.start_id:d}) > end ({Config.end_id:d})')
-            raise ValueError
-
-        if search_tags.find(',') != -1 and search_rule_tag == SEARCH_RULE_ALL:
-            search_tags = f'{SEARCH_RULE_ALL},{search_tags}'
-        if search_arts.find(',') != -1 and search_rule_art == SEARCH_RULE_ALL:
-            search_arts = f'{SEARCH_RULE_ALL},{search_arts}'
-        if search_cats.find(',') != -1 and search_rule_cat == SEARCH_RULE_ALL:
-            search_cats = f'{SEARCH_RULE_ALL},{search_cats}'
-
-        if find_and_resolve_config_conflicts() is True:
-            await sleep(3.0)
-    except Exception:
-        Log.fatal(f'\nError reading parsed arglist!\n{sys.exc_info()[0]}: {sys.exc_info()[1]}')
-        return
+    if find_and_resolve_config_conflicts() is True:
+        await sleep(3.0)
 
     def check_id_bounds(album_id: int) -> bool:
         if album_id > Config.end_id:
@@ -87,7 +57,7 @@ async def main(args: Sequence[str]) -> None:
                 Log.info('reached parsed max page, page scan completed')
                 break
 
-            page_addr = SITE_AJAX_REQUEST_SEARCH_PAGE % (search_tags, search_arts, search_cats, search_str, pi)
+            page_addr = SITE_AJAX_REQUEST_SEARCH_PAGE % (Config.search_tags, Config.search_arts, Config.search_cats, Config.search, pi)
             a_html = await fetch_html(page_addr, session=s)
             if not a_html:
                 Log.error(f'Error: cannot get html for page {pi:d}')
@@ -110,7 +80,7 @@ async def main(args: Sequence[str]) -> None:
             if Config.get_maxid:
                 miref = a_html.find('a', class_=album_ref_class)
                 max_id = re_page_entry.search(str(miref.get('href'))).group(1)
-                Log.fatal(f'{prefixp()[:2].upper()}: {max_id}')
+                Log.fatal(f'{PREFIX[:2].upper()}: {max_id}')
                 return
 
             Log.info(f'page {pi - 1:d}...{" (this is the last page!)" if (0 < maxpage == pi - 1) else ""}')
@@ -141,8 +111,8 @@ async def main(args: Sequence[str]) -> None:
                 if title not in known_names:
                     known_names[title] = v_entries[i]
                 else:
-                    Log.debug(f'Removing duplicate of {prefixp()}{known_names[title].my_id:d}: '
-                              f'{prefixp()}{v_entries[i].my_id:d} \'{v_entries[i].my_title}\'')
+                    Log.debug(f'Removing duplicate of {PREFIX}{known_names[title].my_id:d}: '
+                              f'{PREFIX}{v_entries[i].my_id:d} \'{v_entries[i].my_title}\'')
                     del v_entries[i]
             removed_count = orig_count - len(v_entries)
             if removed_count > 0:

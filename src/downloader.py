@@ -15,11 +15,11 @@ from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable, Un
 
 from aiohttp import ClientSession
 
-from defs import (
-    MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, Log, Config, DownloadResult, prefixp, calc_sleep_time, format_time,
-    get_elapsed_time_i, get_elapsed_time_s,
-)
+from config import Config
+from defs import MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DownloadResult, PREFIX
 from iinfo import AlbumInfo, ImageInfo
+from logger import Log
+from util import format_time, get_elapsed_time_i, get_elapsed_time_s, calc_sleep_time
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
 
@@ -63,11 +63,11 @@ class AlbumDownloadWorker:
 
     async def _at_task_start(self, ai: AlbumInfo) -> None:
         self._scans_active.append(ai)
-        Log.trace(f'[queue] album {prefixp()}{ai.my_id:d} added to queue')
+        Log.trace(f'[queue] album {PREFIX}{ai.my_id:d} added to queue')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
         self._scans_active.remove(ai)
-        Log.trace(f'[queue] album {prefixp()}{ai.my_id:d} removed from queue')
+        Log.trace(f'[queue] album {PREFIX}{ai.my_id:d} removed from queue')
         if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.DOWNLOAD_FAIL_SKIPPED:
@@ -118,7 +118,7 @@ class AlbumDownloadWorker:
     async def _after_download(self) -> None:
         self._done = True
         newline = '\n'
-        Log.info(f'\n[albums] {self._scanned_count:d} / {self._orig_count:d} albums enqueued for download, '
+        Log.info(f'\n[albums] {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
                  f'{self._filtered_count_after:d} already existed, '
                  f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
@@ -177,13 +177,13 @@ class ImageDownloadWorker:
 
     async def _at_task_start(self, ii: ImageInfo) -> None:
         self._downloads_active.append(ii)
-        Log.trace(f'[queue] image {prefixp()}{ii.my_id:d} added to queue')
+        Log.trace(f'[queue] image {PREFIX}{ii.my_id:d} added to queue')
 
     async def _at_task_finish(self, ii: ImageInfo, result: DownloadResult) -> None:
         self._downloads_active.remove(ii)
-        Log.trace(f'[queue] image {prefixp()}{ii.my_id:d} removed from queue')
+        Log.trace(f'[queue] image {PREFIX}{ii.my_id:d} removed from queue')
         if ii.my_album.all_done():
-            Log.info(f'Album {prefixp()}{ii.my_album.my_id:d}: all images processed')
+            Log.info(f'Album {PREFIX}{ii.my_album.my_id:d}: all images processed')
             ii.my_album.my_images.clear()
             ii.my_album.set_state(AlbumInfo.AlbumState.PROCESSED)
         if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
@@ -242,7 +242,7 @@ class ImageDownloadWorker:
 
     async def _after_download(self) -> None:
         newline = '\n'
-        Log.info(f'\nDone. {self._downloaded_count:d} / {self._orig_count:d} files downloaded, '
+        Log.info(f'\nDone. {self._downloaded_count:d} / {self._orig_count:d} file(s) downloaded, '
                  f'{self._filtered_count_after:d} already existed, '
                  f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
@@ -264,9 +264,9 @@ class ImageDownloadWorker:
         if len(self._writes_active) > 0:
             if Config.keep_unfinished:
                 unfinished_str = '\n '.join(f'{i + 1:d}) {s}' for i, s in enumerate(sorted(self._writes_active)))
-                Log.debug(f'at_interrupt: keeping {len(self._writes_active):d} unfinished files:\n {unfinished_str}')
+                Log.debug(f'at_interrupt: keeping {len(self._writes_active):d} unfinished file(s):\n {unfinished_str}')
                 return
-            Log.debug(f'at_interrupt: cleaning {len(self._writes_active):d} unfinished files...')
+            Log.debug(f'at_interrupt: cleaning {len(self._writes_active):d} unfinished file(s)...')
             for unfinished in sorted(self._writes_active):
                 Log.debug(f'at_interrupt: trying to remove \'{unfinished}\'...')
                 if path.isfile(unfinished):

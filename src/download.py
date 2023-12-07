@@ -9,21 +9,24 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from asyncio import sleep, get_running_loop, Task, CancelledError
 from os import path, stat, remove, makedirs
 from random import uniform as frand
-from re import compile as re_compile
 from typing import Optional, Iterable, Dict
 
 from aiofile import async_open
 from aiohttp import ClientSession, ClientResponse, ClientPayloadError
 
+from config import Config
 from defs import (
     CONNECT_RETRIES_BASE, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, DOWNLOAD_MODE_SKIP, DOWNLOAD_STATUS_CHECK_TIMER, TAGS_CONCAT_CHAR,
-    Log, Config, DownloadResult, NamingFlags, Mem, prefixp, has_naming_flag, re_replace_symbols,
+    DownloadResult, NamingFlags, Mem, PREFIX,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request
 from iinfo import AlbumInfo, ImageInfo, export_album_info
+from logger import Log
+from rex import re_replace_symbols, prepare_regex_search
 from scenario import DownloadScenario
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
+from util import has_naming_flag
 
 __all__ = ('download', 'at_interrupt')
 
@@ -41,7 +44,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn = AlbumDownloadWorker.get()
     idwn = ImageDownloadWorker.get()
     scenario = Config.scenario  # type: Optional[DownloadScenario]
-    sname = f'{prefixp()}{ai.my_id:d}.album'
+    sname = f'{PREFIX}{ai.my_id:d}.album'
 
     ai.set_state(AlbumInfo.AlbumState.ACTIVE)
     a_html = await fetch_html(ai.my_link, session=adwn.session)
@@ -112,8 +115,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.error(f'Cannot find download section for {sname}, failed!')
         return DownloadResult.DOWNLOAD_FAIL_RETRIES
 
-    re_flink = re_compile(rf'/{ai.my_id:d}/(\d+)(\.[^/]{{3,5}})/')
-    rc_ = prefixp() if has_naming_flag(NamingFlags.NAMING_FLAG_PREFIX) else ''
+    re_flink = prepare_regex_search(rf'/{ai.my_id:d}/(\d+)(\.[^/]{{3,5}})/')
+    rc_ = PREFIX if has_naming_flag(NamingFlags.NAMING_FLAG_PREFIX) else ''
     extra_len = 3 + 1  # 3 underscores + 1 extra slash
     fname = f'{rc_}{ai.my_id:d}{f"_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.NAMING_FLAG_TITLE) else ""}'
     if has_naming_flag(NamingFlags.NAMING_FLAG_TAGS):
@@ -141,7 +144,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
 async def check_image_download_status(idi: int, dest: str, resp: ClientResponse) -> None:
     idwn = ImageDownloadWorker.get()
-    sname = f'{prefixp()}{idi:d}.jpg'
+    sname = f'{PREFIX}{idi:d}.jpg'
     check_timer = float(DOWNLOAD_STATUS_CHECK_TIMER)
     try:
         # Log.trace(f'{sname} status check started...')
@@ -165,7 +168,7 @@ async def check_image_download_status(idi: int, dest: str, resp: ClientResponse)
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
-    sname = f'{prefixp()}{ii.my_id:d}.jpg'
+    sname = f'{PREFIX}{ii.my_id:d}.jpg'
     sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
     retries = 0
     ret = DownloadResult.DOWNLOAD_SUCCESS

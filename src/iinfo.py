@@ -10,7 +10,9 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Dict, Optional, Callable, Iterable, Union, List
 
-from defs import Config, normalize_path, normalize_filename, prefixp, UTF8
+from config import Config
+from defs import PREFIX, UTF8
+from util import normalize_path, normalize_filename
 
 __all__ = ('AlbumInfo', 'ImageInfo', 'export_album_info')
 
@@ -50,11 +52,11 @@ class AlbumInfo:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
 
     def __repr__(self) -> str:
-        return f'[{self.state_str}] \'{prefixp()}{self.my_id:d}.album\'\nDest: \'{self.my_folder}\'\nLink: \'{self.my_link}\''
+        return f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.album\'\nDest: \'{self.my_folder}\'\nLink: \'{self.my_link}\''
 
     @property
     def my_shortname(self) -> str:
-        return normalize_path(f'{prefixp()}{self.my_id:d}')
+        return normalize_path(f'{PREFIX}{self.my_id:d}')
 
     @property
     def my_sfolder(self) -> str:
@@ -109,13 +111,13 @@ class ImageInfo:
 
     def __repr__(self) -> str:
         return (
-            f'[{self.state_str}] \'{prefixp()}{self.my_id:d}.jpg\''
+            f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.jpg\''
             f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
         )
 
     @property
     def my_shortname(self) -> str:
-        return f'{self.my_sfolder}{self.my_album.my_shortname}{prefixp()}{self.my_id:d}{self.my_ext}'
+        return f'{self.my_sfolder}{self.my_album.my_shortname}{PREFIX}{self.my_id:d}{self.my_ext}'
 
     @property
     def my_sfolder(self) -> str:
@@ -151,9 +153,9 @@ async def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
             for subfolder, sdct in dct.items():
                 if len(sdct) > 0:
                     min_id, max_id = min(sdct.keys()), max(sdct.keys())
-                    fullpath = f'{Config.dest_base}{subfolder}{prefixp()}!{name}_{min_id:d}-{max_id:d}.txt'
+                    fullpath = f'{Config.dest_base}{subfolder}{PREFIX}!{name}_{min_id:d}-{max_id:d}.txt'
                     with open(fullpath, 'wt', encoding=UTF8) as sfile:
-                        sfile.writelines(f'{prefixp()}{idi:d}:{proc_cb(elem)}' for idi, elem in sorted(sdct.items(), key=lambda t: t[0]))
+                        sfile.writelines(f'{PREFIX}{idi:d}:{proc_cb(elem)}' for idi, elem in sorted(sdct.items(), key=lambda t: t[0]))
 
 #
 #
