@@ -37,6 +37,7 @@ LOGGING_DEFAULT = LOGGING_FLAGS_DEFAULT
 PARSER_TITLE_FILE = 'file'
 PARSER_TITLE_CMD = 'cmd'
 EXISTING_PARSERS = {PARSER_TITLE_CMD, PARSER_TITLE_FILE}
+"""'file','cmd'"""
 
 
 def read_cmdfile(cmdfile_path: str) -> List[str]:

@@ -106,6 +106,7 @@ class LoggingFlags(IntEnum):
     """0x004"""
     LOGGING_EX_LOW_SCORE = LOGGING_INFO
     """0x004"""
+    # unused
     LOGGING_ALL = LOGGING_FATAL | LOGGING_ERROR | LOGGING_WARN | LOGGING_INFO | LOGGING_DEBUG | LOGGING_TRACE
     """0x81F"""
 
@@ -134,6 +135,10 @@ HELP_ARG_IDSEQUENCE = (
     ' extra tags. Sequence structure: (id=<id1>~id=<id2>~id=<id3>~...~id=<idN>)'
 )
 HELP_ARG_PATH = 'Download destination. Default is current folder'
+HELP_ARG_SESSION_ID = (
+    '\'PHPSESSID\' cookie. Comments as well as some tags to search for are hidden behind login wall.'
+    ' Using this cookie from logged in account resolves that problem'
+)
 HELP_ARG_SEARCH_RULE = (
     f'Multiple search args of the same type combine logic. Default is \'{SEARCH_RULE_DEFAULT}\'.'
     f' Example: while searching for tags \'sfw,side_view\','
@@ -165,6 +170,14 @@ HELP_ARG_DWN_SCENARIO = (
     ' Example:'
     ' \'python ids.py -path ... -start ... -end ... --download-scenario'
     ' "1g: 1girl; 2g: 2girls -utp always"\''
+)
+HELP_ARG_MINRATING = (
+    '[DEPRECATED, DO NOT USE] Rating percentage filter for videos, 0-100.'
+    ' Videos having rating below this value will be skipped, unless rating extraction fails - in that case video always gets a pass'
+)
+HELP_ARG_MINSCORE = (
+    'Score filter for videos (likes minus dislikes).'
+    ' Videos having score below this value will be skipped, unless score extraction fails - in that case video always gets a pass'
 )
 HELP_ARG_CMDFILE = (
     'Full path to file containing cmdline arguments. Useful when cmdline length exceeds maximum for your OS.'

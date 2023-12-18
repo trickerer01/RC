@@ -11,8 +11,8 @@ from datetime import datetime
 
 from config import Config
 from defs import START_TIME, SLASH, DOWNLOAD_MODE_FULL
-from rex import re_replace_symbols
 from logger import Log
+from rex import re_replace_symbols
 
 
 def format_time(seconds: int) -> str:

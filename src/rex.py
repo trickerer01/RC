@@ -19,6 +19,7 @@ re_page_entry = re_compile(r'albums/(\d+)/')
 re_paginator = re_compile(r'from(?:_albums)?:(\d+)')
 # validators
 re_non_search_symbols = re_compile(r'[^\da-zA-Z._+\-\[\]]')
+re_session_id = re_compile(r'[a-z0-9]{26}')
 # tagger
 re_dict_keys_replace = re_compile(r'([^"]*)"([^\']+)\'([^"]+)"')
 re_wtag = re_compile(r'^[^?*]*[?*].*?$')

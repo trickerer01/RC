@@ -13,7 +13,7 @@ from os import path
 from config import Config
 from defs import NamingFlags, LoggingFlags, SLASH, NAMING_FLAGS, LOGGING_FLAGS, DOWNLOAD_POLICY_DEFAULT, SEARCH_RULE_ALL
 from logger import Log
-from rex import re_non_search_symbols
+from rex import re_non_search_symbols, re_session_id
 from util import normalize_path
 
 
@@ -56,10 +56,18 @@ def positive_nonzero_int(val: str) -> int:
     try:
         val = int(val)
         assert val > 0
+        return val
     except Exception:
         raise ArgumentError
 
-    return val
+
+def valid_rating(val: str) -> int:
+    try:
+        val = int(val)
+        assert 0 <= val <= 100
+        return val
+    except Exception:
+        raise ArgumentError
 
 
 def valid_path(pathstr: str) -> str:
@@ -82,16 +90,14 @@ def valid_filepath_abs(pathstr: str) -> str:
 
 def valid_search_string(search_str: str) -> str:
     try:
-
-        if len(search_str) > 0 and re_non_search_symbols.search(search_str):
-            raise ValueError
+        assert len(search_str) == 0 or re_non_search_symbols.search(search_str) is None
+        return search_str
     except Exception:
         raise ArgumentError
 
-    return search_str
-
 
 def valid_proxy(prox: str) -> str:
+    from ctypes import sizeof, c_uint16
     try:
         try:
             pt, pv = tuple(prox.split('://', 1))
@@ -104,7 +110,7 @@ def valid_proxy(prox: str) -> str:
         try:
             pv, pp = tuple(pv.split(':', 1))
         except ValueError:
-            Log.error('Failed to split proxy value and port!')
+            Log.error('Failed to split proxy address and port!')
             raise
         try:
             pva = IPv4Address(pv)
@@ -113,14 +119,13 @@ def valid_proxy(prox: str) -> str:
             raise
         try:
             ppi = int(pp)
-            assert 20 < ppi < 65535
-        except (ValueError, AssertionError,):
-            Log.error(f'Invalid proxy ip port value \'{pp}\'!')
+            assert 20 < ppi < 2 ** (8 * sizeof(c_uint16))
+        except (ValueError, AssertionError):
+            Log.error(f'Invalid proxy port value \'{pp}\'!')
             raise
+        return f'{pt}://{str(pva)}:{ppi:d}'
     except Exception:
         raise ArgumentError
-
-    return f'{pt}://{str(pva)}:{ppi:d}'
 
 
 def naming_flags(flags: str) -> int:
@@ -137,9 +142,17 @@ def naming_flags(flags: str) -> int:
         raise ArgumentError
 
 
-def log_level(level: str) -> LoggingFlags:
+def log_level(level: str) -> int:
     try:
-        return LoggingFlags(int(LOGGING_FLAGS[level], 16))
+        return int(LOGGING_FLAGS[level], 16)
+    except Exception:
+        raise ArgumentError
+
+
+def valid_session_id(sessionid: str) -> str:
+    try:
+        assert (not sessionid) or re_session_id.fullmatch(sessionid)
+        return sessionid
     except Exception:
         raise ArgumentError
 

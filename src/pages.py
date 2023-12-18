@@ -134,9 +134,9 @@ def main_sync(args: Sequence[str]) -> None:
 
     try:
         run_async(run_main(args))
-    except (KeyboardInterrupt, SystemExit, Exception) as e:
-        if isinstance(e, (KeyboardInterrupt, SystemExit)):
-            Log.warn('Warning: catched KeyboardInterrupt/SystemExit...')
+    except (KeyboardInterrupt, SystemExit):
+        Log.warn('Warning: catched KeyboardInterrupt/SystemExit...')
+    finally:
         at_interrupt()
 
 

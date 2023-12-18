@@ -16,7 +16,7 @@ from defs import CONNECT_TIMEOUT_BASE
 __all__ = ('Config',)
 
 
-class BaseConfig(object):
+class BaseConfig:
     """Parameters container for params used in both **pages** and **ids** modes"""
     def __init__(self) -> None:
         self.dest_base = None  # type: Optional[str]
