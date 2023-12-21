@@ -68,13 +68,13 @@ class AlbumDownloadWorker:
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
         self._scans_active.remove(ai)
         Log.trace(f'[queue] album {PREFIX}{ai.my_id:d} removed from queue')
-        if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
+        if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
-        elif result == DownloadResult.DOWNLOAD_FAIL_SKIPPED:
+        elif result == DownloadResult.FAIL_SKIPPED:
             self._skipped_count += 1
-        elif result == DownloadResult.DOWNLOAD_FAIL_RETRIES:
+        elif result == DownloadResult.FAIL_RETRIES:
             self._failed_items.append(ai.my_id)
-        elif result == DownloadResult.DOWNLOAD_SUCCESS:
+        elif result == DownloadResult.SUCCESS:
             self._scanned_count += 1
 
     async def _prod(self) -> None:
@@ -186,13 +186,13 @@ class ImageDownloadWorker:
             Log.info(f'Album {PREFIX}{ii.my_album.my_id:d}: all images processed')
             ii.my_album.my_images.clear()
             ii.my_album.set_state(AlbumInfo.AlbumState.PROCESSED)
-        if result == DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS:
+        if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
-        elif result == DownloadResult.DOWNLOAD_FAIL_SKIPPED:
+        elif result == DownloadResult.FAIL_SKIPPED:
             self._skipped_count += 1
-        elif result == DownloadResult.DOWNLOAD_FAIL_RETRIES:
+        elif result == DownloadResult.FAIL_RETRIES:
             self._failed_items.append(ii.my_shortname)
-        elif result == DownloadResult.DOWNLOAD_SUCCESS:
+        elif result == DownloadResult.SUCCESS:
             self._downloaded_count += 1
 
     async def _prod(self) -> None:

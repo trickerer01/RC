@@ -23,7 +23,7 @@ def find_and_resolve_config_conflicts() -> bool:
         raise ValueError
 
     if Config.get_maxid:
-        Config.logging_flags = LoggingFlags.LOGGING_FATAL
+        Config.logging_flags = LoggingFlags.FATAL
         Config.start = Config.end = Config.start_id = Config.end_id = 1
 
     if Config.search_tags.find(',') != -1 and Config.search_rule_tag == SEARCH_RULE_ALL:
@@ -132,7 +132,7 @@ def naming_flags(flags: str) -> int:
     try:
         if flags[0].isnumeric():
             intflags = int(flags, base=16 if flags.startswith('0x') else 10)
-            assert intflags & ~NamingFlags.NAMING_FLAGS_ALL == 0
+            assert intflags & ~NamingFlags.ALL == 0
         else:
             intflags = 0
             for fname in flags.split('|'):

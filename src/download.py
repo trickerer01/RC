@@ -50,11 +50,11 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     a_html = await fetch_html(ai.my_link, session=adwn.session)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
-        return DownloadResult.DOWNLOAD_FAIL_RETRIES
+        return DownloadResult.FAIL_RETRIES
 
     if a_html.find('title', string='404 Not Found'):
         Log.error(f'Got error 404 for {sname}, skipping...')
-        return DownloadResult.DOWNLOAD_FAIL_SKIPPED
+        return DownloadResult.FAIL_SKIPPED
 
     if not ai.my_title:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
@@ -79,7 +79,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             tags_raw.append(add_tag)
     if is_filtered_out_by_extra_tags(ai.my_id, tags_raw, Config.extra_tags, False, ai.my_subfolder):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
-        return DownloadResult.DOWNLOAD_FAIL_SKIPPED
+        return DownloadResult.FAIL_SKIPPED
     if scenario is not None:
         matching_sq = scenario.get_matching_subquery(ai.my_id, tags_raw)
         utpalways_sq = scenario.get_utp_always_subquery() if tdiv is None else None
@@ -89,10 +89,10 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             ai.my_subfolder = utpalways_sq.subfolder
         else:
             Log.info(f'Info: unable to find matching or utp scenario subquery for {sname}, skipping...')
-            return DownloadResult.DOWNLOAD_FAIL_SKIPPED
+            return DownloadResult.FAIL_SKIPPED
     elif tdiv is None and len(Config.extra_tags) > 0 and Config.utp != DOWNLOAD_POLICY_ALWAYS:
         Log.warn(f'Warning: could not extract tags from {sname}, skipping due to untagged albums download policy...')
-        return DownloadResult.DOWNLOAD_FAIL_SKIPPED
+        return DownloadResult.FAIL_SKIPPED
     if Config.save_tags:
         ai.my_tags = ' '.join(sorted(tags_raw))
     if Config.save_comments:
@@ -113,13 +113,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         file_links = [str(aref.get('href')) for aref in file_arefs]
     except Exception:
         Log.error(f'Cannot find download section for {sname}, failed!')
-        return DownloadResult.DOWNLOAD_FAIL_RETRIES
+        return DownloadResult.FAIL_RETRIES
 
     re_flink = prepare_regex_search(rf'/{ai.my_id:d}/(\d+)(\.[^/]{{3,5}})/')
-    rc_ = PREFIX if has_naming_flag(NamingFlags.NAMING_FLAG_PREFIX) else ''
+    rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
     extra_len = 3 + 1  # 3 underscores + 1 extra slash
-    fname = f'{rc_}{ai.my_id:d}{f"_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.NAMING_FLAG_TITLE) else ""}'
-    if has_naming_flag(NamingFlags.NAMING_FLAG_TAGS):
+    fname = f'{rc_}{ai.my_id:d}{f"_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.TITLE) else ""}'
+    if has_naming_flag(NamingFlags.TAGS):
         while len(my_tags) > max(0, 200 - (len(ai.my_folder_full) + len(fname) + extra_len)):
             my_tags = my_tags[:max(0, my_tags.rfind(TAGS_CONCAT_CHAR))]
         fname = f'{fname}{f"_({my_tags})" if len(my_tags) > 0 else ""}'
@@ -133,13 +133,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     if path.isdir(ai.my_folder_full) and all(path.isfile(imi.my_fullpath) for imi in ai.my_images):
         Log.info(f'Album {sname} \'{ai.my_name}\' and all its {len(ai.my_images):d} images already exist. Skipped.')
         ai.my_images.clear()
-        return DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS
+        return DownloadResult.FAIL_ALREADY_EXISTS
 
     Log.info(f'{sname}: {len(ai.my_images):d} images')
     [idwn.store_image_info(ii) for ii in ai.my_images]
 
     ai.set_state(AlbumInfo.AlbumState.SCANNED)
-    return DownloadResult.DOWNLOAD_SUCCESS
+    return DownloadResult.SUCCESS
 
 
 async def check_image_download_status(idi: int, dest: str, resp: ClientResponse) -> None:
@@ -171,7 +171,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     sname = f'{PREFIX}{ii.my_id:d}.jpg'
     sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
     retries = 0
-    ret = DownloadResult.DOWNLOAD_SUCCESS
+    ret = DownloadResult.SUCCESS
     skip = Config.dm == DOWNLOAD_MODE_SKIP
     status_checker = None  # type: Optional[Task]
 
@@ -188,7 +188,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             rv_curfile = path.isfile(ii.my_fullpath)
             if rv_curfile and Config.continue_mode is False:
                 Log.info(f'{ii.my_filename} already exists. Skipped.')
-                return DownloadResult.DOWNLOAD_FAIL_ALREADY_EXISTS
+                return DownloadResult.FAIL_ALREADY_EXISTS
 
     while (not skip) and retries < CONNECT_RETRIES_BASE:
         try:
@@ -212,7 +212,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 if r.status == 404:
                     Log.error(f'Got 404 for {sname}...!')
                     retries = CONNECT_RETRIES_BASE - 1
-                    ret = DownloadResult.DOWNLOAD_FAIL_NOT_FOUND
+                    ret = DownloadResult.FAIL_NOT_FOUND
                 if r.content_type and r.content_type.find('text') != -1:
                     Log.error(f'File not found at {ii.my_link}!')
                     raise FileNotFoundError(ii.my_link)
@@ -258,11 +258,11 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 remove(ii.my_fullpath)
 
-    ret = (ret if ret == DownloadResult.DOWNLOAD_FAIL_NOT_FOUND else
-           DownloadResult.DOWNLOAD_SUCCESS if retries < CONNECT_RETRIES_BASE else
-           DownloadResult.DOWNLOAD_FAIL_RETRIES)
+    ret = (ret if ret == DownloadResult.FAIL_NOT_FOUND else
+           DownloadResult.SUCCESS if retries < CONNECT_RETRIES_BASE else
+           DownloadResult.FAIL_RETRIES)
 
-    if ret != DownloadResult.DOWNLOAD_SUCCESS:
+    if ret != DownloadResult.SUCCESS:
         ii.set_state(ImageInfo.ImageState.FAILED)
 
     return ret
