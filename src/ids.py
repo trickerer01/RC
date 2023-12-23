@@ -10,9 +10,9 @@ import sys
 from asyncio import run as run_async, sleep
 from typing import Sequence
 
-from cmdargs import prepare_arglist
+from cmdargs import prepare_arglist, HelpPrintExitException
 from config import Config
-from defs import HelpPrintExitException, SITE_AJAX_REQUEST_ALBUM
+from defs import SITE_AJAX_REQUEST_ALBUM
 from download import download, at_interrupt
 from fetch_html import make_session
 from iinfo import AlbumInfo

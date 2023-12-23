@@ -11,7 +11,7 @@ from os import path
 from typing import List, Sequence, Tuple
 
 from defs import (
-    HelpPrintExitException, UTF8, APP_NAME, APP_VERSION, ACTION_STORE_TRUE, HELP_ARG_PATH, HELP_ARG_SEARCH_STR, HELP_ARG_PROXY,
+    UTF8, APP_NAME, APP_VERSION, ACTION_STORE_TRUE, HELP_ARG_PATH, HELP_ARG_SEARCH_STR, HELP_ARG_PROXY,
     HELP_ARG_BEGIN_STOP_ID, HELP_ARG_GET_MAXID, HELP_ARG_EXTRA_TAGS, HELP_ARG_UTPOLICY, UALBUM_POLICIES, DOWNLOAD_POLICY_DEFAULT,
     DOWNLOAD_MODES, DOWNLOAD_MODE_DEFAULT, NAMING_FLAGS_DEFAULT, LOGGING_FLAGS_DEFAULT, HELP_ARG_DMMODE, HELP_ARG_DWN_SCENARIO,
     HELP_ARG_CMDFILE, HELP_ARG_NAMING, HELP_ARG_LOGGING, HELP_ARG_IDSEQUENCE, HELP_ARG_CONTINUE, HELP_ARG_UNFINISH, HELP_ARG_DUMP_INFO,
@@ -23,7 +23,7 @@ from scenario import DownloadScenario
 from tagger import valid_extra_tag, valid_tags, valid_artists, valid_categories
 from validators import positive_nonzero_int, valid_path, valid_filepath_abs, valid_search_string, valid_proxy, naming_flags, log_level
 
-__all__ = ('prepare_arglist',)
+__all__ = ('prepare_arglist', 'HelpPrintExitException')
 
 UTP_DEFAULT = DOWNLOAD_POLICY_DEFAULT
 """'nofilters'"""
@@ -38,6 +38,10 @@ PARSER_TITLE_FILE = 'file'
 PARSER_TITLE_CMD = 'cmd'
 EXISTING_PARSERS = {PARSER_TITLE_CMD, PARSER_TITLE_FILE}
 """'file','cmd'"""
+
+
+class HelpPrintExitException(Exception):
+    pass
 
 
 def read_cmdfile(cmdfile_path: str) -> List[str]:
