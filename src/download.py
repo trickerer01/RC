@@ -213,7 +213,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     Log.error(f'Got 404 for {sname}...!')
                     retries = CONNECT_RETRIES_BASE - 1
                     ret = DownloadResult.FAIL_NOT_FOUND
-                if r.content_type and r.content_type.find('text') != -1:
+                if r.content_type and 'text' in r.content_type:
                     Log.error(f'File not found at {ii.my_link}!')
                     raise FileNotFoundError(ii.my_link)
 
