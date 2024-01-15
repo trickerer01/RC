@@ -12,7 +12,9 @@ from typing import Sequence
 
 from cmdargs import prepare_arglist, HelpPrintExitException
 from config import Config
-from defs import PREFIX, SITE_AJAX_REQUEST_SEARCH_PAGE
+from defs import (
+    PREFIX, SITE_AJAX_REQUEST_SEARCH_PAGE,
+)
 from download import download, at_interrupt
 from fetch_html import make_session, fetch_html
 from iinfo import AlbumInfo
@@ -32,7 +34,7 @@ async def main(args: Sequence[str]) -> None:
 
     Config.read(arglist, True)
 
-    allow_duplicates = arglist.no_deduplicate_names  # type: bool
+    allow_duplicates = arglist.allow_duplicate_names  # type: bool
     album_ref_class = 'th'
 
     if find_and_resolve_config_conflicts() is True:
@@ -51,13 +53,17 @@ async def main(args: Sequence[str]) -> None:
     maxpage = Config.end if Config.start == Config.end else 0
 
     pi = Config.start
-    async with await make_session() as s:
+    async with make_session() as s:
         while pi <= Config.end:
             if pi > maxpage > 0:
                 Log.info('reached parsed max page, page scan completed')
                 break
 
-            page_addr = SITE_AJAX_REQUEST_SEARCH_PAGE % (Config.search_tags, Config.search_arts, Config.search_cats, Config.search, pi)
+            page_addr = (
+                # (SITE_AJAX_REQUEST_PLAYLIST_PAGE % (Config.playlist_id, Config.playlist_name, pi)) if Config.playlist_name else
+                # (SITE_AJAX_REQUEST_UPLOADER_PAGE % (Config.uploader, pi)) if Config.uploader else
+                (SITE_AJAX_REQUEST_SEARCH_PAGE % (Config.search_tags, Config.search_arts, Config.search_cats, Config.search, pi))
+            )
             a_html = await fetch_html(page_addr, session=s)
             if not a_html:
                 Log.error(f'Error: cannot get html for page {pi:d}')
@@ -94,17 +100,13 @@ async def main(args: Sequence[str]) -> None:
                 elif cur_id in v_entries:
                     Log.warn(f'Warning: id {cur_id:d} already queued, skipping')
                     continue
-                my_title = str(aref.get('title'))
-                v_entries.append(AlbumInfo(cur_id, href, my_title))
-
-        if len(v_entries) == 0:
-            Log.fatal('\nNo albums found. Aborted.')
-            return
+                my_title = aref.parent.find('div', class_='thumb_title').text
+                v_entries.append(AlbumInfo(cur_id, my_title))
 
         v_entries.reverse()
+        orig_count = len(v_entries)
 
         if allow_duplicates is False:
-            orig_count = len(v_entries)
             known_names = dict()
             for i in reversed(range(len(v_entries))):  # type: int
                 title = v_entries[i].my_title.lower()
@@ -114,12 +116,21 @@ async def main(args: Sequence[str]) -> None:
                     Log.debug(f'Removing duplicate of {PREFIX}{known_names[title].my_id:d}: '
                               f'{PREFIX}{v_entries[i].my_id:d} \'{v_entries[i].my_title}\'')
                     del v_entries[i]
-            removed_count = orig_count - len(v_entries)
-            if removed_count > 0:
-                Log.info(f'[Deduplicate] {removed_count:d} / {orig_count:d} albums were removed as duplicates!')
+
+        removed_count = orig_count - len(v_entries)
+
+        if orig_count == removed_count:
+            if orig_count > 0:
+                Log.fatal(f'\nAll {orig_count:d} albums already exist. Aborted.')
+            else:
+                Log.fatal('\nNo albums found. Aborted.')
+            return
+
+        if removed_count > 0:
+            Log.info(f'[Deduplicate] {removed_count:d} / {orig_count:d} albums were removed as duplicates!')
 
         minid, maxid = min(v_entries, key=lambda x: x.my_id).my_id, max(v_entries, key=lambda x: x.my_id).my_id
-        Log.info(f'\nOk! {len(v_entries):d} ids, bound {minid:d} to {maxid:d}. Working...\n')
+        Log.info(f'\nOk! {len(v_entries):d} ids (+{removed_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n')
 
         await download(v_entries, s)
 

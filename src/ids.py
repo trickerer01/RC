@@ -12,9 +12,7 @@ from typing import Sequence
 
 from cmdargs import prepare_arglist, HelpPrintExitException
 from config import Config
-from defs import SITE_AJAX_REQUEST_ALBUM
 from download import download, at_interrupt
-from fetch_html import make_session
 from iinfo import AlbumInfo
 from logger import Log
 from tagger import try_parse_id_or_group
@@ -32,30 +30,31 @@ async def main(args: Sequence[str]) -> None:
 
     Config.read(arglist, False)
 
-    id_sequence = try_parse_id_or_group(Config.extra_tags) if Config.use_id_sequence else [int()] * 0
-    if Config.use_id_sequence is True and len(id_sequence) == 0:
-        Log.fatal(f'\nInvalid ID \'or\' group \'{Config.extra_tags[0] if len(Config.extra_tags) > 0 else ""}\'!')
-        raise ValueError
+    if Config.use_id_sequence:
+        Config.id_sequence = try_parse_id_or_group(Config.extra_tags)
+        if not Config.id_sequence:
+            Log.fatal('\nNo ID \'or\' group provided!' if not Config.extra_tags else
+                      f'\nInvalid ID \'or\' group: \'{Config.extra_tags[0]}\'!' if len(Config.extra_tags) == 1 else
+                      '\nID \'or\' group must be the only extra tag used!')
+            raise ValueError
+        Config.extra_tags.clear()
+    else:
+        Config.id_sequence = list(range(Config.start_id, Config.end_id + 1))
 
     if find_and_resolve_config_conflicts() is True:
         await sleep(3.0)
 
-    async with await make_session() as s:
-        if len(id_sequence) == 0:
-            id_sequence = list(range(Config.start_id, Config.end_id + 1))
-        else:
-            Config.extra_tags.clear()
+    v_entries = [AlbumInfo(idi) for idi in Config.id_sequence]
+    orig_count = len(v_entries)
 
-        v_entries = [AlbumInfo(idi, SITE_AJAX_REQUEST_ALBUM % (idi, 'z')) for idi in id_sequence]
+    if orig_count == 0:
+        Log.fatal('\nNo albums found. Aborted.')
+        return
 
-        if len(v_entries) == 0:
-            Log.fatal('\nNo albums found. Aborted.')
-            return
+    minid, maxid = min(v_entries, key=lambda x: x.my_id).my_id, max(v_entries, key=lambda x: x.my_id).my_id
+    Log.info(f'\nOk! {len(v_entries):d} ids, bound {minid:d} to {maxid:d}. Working...\n')
 
-        minid, maxid = min(v_entries, key=lambda x: x.my_id).my_id, max(v_entries, key=lambda x: x.my_id).my_id
-        Log.info(f'\nOk! {len(v_entries):d} ids, bound {minid:d} to {maxid:d}. Working...\n')
-
-        await download(v_entries, s)
+    await download(v_entries)
 
 
 async def run_main(args: Sequence[str]) -> None:

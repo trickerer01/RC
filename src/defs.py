@@ -17,35 +17,43 @@ CONNECT_RETRIES_BASE = 50
 CONNECT_TIMEOUT_BASE = 10
 CONNECT_REQUEST_DELAY = 0.2
 
+# MAX_DEST_SCAN_SUB_DEPTH = 1
 MAX_IMAGES_QUEUE_SIZE = 10
 DOWNLOAD_STATUS_CHECK_TIMER = 60
 DOWNLOAD_QUEUE_STALL_CHECK_TIMER = 30
+
+# SCREENSHOTS_COUNT = 10
 
 PREFIX = 'rc_'
 SLASH = '/'
 UTF8 = 'utf-8'
 TAGS_CONCAT_CHAR = ','
-EXTENSIONS_I = ('jpg', 'jpeg')
+DEFAULT_EXT = 'jpg'
+EXTENSIONS_I = (DEFAULT_EXT, 'jpeg')
 START_TIME = datetime.now()
 
 SITE = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
-SITE_AJAX_REQUEST_SEARCH_PAGE = b64decode(
-    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hZHZhbmNlZC1zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2FsYnVtc1'
-    '9saXN0X3NlYXJjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1z'
-    'PSVk').decode()
+SITE_AJAX_REQUEST_SEARCH_PAGE = (
+    f'{SITE}/search/?mode=async&function=get_block&block_id=list_albums_albums_list_search_result&flag1='
+    f'&sort_by=post_date&tag_ids=%s&model_ids=%s&category_ids=%s&q=%s&from_albums=%d'
+)
 """Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
 Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
-SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hbGJ1bXMvJWQvJXMv').decode()
-"""Params required: **album_id**, **album_name** - **int**, **str**\n
-Ex. SITE_AJAX_REQUEST_ALBUM % (11111, 'sfw')"""
+SITE_AJAX_REQUEST_ALBUM = f'{SITE}/comics/%d/a/'
+"""Params required: **album_id** - **int**\n
+Ex. SITE_AJAX_REQUEST_ALBUM % 11111"""
+# SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
+#     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
+# """Params required: **user_id**, **page** - **int**, **int**\n
+# Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
 
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.0'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.2'
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
 
 # untagged albums download policy
 DOWNLOAD_POLICY_NOFILTERS = 'nofilters'
 DOWNLOAD_POLICY_ALWAYS = 'always'
-UALBUM_POLICIES = (DOWNLOAD_POLICY_NOFILTERS, DOWNLOAD_POLICY_ALWAYS)
+UNTAGGED_POLICIES = (DOWNLOAD_POLICY_NOFILTERS, DOWNLOAD_POLICY_ALWAYS)
 """('nofilters','always')"""
 DOWNLOAD_POLICY_DEFAULT = DOWNLOAD_POLICY_NOFILTERS
 """'nofilters'"""
@@ -71,24 +79,26 @@ SEARCH_RULE_DEFAULT = SEARCH_RULE_ALL
 class NamingFlags:
     NONE = 0x00
     PREFIX = 0x01
-    TITLE = 0x02
-    TAGS = 0x04
-    ALL = PREFIX | TITLE | TAGS
-    """0x07"""
+    SCORE = 0x02
+    TITLE = 0x04
+    TAGS = 0x08
+    ALL = PREFIX | SCORE | TITLE | TAGS
+    """0x0F"""
 
 
 NAMING_FLAGS = {
     'none': f'0x{NamingFlags.NONE:02X}',
     'prefix': f'0x{NamingFlags.PREFIX:02X}',
+    'score': f'0x{NamingFlags.SCORE:02X}',
     'title': f'0x{NamingFlags.TITLE:02X}',
     'tags': f'0x{NamingFlags.TAGS:02X}',
     'full': f'0x{NamingFlags.ALL:02X}'
 }
 """
-{\n\n'none': '0x00',\n\n'prefix': '0x01',\n\n'title': '0x02',\n\n'tags': '0x04',\n\n'full': '0x07'\n\n}
+{\n\n'none': '0x00',\n\n'prefix': '0x01',\n\n'score': '0x02',\n\n'title': '0x04',\n\n'tags': '0x08',\n\n'full': '0x0F'\n\n}
 """
 NAMING_FLAGS_DEFAULT = NamingFlags.ALL
-"""0x07"""
+"""0x0F"""
 
 
 class LoggingFlags(IntEnum):
@@ -146,13 +156,14 @@ HELP_ARG_SEARCH_RULE = (
 )
 HELP_ARG_SEARCH_ACT = (
     'Native search by tag(s) / artist(s) / category(ies). Spaces must be replced with \'_\', concatenate with \',\'.'
-    ' Example: \'-search_tag 1girl,side_view -search_art artist_name -search_cat category_name\''
+    ' Example: \'-search_tag 1girl,side_view -search_art artist_name -search_cat category_name\'.'
+    ' Note that search obeys \'AND\' rule: search string AND ANY_OF/ALL the tags AND ANY_OF/ALL the artists AND ANY_OF/ALL the categories'
 )
 HELP_ARG_SEARCH_STR = 'Native search using string query (matching any word). Spaces must be replced with \'-\'. Ex. \'after-hours\''
 HELP_ARG_PROXY = 'Proxy to use. Example: http://127.0.0.1:222'
 HELP_ARG_UTPOLICY = (
     f'Untagged albums download policy. By default these albums are ignored if you use extra \'tags\' / \'-tags\'.'
-    f' Use \'{DOWNLOAD_POLICY_ALWAYS}\' to override'
+    f' \'{DOWNLOAD_POLICY_ALWAYS}\' to override'
 )
 HELP_ARG_DMMODE = '[Debug] Download (file creation) mode'
 HELP_ARG_EXTRA_TAGS = (
@@ -172,12 +183,12 @@ HELP_ARG_DWN_SCENARIO = (
     ' "1g: 1girl; 2g: 2girls -utp always"\''
 )
 HELP_ARG_MINRATING = (
-    '[DEPRECATED, DO NOT USE] Rating percentage filter for videos, 0-100.'
-    ' Videos having rating below this value will be skipped, unless rating extraction fails - in that case video always gets a pass'
+    'Rating percentage filter, 0-100.'
+    ' Albums having rating below this value will be skipped, unless rating extraction fails - in that case album always gets a pass'
 )
 HELP_ARG_MINSCORE = (
-    'Score filter for videos (likes minus dislikes).'
-    ' Videos having score below this value will be skipped, unless score extraction fails - in that case video always gets a pass'
+    'Score filter (likes minus dislikes).'
+    ' Albums having score below this value will be skipped, unless score extraction fails - in that case album always gets a pass'
 )
 HELP_ARG_CMDFILE = (
     'Full path to file containing cmdline arguments. Useful when cmdline length exceeds maximum for your OS.'
@@ -185,7 +196,7 @@ HELP_ARG_CMDFILE = (
 )
 HELP_ARG_NAMING = (
     f'Album folder naming flags: {str(NAMING_FLAGS).replace(" ", "").replace(":", "=")}.'
-    f' You can combine them via names \'prefix|title\', otherwise it has to be an int or a hex number.'
+    f' You can combine them via names \'prefix|score|title\', otherwise it has to be an int or a hex number.'
     f' Default is \'full\''
 )
 HELP_ARG_LOGGING = (
@@ -196,7 +207,8 @@ HELP_ARG_DUMP_INFO = 'Save tags / comments to text file (separately)'
 HELP_ARG_CONTINUE = 'Try to continue unfinished files, may be slower if most files already exist'
 HELP_ARG_UNFINISH = 'Do not clean up unfinished files on interrupt'
 HELP_ARG_TIMEOUT = 'Connection timeout (in seconds)'
-HELP_ARG_NO_DEDUPLICATE = (
+HELP_ARG_UPLOADER = 'Uploader user id (integer, filters still apply)'
+HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable deduplication of search results (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
 )

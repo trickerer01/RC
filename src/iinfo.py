@@ -8,7 +8,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 from __future__ import annotations
 from enum import IntEnum
-from typing import Dict, Optional, Callable, Iterable, Union, List
+from typing import Dict, Iterable, Union, List
 
 from config import Config
 from defs import PREFIX, UTF8
@@ -18,41 +18,45 @@ __all__ = ('AlbumInfo', 'ImageInfo', 'export_album_info')
 
 
 class AlbumInfo:
-    class AlbumState(IntEnum):
+    class State(IntEnum):
         NEW = 0
         QUEUED = 1
         ACTIVE = 2
         SCANNED = 3
         PROCESSED = 4
 
-    def __init__(self, m_id: int, m_link: str, m_title='') -> None:
+    def __init__(self, m_id: int, m_title='') -> None:
         self.my_id = m_id or 0
-        self.my_link = m_link or ''
         self.my_title = m_title or ''
 
         self.my_subfolder = ''
         self.my_name = ''
+        self.my_rating = ''
 
         self.my_tags = ''
+        self.my_description = ''
         self.my_comments = ''
         self.my_images = list()  # type: List[ImageInfo]
-        self._state = AlbumInfo.AlbumState.NEW
+        self._state = AlbumInfo.State.NEW
 
-    def set_state(self, state: AlbumInfo.AlbumState) -> None:
+    def set_state(self, state: AlbumInfo.State) -> None:
         self._state = state
 
     @property
-    def state(self) -> AlbumInfo.AlbumState:
+    def state(self) -> AlbumInfo.State:
         return self._state
 
     def all_done(self) -> bool:
-        return all(ii.state == ImageInfo.ImageState.DONE for ii in self.my_images) if self.my_images else False
+        return all(ii.state == ImageInfo.State.DONE for ii in self.my_images) if self.my_images else False
 
     def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
 
     def __repr__(self) -> str:
-        return f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.album\'\nDest: \'{self.my_folder}\'\nLink: \'{self.my_link}\''
+        return (
+            f'[{self.state_str}] \'{PREFIX}{self.my_id:d}_{self.my_title}.album\''
+            f'\nDest: \'{self.my_folder}\''
+        )
 
     @property
     def my_shortname(self) -> str:
@@ -67,12 +71,12 @@ class AlbumInfo:
         return normalize_path(f'{self.my_sfolder}{self.my_name}')
 
     @property
-    def my_folder(self) -> str:
+    def my_folder_base(self) -> str:
         return normalize_path(f'{Config.dest_base}{self.my_subfolder}')
 
     @property
-    def my_folder_full(self) -> str:
-        return normalize_path(f'{self.my_folder}{self.my_name}')
+    def my_folder(self) -> str:
+        return normalize_path(f'{self.my_folder_base}{self.my_name}')
 
     @property
     def state_str(self) -> str:
@@ -80,7 +84,7 @@ class AlbumInfo:
 
 
 class ImageInfo:
-    class ImageState(IntEnum):
+    class State(IntEnum):
         NEW = 0
         QUEUED = 1
         ACTIVE = 2
@@ -97,23 +101,20 @@ class ImageInfo:
         self.my_ext = self.my_filename[self.my_filename.rfind('.'):]
 
         self.my_expected_size = 0
-        self._state = ImageInfo.ImageState.NEW
+        self._state = ImageInfo.State.NEW
 
-    def set_state(self, state: ImageInfo.ImageState) -> None:
+    def set_state(self, state: ImageInfo.State) -> None:
         self._state = state
 
     @property
-    def state(self) -> ImageInfo.ImageState:
+    def state(self) -> ImageInfo.State:
         return self._state
 
     def __eq__(self, other: Union[ImageInfo, int]) -> bool:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
 
     def __repr__(self) -> str:
-        return (
-            f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.jpg\''
-            f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
-        )
+        return f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.jpg\'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
 
     @property
     def my_shortname(self) -> str:
@@ -124,38 +125,43 @@ class ImageInfo:
         return self.my_album.my_sfolder
 
     @property
-    def my_folder_full(self) -> str:
-        return self.my_album.my_folder_full
+    def my_folder(self) -> str:
+        return self.my_album.my_folder
 
     @property
     def my_fullpath(self) -> str:
-        return normalize_filename(self.my_filename, self.my_album.my_folder_full)
+        return normalize_filename(self.my_filename, self.my_folder)
 
     @property
     def state_str(self) -> str:
         return self._state.name
 
 
-async def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
-    """Saves tags and comments for each subfolder in scenario and base dest folder based on album info"""
-    tags_dict, comm_dict = dict(), dict()  # type: Dict[str, Dict[int, str]]
+def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
+    """Saves tags, descriptions and comments for each subfolder in scenario and base dest folder based on album info"""
+    tags_dict, desc_dict, comm_dict = dict(), dict(), dict()  # type: Dict[str, Dict[int, str]]
     for ai in info_list:
-        if ai.state == AlbumInfo.AlbumState.PROCESSED:
-            for d, s in zip((tags_dict, comm_dict), (ai.my_tags, ai.my_comments)):
+        if ai.state == AlbumInfo.State.PROCESSED:
+            for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.my_tags, ai.my_description, ai.my_comments)):
                 if ai.my_sfolder_full not in d:
                     d[ai.my_sfolder_full] = dict()
                 d[ai.my_sfolder_full][ai.my_id] = s
-    for conf, dct, name, proc_cb in (
-        (Config.save_tags, tags_dict, 'tags', lambda tags: f' {tags.strip()}\n'),
-        (Config.save_comments, comm_dict, 'comments', lambda comment: f'{comment}\n')
-    ):  # type: Optional[bool], Dict[str, Dict[int, str]], str, Callable[[str], str]
-        if conf is True:
-            for subfolder, sdct in dct.items():
-                if len(sdct) > 0:
-                    min_id, max_id = min(sdct.keys()), max(sdct.keys())
-                    fullpath = f'{Config.dest_base}{subfolder}{PREFIX}!{name}_{min_id:d}-{max_id:d}.txt'
-                    with open(fullpath, 'wt', encoding=UTF8) as sfile:
-                        sfile.writelines(f'{PREFIX}{idi:d}:{proc_cb(elem)}' for idi, elem in sorted(sdct.items(), key=lambda t: t[0]))
+    for conf, dct, name, proc_cb in zip(
+        (Config.save_tags, Config.save_descriptions, Config.save_comments),
+        (tags_dict, desc_dict, comm_dict),
+        ('tags', 'descriptions', 'comments'),
+        (lambda tags: f' {tags.strip()}\n', lambda description: f'{description}\n', lambda comment: f'{comment}\n')
+    ):
+        if not conf:
+            continue
+        for subfolder, sdct in dct.items():
+            if not sdct:
+                continue
+            keys = sorted(sdct.keys())
+            min_id, max_id = keys[0], keys[-1]
+            fullpath = f'{normalize_path(f"{Config.dest_base}{subfolder}")}{PREFIX}!{name}_{min_id:d}-{max_id:d}.txt'
+            with open(fullpath, 'wt', encoding=UTF8) as sfile:
+                sfile.writelines(f'{PREFIX}{idi:d}:{proc_cb(sdct[idi])}' for idi in keys)
 
 #
 #

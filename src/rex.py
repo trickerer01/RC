@@ -14,14 +14,16 @@ from defs import EXTENSIONS_I
 # common
 re_media_filename = re_compile(fr'^(?:rc_)?(\d+).+?\.(?:{"|".join(EXTENSIONS_I)})$')
 re_replace_symbols = re_compile(r'[^0-9a-zA-Z.,_+%\-()\[\] ]+')
+re_ext = re_compile(r'(\.[^&]{3,5})&')
+re_read_href = re_compile(r'/read/.+?')
 # pages
-re_page_entry = re_compile(r'albums/(\d+)/')
-re_paginator = re_compile(r'from(?:_albums)?:(\d+)')
+re_page_entry = re_compile(r'comics/(\d+)/')
+# re_preview_entry = re_compile(r'/(\d+)_preview[^.]*?\.([^/]+)/')
+re_paginator = re_compile(r'from(?:_(?:albums|videos))?:(\d+)')
 # validators
 re_non_search_symbols = re_compile(r'[^\da-zA-Z._+\-\[\]]')
 re_session_id = re_compile(r'[a-z0-9]{26}')
 # tagger
-re_dict_keys_replace = re_compile(r'([^"]*)"([^\']+)\'([^"]+)"')
 re_wtag = re_compile(r'^[^?*]*[?*].*?$')
 re_idval = re_compile(r'^id=\d+?$')
 re_uscore_mult = re_compile(r'_{2,}')
@@ -30,12 +32,13 @@ re_bracketed_tag = re_compile(r'^([^(]+)\(([^)]+)\).*?$')
 re_numbered_or_counted_tag = re_compile(r'^(?!rule_?\d+)1?([^\d]+?)(?:_?\d+|s)?$')
 re_or_group = re_compile(r'^\([^~]+(?:~[^~]+)+\)$')
 re_neg_and_group = re_compile(r'^-\([^,]+(?:,[^,]+)+\)$')
+
 re_tags_to_process = re_compile(
     r'^(?:.+?_warc.+?|(?:[a-z]+?_)?elf|drae.{3}|tent[a-z]{3}es|(?:bell[a-z]|sto[a-z]{4})_bul[a-z]{2,3}|inf[a-z]{5}n|egg(?:_[a-z]{3,9}|s)?|'
     r'[a-z]{4}hral_i.+?|(?:\d{1,2}\+?)?(?:boys?|girls?|fu[a-z]{2}(?:[a-z]{4}|s)?|in[d-v]{2}cts?|monsters?)|succ[a-z]{4}|'
-    r'bbw|dog|f(?:acesitting|ur)|hmv|pmv|tar|c(?:\.c\.|um)|monster_girl|gender_.+?|'
+    r'bbw|dog|eel|f(?:acesitting|ur)|orc|hmv|pmv|tar|c(?:\.c\.|um)|d\.va|na\'vi|kai\'sa|monster_girl|gender.+?|'
     r'[^(]+\([^)]+\).*?|[a-z_\-]+\d+?|\d{2,4}[a-z_\-]+?|[a-z_]{2,15}sfm|[^_]+_pov|(?:fu|s)[a-z]{6}(?:/|_(?:on|with)_)[a-z]{4}(?:oy)?|'
-    r'[a-z][a-z_]{3,11}|[a-g]ea?st[a-z]{6}|[lapymg]{3})$'
+    r'[a-z][a-z_]{3,12}|[a-g]ea?st[a-z]{6}|[lapymg]{3})$'
 )
 re_tags_exclude_major1 = re_compile(
     r'^(?:[234][dk]|h(?:d|ero_outfit)|level_up|p(?:ainting|rotagonist)|tagme|'
@@ -76,7 +79,7 @@ re_tags_to_not_exclude = re_compile(
     r'p(?:i(?:der|troast|zzy)|l(?:atoon|ucky.*?)|o(?:ks|nty))|t(?:a(?:lkek|r(?:_.+?|craft|fox))|ra(?:ight|pon)|udio34)|'  # s
     r'uccubus|ylveon)|'  # s
     r't(?:a(?:ga|ker_pov)|e(?:k(?:ken|tah.+?)|ntacles?|xelnaut)|he(?:_sims|count|hoaxxx)|ied|o(?:gruta|rture|uhou)|'  # t
-    r'r(?:a(?:ns|ps?)|inity)|soni|ube|y(?:viania))|'  # t
+    r'r(?:a(?:ns|ps?)|inity)|soni|u(?:be|torial)|y(?:viania))|'  # t
     r'u(?:g(?:ly(?:_man)?|oira)|n(?:birth|de(?:ad|rtale))|r(?:ethral?|iel))|'  # u
     r'v(?:a(?:lorant|mpire)|i(?:cer34|olence|rgin)|o(?:mit|re))|'  # v
     r'w(?:ar(?:craft|frame|hammer)|eebu.*?|hip|or(?:ld_of_warcraft|ms?))|'  # w
@@ -91,9 +94,6 @@ re_tags_to_not_exclude = re_compile(
 def prepare_regex_fullmatch(raw_string: str) -> Pattern[str]:
     return re_compile(rf'^{raw_string}$')
 
-
-def prepare_regex_search(raw_string: str) -> Pattern[str]:
-    return re_compile(raw_string)
 #
 #
 #########################################

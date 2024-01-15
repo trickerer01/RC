@@ -80,7 +80,7 @@ class AlbumDownloadWorker:
     async def _prod(self) -> None:
         while len(self._seq) > 0:
             if self._queue.full() is False:
-                self._seq[0].set_state(AlbumInfo.AlbumState.QUEUED)
+                self._seq[0].set_state(AlbumInfo.State.QUEUED)
                 await self._queue.put((self._seq[0], self._func(self._seq[0])))
                 del self._seq[0]
             else:
@@ -185,7 +185,7 @@ class ImageDownloadWorker:
         if ii.my_album.all_done():
             Log.info(f'Album {PREFIX}{ii.my_album.my_id:d}: all images processed')
             ii.my_album.my_images.clear()
-            ii.my_album.set_state(AlbumInfo.AlbumState.PROCESSED)
+            ii.my_album.set_state(AlbumInfo.State.PROCESSED)
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.FAIL_SKIPPED:
@@ -198,7 +198,7 @@ class ImageDownloadWorker:
     async def _prod(self) -> None:
         while len(self._seq) > 0:
             if self._queue.full() is False:
-                self._seq[0].set_state(ImageInfo.ImageState.QUEUED)
+                self._seq[0].set_state(ImageInfo.State.QUEUED)
                 await self._queue.put((self._seq[0], self._func(self._seq[0])))
                 del self._seq[0]
             else:
@@ -228,7 +228,7 @@ class ImageDownloadWorker:
             downloading_last = self._download_queue_size_last
             write_last = self._write_queue_size_last
             elapsed_seconds = get_elapsed_time_i() - self._my_start_time
-            dps = self.processed_count / max(1, elapsed_seconds)
+            dps = self.processed_count / max(1, elapsed_seconds) or 1.0
             force_check = elapsed_seconds >= force_check_seconds and elapsed_seconds - last_check_seconds >= force_check_seconds
             if queue_last != queue_size or downloading_last != download_count or write_last != write_count or force_check:
                 last_check_seconds = elapsed_seconds

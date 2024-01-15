@@ -21,19 +21,20 @@ class BaseConfig:
     def __init__(self) -> None:
         self.dest_base = None  # type: Optional[str]
         self.proxy = None  # type: Optional[str]
-        # self.session_id = None  # type: Optional[str]
-        # self.min_rating = None  # type: Optional[int]
-        # self.min_score = None  # type: Optional[int]
+        self.session_id = None  # type: Optional[str]
+        self.min_rating = None  # type: Optional[int]
+        self.min_score = None  # type: Optional[int]
         # self.quality = None  # type: Optional[str]
-        self.un_album_policy = None  # type: Optional[str]
+        self.untagged_policy = None  # type: Optional[str]
         self.download_mode = None  # type: Optional[str]
         self.continue_mode = None  # type: Optional[bool]
         self.keep_unfinished = None  # type: Optional[bool]
         self.save_tags = None  # type: Optional[bool]
-        # self.save_descriptions = None  # type: Optional[bool]
+        self.save_descriptions = None  # type: Optional[bool]
         self.save_comments = None  # type: Optional[bool]
         # self.save_screenshots = None  # type: Optional[bool]
         self.extra_tags = None  # type: Optional[List[str]]
+        self.id_sequence = None  # type: Optional[List[int]]
         self.scenario = None  # type: Optional['DownloadScenario'] # noqa F821
         self.naming_flags = self.logging_flags = 0
         self.start = self.end = self.start_id = self.end_id = 0
@@ -45,7 +46,7 @@ class BaseConfig:
         self.search_rule_tag, self.search_rule_art, self.search_rule_cat = None, None, None  # type: Optional[str]
         # self.playlist_id = None  # type: Optional[int]
         # self.playlist_name = None  # type: Optional[str]
-        # self.uploader = None  # type: Optional[int]
+        self.uploader = None  # type: Optional[int]
         self.get_maxid = None  # type: Optional[bool]
         # extras (can't be set through cmdline arguments)
         self.nodelay = False
@@ -53,12 +54,12 @@ class BaseConfig:
     def read(self, params: Namespace, pages: bool) -> None:
         self.dest_base = params.path
         self.proxy = params.proxy
-        # session_id only exists in RV
-        # self.session_id = getattr(params, 'session_id', self.session_id)
-        # self.min_rating = params.minimum_rating
-        # self.min_score = params.minimum_score
+        # session_id only exists in RV and RC
+        self.session_id = getattr(params, 'session_id', self.session_id)
+        self.min_rating = params.minimum_rating
+        self.min_score = params.minimum_score
         # self.quality = params.quality
-        self.un_album_policy = params.untagged_policy
+        self.untagged_policy = params.untagged_policy
         self.download_mode = params.download_mode
         self.continue_mode = params.continue_mode
         self.keep_unfinished = params.keep_unfinished
@@ -67,6 +68,7 @@ class BaseConfig:
         self.save_comments = params.dump_comments
         # self.save_screenshots = params.dump_screenshots
         self.extra_tags = params.extra_tags
+        self.id_sequence = []
         self.scenario = params.download_scenario
         self.naming_flags = params.naming
         self.logging_flags = params.log_level
@@ -92,11 +94,11 @@ class BaseConfig:
 
     @property
     def utp(self) -> Optional[str]:
-        return self.un_album_policy
+        return self.untagged_policy
 
     @utp.setter
     def utp(self, value: str) -> None:
-        self.un_album_policy = value
+        self.untagged_policy = value
 
     @property
     def dm(self) -> Optional[str]:
