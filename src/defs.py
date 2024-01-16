@@ -207,6 +207,7 @@ HELP_ARG_DUMP_INFO = 'Save tags / comments to text file (separately)'
 HELP_ARG_CONTINUE = 'Try to continue unfinished files, may be slower if most files already exist'
 HELP_ARG_UNFINISH = 'Do not clean up unfinished files on interrupt'
 HELP_ARG_TIMEOUT = 'Connection timeout (in seconds)'
+HELP_ARG_THROTTLE = 'Download speed threshold (in KB/s) to assume throttling, drop connection and retry'
 HELP_ARG_UPLOADER = 'Uploader user id (integer, filters still apply)'
 HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable deduplication of search results (by name).'
