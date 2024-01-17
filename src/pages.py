@@ -17,7 +17,7 @@ from defs import (
 )
 from download import download, at_interrupt
 from fetch_html import make_session, fetch_html
-from iinfo import AlbumInfo
+from iinfo import AlbumInfo, get_min_max_ids
 from logger import Log
 from rex import re_page_entry, re_paginator
 from util import at_startup
@@ -129,7 +129,7 @@ async def main(args: Sequence[str]) -> None:
         if removed_count > 0:
             Log.info(f'[Deduplicate] {removed_count:d} / {orig_count:d} albums were removed as duplicates!')
 
-        minid, maxid = min(v_entries, key=lambda x: x.my_id).my_id, max(v_entries, key=lambda x: x.my_id).my_id
+        minid, maxid = get_min_max_ids(v_entries)
         Log.info(f'\nOk! {len(v_entries):d} ids (+{removed_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n')
 
         await download(v_entries, s)

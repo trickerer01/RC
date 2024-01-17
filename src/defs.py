@@ -21,6 +21,7 @@ CONNECT_REQUEST_DELAY = 0.2
 MAX_IMAGES_QUEUE_SIZE = 10
 DOWNLOAD_STATUS_CHECK_TIMER = 60
 DOWNLOAD_QUEUE_STALL_CHECK_TIMER = 30
+DOWNLOAD_CONTINUE_FILE_CHECK_TIMER = 30
 
 # SCREENSHOTS_COUNT = 10
 
@@ -141,7 +142,7 @@ HELP_ARG_VERSION = 'Show program\'s version number and exit'
 HELP_ARG_GET_MAXID = 'Print maximum id and exit'
 HELP_ARG_BEGIN_STOP_ID = 'Album id lower / upper bounds filter to only download albums where \'begin_id >= album_id >= stop_id\''
 HELP_ARG_IDSEQUENCE = (
-    'Use album id sequence instead of range. This disables start / count / end id parametes and expects an id sequence instead of'
+    'Use album id sequence instead of range. This disables start / count / end id parametes and expects an id sequence among'
     ' extra tags. Sequence structure: (id=<id1>~id=<id2>~id=<id3>~...~id=<idN>)'
 )
 HELP_ARG_PATH = 'Download destination. Default is current folder'
@@ -181,6 +182,9 @@ HELP_ARG_DWN_SCENARIO = (
     ' Example:'
     ' \'python ids.py -path ... -start ... -end ... --download-scenario'
     ' "1g: 1girl; 2g: 2girls -utp always"\''
+)
+HELP_ARG_STORE_CONTINUE_CMDFILE = (
+    'Store and automatically update cmd file which allows to later continue with unfinished download queue (using ids module, file mode)'
 )
 HELP_ARG_MINRATING = (
     'Rating percentage filter, 0-100.'

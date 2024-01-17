@@ -11,13 +11,17 @@ from __future__ import annotations
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import sleep, as_completed
 from os import path, remove
-from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable, Union
+from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable, Union, Dict
 
 from aiohttp import ClientSession
 
 from config import Config
-from defs import MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DownloadResult, PREFIX
-from iinfo import AlbumInfo, ImageInfo
+from defs import (
+    DownloadResult, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
+    START_TIME, UTF8, LOGGING_FLAGS, CONNECT_TIMEOUT_BASE, DOWNLOAD_POLICY_DEFAULT, NAMING_FLAGS_DEFAULT,
+    DOWNLOAD_MODE_DEFAULT,
+)
+from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from logger import Log
 from util import format_time, get_elapsed_time_i, get_elapsed_time_s, calc_sleep_time
 
@@ -54,7 +58,9 @@ class AlbumDownloadWorker:
         self._scanned_count = 0
         self._filtered_count_after = 0
         self._skipped_count = 0
+        self._minmax_id = get_min_max_ids(self._seq)
 
+        self._downloads_active = dict()  # type: Dict[int, AlbumInfo]
         self._scans_active = list()  # type: List[AlbumInfo]
         self._failed_items = list()  # type: List[int]
 
@@ -76,6 +82,7 @@ class AlbumDownloadWorker:
             self._failed_items.append(ai.my_id)
         elif result == DownloadResult.SUCCESS:
             self._scanned_count += 1
+            self._downloads_active[ai.my_id] = ai
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -110,15 +117,64 @@ class AlbumDownloadWorker:
             elapsed_seconds = get_elapsed_time_i()
             force_check = elapsed_seconds >= force_check_seconds and elapsed_seconds - last_check_seconds >= force_check_seconds
             if queue_last != queue_size or scanning_last != scan_count or force_check:
-                Log.info(f'[albums] [{get_elapsed_time_s()}] queue: {queue_size:d}, active: {scan_count:d}')
+                Log.info(f'[{get_elapsed_time_s()}] queue: {queue_size:d}, active: {scan_count:d}')
                 last_check_seconds = elapsed_seconds
                 self._total_queue_size_last = queue_size
                 self._scan_queue_size_last = scan_count
 
+    async def _continue_file_checker(self) -> None:
+        if not Config.store_continue_cmdfile:
+            return
+        minmax_id = self._minmax_id
+        continue_file_path = (
+            f'{Config.dest_base}{PREFIX}{START_TIME.strftime("%Y-%m-%d_%H_%M_%S")}_{minmax_id[0]:d}-{minmax_id[1]:d}.continue.conf'
+        )
+        arglist_base = [
+            '-path', Config.dest_base, '-continue', '--store-continue-cmdfile',
+            '-log', next(filter(lambda x: int(LOGGING_FLAGS[x], 16) == Config.logging_flags, LOGGING_FLAGS.keys())),
+            *(('-utp', Config.utp) if Config.utp != DOWNLOAD_POLICY_DEFAULT and not Config.scenario else ()),
+            *(('-minrating', Config.min_rating) if Config.min_rating else ()),
+            *(('-minscore', Config.min_score) if Config.min_score else ()),
+            *(('-naming', Config.naming_flags) if Config.naming_flags != NAMING_FLAGS_DEFAULT else ()),
+            *(('-dmode', Config.download_mode) if Config.download_mode != DOWNLOAD_MODE_DEFAULT else ()),
+            *(('-proxy', Config.proxy) if Config.proxy else ()),
+            *(('-throttle', Config.throttle) if Config.throttle else ()),
+            *(('-timeout', int(Config.timeout.connect)) if int(Config.timeout.connect) != CONNECT_TIMEOUT_BASE else ()),
+            *(('-unfinish',) if Config.keep_unfinished else ()),
+            *(('-tdump',) if Config.save_tags else ()),
+            # *(('-ddump',) if Config.save_descriptions else ()),
+            *(('-cdump',) if Config.save_comments else ()),
+            # *(('-sdump',) if Config.save_screenshots else ()),
+            *(('-session_id', Config.session_id,) if Config.session_id else ()),
+            *Config.extra_tags,
+            *(('-script', Config.scenario.fmt_str) if Config.scenario else ())
+        ]
+        base_sleep_time = calc_sleep_time(3.0)
+        write_delay = DOWNLOAD_CONTINUE_FILE_CHECK_TIMER
+        last_check_seconds = 0
+        while len(self._seq) + self._queue.qsize() + len(self._scans_active) + len(self._downloads_active) > 0:
+            if len(self._seq) + self._queue.qsize() + len(self._scans_active) == 0:
+                elapsed_seconds = get_elapsed_time_i()
+                if elapsed_seconds >= write_delay and elapsed_seconds - last_check_seconds >= write_delay:
+                    last_check_seconds = elapsed_seconds
+                    a_ids = sorted(self._downloads_active)
+                    arglist = ['-seq', f'({"~".join(f"id={idi:d}" for idi in a_ids)})'] if len(a_ids) > 1 else ['-start', str(a_ids[0])]
+                    arglist.extend(arglist_base)
+                    try:
+                        Log.trace(f'Storing continue file to \'{continue_file_path}\'...')
+                        with open(continue_file_path, 'wt', encoding=UTF8, buffering=1) as cfile:
+                            cfile.write('\n'.join(str(e) for e in arglist))
+                    except (OSError, IOError):
+                        Log.error(f'Unable to save continue file to {continue_file_path}!')
+            await sleep(base_sleep_time)
+        if path.isfile(continue_file_path):
+            Log.trace(f'All files downloaded. Removing continue file \'{continue_file_path}\'...')
+            remove(continue_file_path)
+
     async def _after_download(self) -> None:
         self._done = True
         newline = '\n'
-        Log.info(f'\n[albums] {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
+        Log.info(f'\n[Albums] scan finished, {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
                  f'{self._filtered_count_after:d} already existed, '
                  f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
@@ -126,10 +182,21 @@ class AlbumDownloadWorker:
         if len(self._failed_items) > 0:
             Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
 
+    def at_album_completed(self, ai: AlbumInfo) -> None:
+        Log.info(f'Album {PREFIX}{ai.my_id:d}: all images processed')
+        ai.my_images.clear()
+        ai.set_state(AlbumInfo.State.PROCESSED)
+        if ai.my_id in self._downloads_active:
+            del self._downloads_active[ai.my_id]
+
     async def run(self) -> None:
-        for cv in as_completed([self._prod(), self._state_reporter()] + [self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE)]):
+        for cv in as_completed([self._prod(), self._state_reporter(), *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
         await self._after_download()
+
+    @property
+    def albums_left(self) -> int:
+        return len(self._downloads_active)
 
     @property
     def session(self) -> ClientSession:
@@ -183,9 +250,7 @@ class ImageDownloadWorker:
         self._downloads_active.remove(ii)
         Log.trace(f'[queue] image {PREFIX}{ii.my_id:d} removed from queue')
         if ii.my_album.all_done():
-            Log.info(f'Album {PREFIX}{ii.my_album.my_id:d}: all images processed')
-            ii.my_album.my_images.clear()
-            ii.my_album.set_state(AlbumInfo.State.PROCESSED)
+            AlbumDownloadWorker.get().at_album_completed(ii.my_album)
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.FAIL_SKIPPED:
@@ -216,6 +281,7 @@ class ImageDownloadWorker:
                 await sleep(0.07)
 
     async def _state_reporter(self) -> None:
+        adwn = AlbumDownloadWorker.get()
         base_sleep_time = calc_sleep_time(5.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
@@ -237,8 +303,14 @@ class ImageDownloadWorker:
                 self._write_queue_size_last = write_count
                 eta_str = format_time(int((queue_size + download_count) / dps))
                 elapsed_str = format_time(elapsed_seconds)
-                Log.info(f'[images] [{get_elapsed_time_s()}] queue: {queue_size:d}, active: {download_count:d} (writing: {write_count:d}), '
+                Log.info(f'[{get_elapsed_time_s()}] albums: {adwn.albums_left:d}, queue: {queue_size:d}, '
+                         f'active: {download_count:d} (writing: {write_count:d}), '
                          f'ETA: {eta_str} ({self.processed_count:d} in {elapsed_str}, avg. {dps * 60:.1f} / min)')
+
+    @staticmethod
+    async def _continue_file_checker() -> None:
+        adwn = AlbumDownloadWorker.get()
+        return await getattr(adwn, '_continue_file_checker')()
 
     async def _after_download(self) -> None:
         newline = '\n'
@@ -253,10 +325,13 @@ class ImageDownloadWorker:
             Log.fatal(f'failed items:\n{newline.join(sorted(self._failed_items))}')
 
     async def run(self) -> None:
+        adwn = AlbumDownloadWorker.get()
         self._my_start_time = get_elapsed_time_i()
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
-        Log.info(f'\n[images] {len(self._seq):d} ids in queue, bound {minid:d} to {maxid:d}. Working...\n')
-        for cv in as_completed([self._prod(), self._state_reporter()] + [self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE)]):
+        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue,'
+                 f' bound {minid:d} to {maxid:d}. Working...\n')
+        for cv in as_completed([self._prod(), self._state_reporter(),  self._continue_file_checker(),
+                               *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
         await self._after_download()
 

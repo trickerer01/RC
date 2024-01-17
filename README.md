@@ -85,8 +85,16 @@ RC is a gallery downloader with a lot of features, most of which are filters for
 6. Unfinished files policy
   - Unexpected fatal errors, Ctrl-C and other mishaps will cause download(s) to end abruptly
   - By default, when app manages to exit gracefully, all unfinished files get deleted, and all existing files are automatically considered completed
-  - To check and resume existing unfinished files use `--continue-mode` (or `-continue`). This may be slower for non-empty folders due to additional network requests but safer in case of complex queries
-  - To keep unfinished files use `--keep-unfinished` (or `-unfinish`). It acts as `--continue-mode` helper so it's recommended to use either both or none at all
+  - To check and resume existing unfinished files use `--continue-mode` (or `-continue`) option. This may be slower for non-empty folders due to additional network requests but safer in case of complex queries
+  - To keep unfinished files use `--keep-unfinished` (or `-unfinish`) option. It acts as `--continue-mode` helper so it's recommended to use either both or none at all
+
+7. Downloading in vlarge amounts, interrupt & continue
+  - When downloading at large sometimes resulting download queue is so big it's impossible to process within reasonable time period and the process will be inevitably interrupted
+  - To be able to continue without running the whole search process again use `--store-continue-cmdfile` option. After initial video queue was formed a special 'continue' file will be stored and periodically updated in base download destination folder
+  - Continue file contains cmdline arguments required to continue the download process about the point of interruption, all provided parameters / options / download scenario / extra tags are preserved
+  - It is strongly recommended to also include `--continue-mode` and `--keep-unfinished` options when using continue file
+  - If download actually finishes without interruption stored continue file is automatically deleted
+  - Continue file has to be used with `ids` module, `file` mode (see `using 'file' mode` above)
 
 #### Examples
 1. Pages
@@ -94,8 +102,8 @@ RC is a gallery downloader with a lot of features, most of which are filters for
     - `python pages.py -pages 9999 -search_tag TAG1`
   - Up to 60 albums with both tags present from a single author, save to a custom location:
     - `python pages.py -pages 2 -path PATH -search_art ARTIST -search_tag TAG1,TAG2`
-  - Up to 30 albums on page 3 with any of 3 tags from any of 2 authors under any of 2 categories, exclude any kind of `vore` or `fart`, with minimum score of 50 and minimum rating of 90%, use proxy, save to a custom location, save tags, log everything, use shortest names for files:
-    - `python pages.py -log trace -start 3 -pages 1 -path PATH -proxy https://127.0.0.1:222 -tdump -minscore 50 -minrating 90 -search_cat CATEGORY1,CAT_EGORY2 -search_art ART_IST1,ARTIST2 -search_tag TAG1,TAG2,TAG3 -search_rule_cat any -search_rule_art any -search_rule_tag any -naming 0 -*vore -fart*`
+  - Up to 30 albums on page 3 with any of 3 tags from any of 2 authors under any of 2 categories, exclude any kind of `vore` or `fart`, with minimum score of 50 and minimum rating of 90%, use proxy, save to a custom location, save tags, log everything, use shortest names for files, setup for interrupt & continue:
+    - `python pages.py -log trace -start 3 -pages 1 -path PATH --store-continue-cmdfile -proxy https://127.0.0.1:222 -tdump -minscore 50 -minrating 90 -search_cat CATEGORY1,CAT_EGORY2 -search_art ART_IST1,ARTIST2 -search_tag TAG1,TAG2,TAG3 -search_rule_cat any -search_rule_art any -search_rule_tag any -naming 0 -*vore -fart*`
 
 2. Ids
   - Minimal example - all existing albums in range:

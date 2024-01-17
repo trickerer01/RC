@@ -8,13 +8,13 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 from __future__ import annotations
 from enum import IntEnum
-from typing import Dict, Iterable, Union, List
+from typing import Dict, Iterable, Union, List, Tuple
 
 from config import Config
 from defs import PREFIX, UTF8
 from util import normalize_path, normalize_filename
 
-__all__ = ('AlbumInfo', 'ImageInfo', 'export_album_info')
+__all__ = ('AlbumInfo', 'ImageInfo', 'get_min_max_ids', 'export_album_info')
 
 
 class AlbumInfo:
@@ -137,15 +137,19 @@ class ImageInfo:
         return self._state.name
 
 
+def get_min_max_ids(seq: List[AlbumInfo]) -> Tuple[int, int]:
+    return min(seq, key=lambda x: x.my_id).my_id, max(seq, key=lambda x: x.my_id).my_id
+
+
 def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
     """Saves tags, descriptions and comments for each subfolder in scenario and base dest folder based on album info"""
     tags_dict, desc_dict, comm_dict = dict(), dict(), dict()  # type: Dict[str, Dict[int, str]]
     for ai in info_list:
         if ai.state == AlbumInfo.State.PROCESSED:
             for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.my_tags, ai.my_description, ai.my_comments)):
-                if ai.my_sfolder_full not in d:
-                    d[ai.my_sfolder_full] = dict()
-                d[ai.my_sfolder_full][ai.my_id] = s
+                if ai.my_sfolder not in d:
+                    d[ai.my_sfolder] = dict()
+                d[ai.my_sfolder][ai.my_id] = s
     for conf, dct, name, proc_cb in zip(
         (Config.save_tags, Config.save_descriptions, Config.save_comments),
         (tags_dict, desc_dict, comm_dict),
