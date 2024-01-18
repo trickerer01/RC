@@ -17,7 +17,7 @@ from aiohttp import ClientSession
 
 from config import Config
 from defs import (
-    DownloadResult, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
+    DownloadResult, Mem, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
     START_TIME, UTF8, LOGGING_FLAGS, CONNECT_TIMEOUT_BASE, DOWNLOAD_POLICY_DEFAULT, NAMING_FLAGS_DEFAULT,
     DOWNLOAD_MODE_DEFAULT,
 )
@@ -232,6 +232,7 @@ class ImageDownloadWorker:
         self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]]
         self._orig_count = 0
         self._downloaded_count = 0
+        self._downloaded_amount = 0
         self._filtered_count_after = 0
         self._skipped_count = 0
 
@@ -261,6 +262,7 @@ class ImageDownloadWorker:
             self._failed_items.append(ii.my_shortname)
         elif result == DownloadResult.SUCCESS:
             self._downloaded_count += 1
+            self._downloaded_amount += ii.my_expected_size
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -296,18 +298,25 @@ class ImageDownloadWorker:
             downloading_last = self._download_queue_size_last
             write_last = self._write_queue_size_last
             elapsed_seconds = get_elapsed_time_i() - self._my_start_time
-            dps = self.processed_count / max(1, elapsed_seconds) or 1.0
             force_check = elapsed_seconds >= force_check_seconds and elapsed_seconds - last_check_seconds >= force_check_seconds
-            if queue_last != queue_size or downloading_last != download_count or write_last != write_count or force_check:
+            if queue_last >= queue_size + 10 or downloading_last != download_count or write_last != write_count or force_check:
                 last_check_seconds = elapsed_seconds
                 self._total_queue_size_last = queue_size
                 self._download_queue_size_last = download_count
                 self._write_queue_size_last = write_count
-                eta_str = format_time(int((queue_size + download_count) / dps))
+                dps = self.processed_count / max(1, elapsed_seconds) or 1.0
+                bps = self._downloaded_amount / max(1, elapsed_seconds) or 1.0
+                allow_prediction = self._downloaded_count >= min(200, 25 + self._orig_count // 50)
+                not_done = queue_size + download_count != 0
+                bps_str = f'{bps / Mem.KB:.2f}' if allow_prediction else '??'
+                eamount = self._downloaded_amount / max(1, self._downloaded_count) * self._orig_count
+                eamount_str = f'{"~" * not_done}{eamount / Mem.MB:.{"0" if not_done else "2"}f}' if allow_prediction else '??'
+                damount_str = f'{self._downloaded_amount / Mem.MB:.2f} Mb / {eamount_str} Mb, {bps_str} Kb/s'
+                eta_str = format_time(int((queue_size + download_count) / dps)) if allow_prediction else '??:??:??'
                 elapsed_str = format_time(elapsed_seconds)
-                Log.info(f'[{get_elapsed_time_s()}] albums: {adwn.albums_left:d}, queue: {queue_size:d}, '
-                         f'active: {download_count:d} (writing: {write_count:d}), '
-                         f'ETA: {eta_str} ({self.processed_count:d} in {elapsed_str}, avg. {dps * 60:.1f} / min)')
+                Log.info(f'[{get_elapsed_time_s()}] albums left: {adwn.albums_left:d}, queue: {queue_size:d}, '
+                         f'active: {download_count:d} (writing: {write_count:d}), ETA: {eta_str}, '
+                         f'{damount_str} ({self.processed_count:d} in {elapsed_str}, avg {dps * 60:.1f} / min)')
 
     @staticmethod
     async def _continue_file_checker() -> None:
@@ -333,8 +342,8 @@ class ImageDownloadWorker:
             return
         self._seq.sort(key=lambda ii: ii.my_album.my_id)
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
-        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue,'
-                 f' bound {minid:d} to {maxid:d}. Working...\n')
+        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue, '
+                 f'bound {minid:d} to {maxid:d}. Working...\n')
         for cv in as_completed([self._prod(), self._state_reporter(),  self._continue_file_checker(),
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
