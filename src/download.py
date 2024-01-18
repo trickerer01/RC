@@ -229,6 +229,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             rc_curfile = path.isfile(ii.my_fullpath)
             if rc_curfile and Config.continue_mode is False:
                 Log.info(f'{ii.my_filename} already exists. Skipped.')
+                ii.set_state(ImageInfo.State.DONE)
                 return DownloadResult.FAIL_ALREADY_EXISTS
 
     while (not skip) and retries < CONNECT_RETRIES_BASE:

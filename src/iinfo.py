@@ -47,7 +47,7 @@ class AlbumInfo:
         return self._state
 
     def all_done(self) -> bool:
-        return all(ii.state == ImageInfo.State.DONE for ii in self.my_images) if self.my_images else False
+        return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.my_images) if self.my_images else False
 
     def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
