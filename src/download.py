@@ -209,7 +209,7 @@ async def check_image_download_status(idi: int, dest: str, init_size: int, resp:
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
-    sname = f'{PREFIX}{ii.my_id:d}.jpg'
+    sname = f'{PREFIX}{ii.my_album.my_id}.album/{PREFIX}{ii.my_id:d}.jpg'
     sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
