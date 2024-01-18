@@ -65,8 +65,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     try:
         votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
         rating_float = float(a_html.find('span', class_='set-rating').text[:-1])
-        rating = str(int(rating_float) or '')
-        score = f'{int(ceil(votes_int * rating_float) / 100.0):d}'
+        rating = str(round(rating_float) or '')
+        score = f'{round(ceil(votes_int * rating_float) / 100.0):d}'
     except Exception:
         Log.warn(f'Warning: cannot extract score for {sname}.')
     try:
