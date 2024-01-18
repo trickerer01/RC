@@ -329,6 +329,8 @@ class ImageDownloadWorker:
     async def run(self) -> None:
         adwn = AlbumDownloadWorker.get()
         self._my_start_time = get_elapsed_time_i()
+        if not self._seq:
+            return
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue,'
                  f' bound {minid:d} to {maxid:d}. Working...\n')
