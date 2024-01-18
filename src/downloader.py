@@ -331,6 +331,7 @@ class ImageDownloadWorker:
         self._my_start_time = get_elapsed_time_i()
         if not self._seq:
             return
+        self._seq.sort(key=lambda ii: ii.my_album.my_id)
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue,'
                  f' bound {minid:d} to {maxid:d}. Working...\n')
