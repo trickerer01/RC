@@ -54,7 +54,7 @@ re_tags_to_not_exclude = re_compile(
     r'a(?:i_content|lien(?:_.+?|s)?|m(?:azonium|b(?:er|rosine))|n(?:al|gel|imopron|thro)|r(?:achnid|iel)|yasz)|'  # a
     r'b(?:a(?:ndoned|ronstrap|tesz)|dsm|e(?:a(?:st|r)|lly_?b.+?|n_10|wyx)|i(?:gjohnson|mbo|oshock|r(?:dway|th))|'  # b
     r'l(?:ack(?:ed|j.+?)?|o(?:od|wjob))|o(?:dysuit|ndage|vine))|'  # b
-    r'c(?:a(?:ge|nine|t(?:_girl|woman))|entaur|hained|lass_sweeb|o(?:lonelyobo|mic|ot27|rset)|reampie|u(?:ckold|m))|'  # c
+    r'c(?:a(?:ge|nine|t(?:_girl|woman))|entaur|hained|lass_sweeb|o(?:lonelyobo|ot27|rset)|reampie|u(?:ckold|m))|'  # c
     r'd(?:ark_elf|e(?:a(?:dpool|ath)|er|mons?|ntol|rpixon|zmall)|i(?:ablo|gimon|ldo)|mitrys|o(?:cking|gs?|nkey|om)|ragon(?:ess)?|va)|'  # d
     r'e(?:gg(?:_.+?|s)|lves|nema|quine|xtreme|zria)|'  # e
     r'f(?:a(?:cesitting|rt(?:ing)?)|e(?:m(?:boy|dom|shep)|ral)|isting|o(?:rtnite|x_girl)|rozen|'  # f
