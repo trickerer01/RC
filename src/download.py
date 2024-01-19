@@ -6,7 +6,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from asyncio import sleep, get_running_loop, Task, CancelledError
+from asyncio import Task, CancelledError, sleep, get_running_loop
 from math import ceil
 from os import path, stat, remove, makedirs
 from random import uniform as frand
@@ -130,7 +130,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         if Config.save_comments:
             comments_list = [f'{cudivs[i].text}:\n' + cbdivs[i].get_text('\n').strip() for i in range(len(cbdivs) - int(has_description))]
             ai.my_comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
-    my_tags = filtered_tags(list(sorted(tags_raw))) or my_tags
+    my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
     rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
     fname_part2 = ''
