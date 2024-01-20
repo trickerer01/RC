@@ -16,7 +16,7 @@ from defs import (
     DOWNLOAD_MODE_DEFAULT, NAMING_FLAGS_DEFAULT, LOGGING_FLAGS_DEFAULT, HELP_ARG_DMMODE, HELP_ARG_DWN_SCENARIO, HELP_ARG_MINRATING,
     HELP_ARG_MINSCORE, HELP_ARG_CMDFILE, HELP_ARG_NAMING, HELP_ARG_LOGGING, HELP_ARG_IDSEQUENCE, HELP_ARG_CONTINUE, HELP_ARG_UNFINISH,
     HELP_ARG_DUMP_INFO, HELP_ARG_TIMEOUT, HELP_ARG_VERSION, HELP_ARG_SESSION_ID, SEARCH_RULES, SEARCH_RULE_DEFAULT,
-    HELP_ARG_SEARCH_ACT, HELP_ARG_SEARCH_RULE, HELP_ARG_ALLOW_DUPLICATE_NAMES,
+    HELP_ARG_SEARCH_ACT, HELP_ARG_SEARCH_RULE, HELP_ARG_ALLOW_DUPLICATE_NAMES, HELP_ARG_INCLUDE_PREVIEWS,
     HELP_ARG_THROTTLE, HELP_ARG_STORE_CONTINUE_CMDFILE,
 )
 from logger import Log
@@ -143,6 +143,7 @@ def add_common_args(parser_or_group: ArgumentParser) -> None:
     parser_or_group.add_argument('-session_id', default=None, help=HELP_ARG_SESSION_ID, type=valid_session_id)
     parser_or_group.add_argument('-script', '--download-scenario', default=None, help=HELP_ARG_DWN_SCENARIO, type=DownloadScenario)
     parser_or_group.add_argument('--store-continue-cmdfile', action=ACTION_STORE_TRUE, help=HELP_ARG_STORE_CONTINUE_CMDFILE)
+    parser_or_group.add_argument('-previews', '--include-previews', action=ACTION_STORE_TRUE, help=HELP_ARG_INCLUDE_PREVIEWS)
     parser_or_group.add_argument(dest='extra_tags', nargs=ZERO_OR_MORE, help=HELP_ARG_EXTRA_TAGS, type=valid_extra_tag)
 
 

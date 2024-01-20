@@ -33,6 +33,7 @@ class BaseConfig:
         self.save_descriptions = None  # type: Optional[bool]
         self.save_comments = None  # type: Optional[bool]
         # self.save_screenshots = None  # type: Optional[bool]
+        self.include_previews = None  # type: Optional[bool]
         self.extra_tags = None  # type: Optional[List[str]]
         self.id_sequence = None  # type: Optional[List[int]]
         self.scenario = None  # type: Optional['DownloadScenario'] # noqa F821
@@ -69,6 +70,7 @@ class BaseConfig:
         # self.save_descriptions = params.dump_descriptions
         self.save_comments = params.dump_comments
         # self.save_screenshots = params.dump_screenshots
+        self.include_previews = params.include_previews
         self.extra_tags = params.extra_tags
         self.id_sequence = []
         self.scenario = params.download_scenario

@@ -343,7 +343,7 @@ class ImageDownloadWorker:
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue, '
                  f'bound {minid:d} to {maxid:d}. Working...\n')
-        for cv in as_completed([self._prod(), self._state_reporter(),  self._continue_file_checker(),
+        for cv in as_completed([self._prod(), self._state_reporter(), self._continue_file_checker(),
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
         await self._after_download()

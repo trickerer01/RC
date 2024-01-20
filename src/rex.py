@@ -13,7 +13,7 @@ from defs import EXTENSIONS_I
 
 # common
 re_media_filename = re_compile(fr'^(?:rc_)?(\d+).+?\.(?:{"|".join(EXTENSIONS_I)})$')
-re_replace_symbols = re_compile(r'[^0-9a-zA-Z.,_+%\-()\[\] ]+')
+re_replace_symbols = re_compile(r'[^0-9a-zA-Z.,_+%!\-()\[\] ]+')
 re_ext = re_compile(r'(\.[^&]{3,5})&')
 re_read_href = re_compile(r'/read/.+?')
 # pages

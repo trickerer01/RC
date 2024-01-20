@@ -155,11 +155,22 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     fname_mid = ''
     ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
 
+    album_th = a_html.find('a', class_='th', href=re_read_href)
     try:
-        read_href_1 = str(a_html.find('a', class_='th', href=re_read_href).get('href'))[:-1]
+        read_href_1 = str(album_th.get('href'))[:-1]
     except Exception:
         Log.error(f'Cannot find download section for {sname}, failed!')
         return DownloadResult.FAIL_RETRIES
+    try:
+        preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
+        ai.my_preview_link = preview_href_1
+    except Exception:
+        Log.error(f'Cannot find preview section for {sname}, failed!')
+        return DownloadResult.FAIL_RETRIES
+
+    if Config.include_previews:
+        pii = ImageInfo(ai, ai.my_id, ai.my_preview_link, f'{rc_}!{ai.my_id}_{ai.my_preview_link[ai.my_preview_link.rfind("/") + 1:]}')
+        ai.my_images.append(pii)
 
     r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/', session=adwn.session)
     if r_html is None:
@@ -213,11 +224,12 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
-    skip = Config.dm == DOWNLOAD_MODE_SKIP
+    skip = Config.dm == DOWNLOAD_MODE_SKIP and not ii.is_preview
     status_checker = None  # type: Optional[Task]
 
     if skip is True:
         ii.set_state(ImageInfo.State.DONE)
+        ret = DownloadResult.FAIL_SKIPPED
     else:
         ii.set_state(ImageInfo.State.DOWNLOADING)
         if not path.isdir(ii.my_folder):
@@ -234,7 +246,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
     while (not skip) and retries < CONNECT_RETRIES_BASE:
         try:
-            if Config.dm == DOWNLOAD_MODE_TOUCH:
+            if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
                 Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
                 with open(ii.my_fullpath, 'wb'):
                     ii.set_state(ImageInfo.State.DONE)
@@ -300,11 +312,11 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 remove(ii.my_fullpath)
 
-    ret = (ret if ret == DownloadResult.FAIL_NOT_FOUND else
+    ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED) else
            DownloadResult.SUCCESS if retries < CONNECT_RETRIES_BASE else
            DownloadResult.FAIL_RETRIES)
 
-    if ret != DownloadResult.SUCCESS:
+    if ret not in (DownloadResult.SUCCESS, DownloadResult.FAIL_SKIPPED):
         ii.set_state(ImageInfo.State.FAILED)
 
     return ret

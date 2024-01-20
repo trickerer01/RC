@@ -101,7 +101,8 @@ async def main(args: Sequence[str]) -> None:
                     Log.warn(f'Warning: id {cur_id:d} already queued, skipping')
                     continue
                 my_title = aref.parent.find('div', class_='thumb_title').text
-                v_entries.append(AlbumInfo(cur_id, my_title))
+                my_preview_link = aref.parent.find('img').get('data-original')
+                v_entries.append(AlbumInfo(cur_id, my_title, preview_link=my_preview_link))
 
         v_entries.reverse()
         orig_count = len(v_entries)

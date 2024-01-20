@@ -25,13 +25,14 @@ class AlbumInfo:
         SCANNED = 3
         PROCESSED = 4
 
-    def __init__(self, m_id: int, m_title='') -> None:
+    def __init__(self, m_id: int, m_title='', *, preview_link='') -> None:
         self.my_id = m_id or 0
         self.my_title = m_title or ''
 
         self.my_subfolder = ''
         self.my_name = ''
         self.my_rating = ''
+        self.my_preview_link = preview_link
 
         self.my_tags = ''
         self.my_description = ''
@@ -109,6 +110,10 @@ class ImageInfo:
     @property
     def state(self) -> ImageInfo.State:
         return self._state
+
+    @property
+    def is_preview(self) -> bool:
+        return self.my_id == self.my_album.my_id and self.my_link.endswith('preview.jpg')
 
     def __eq__(self, other: Union[ImageInfo, int]) -> bool:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False

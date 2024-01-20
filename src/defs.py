@@ -217,6 +217,7 @@ HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable deduplication of search results (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
 )
+HELP_ARG_INCLUDE_PREVIEWS = 'Download album preview (not affected by download mode)'
 
 
 class DownloadResult(IntEnum):
