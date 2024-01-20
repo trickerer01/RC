@@ -61,7 +61,7 @@ re_tags_to_not_exclude = re_compile(
     r'u(?:rry|ta(?:_on_[a-p]{4}|holic|nari(?:_on_[a-p]{4})?)))|'  # f
     r'g(?:a(?:ngbang|p(?:e|ing))|craw|en(?:der.+|nariel)|i(?:ant(?:ess)?|fdoozer)|o(?:blins?|o_girl|re|th)|r(?:an(?:d.+?|ny)|eatb8)|'  # g
     r'u(?:il(?:mon|tyk)|robase))|'  # g
-    r'h(?:a(?:iry|l(?:f_elf|o)|ndjob)|e(?:lena|tero)|i(?:gh_elf|nca_p|ve)|mv|'  # h
+    r'h(?:a(?:iry(?:_.*?)?|l(?:f_elf|o)|ndjob)|e(?:lena|tero)|i(?:gh_elf|nca_p|ve)|mv|'  # h
     r'o(?:ovesart|r(?:ror|se(?:_?(?:cock|girl|s(?:ex)?))?)|usewife)|rfidy|ulk|v54rdsl|ydrafxx)|'  # h
     r'i(?:cedev|demi|n(?:c(?:est|ubus)|justice|sect(?:oids?|s)?)|tsmort.+?)|'  # i
     r'j(?:a(?:ckerman|il)|uicyneko)|'  # j

@@ -50,9 +50,9 @@ class AlbumDownloadWorker:
         AlbumDownloadWorker._instance = self
 
         self._func = func
-        self._session = session
         self._seq = [ai for ai in sequence]  # form our own container to erase from
         self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]]
+        self._session = session
         self._orig_count = len(self._seq)
         self._scanned_count = 0
         self._filtered_count_after = 0
@@ -173,7 +173,6 @@ class AlbumDownloadWorker:
             remove(continue_file_path)
 
     async def _after_download(self) -> None:
-        self._done = True
         newline = '\n'
         Log.info(f'\n[Albums] scan finished, {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
                  f'{self._filtered_count_after:d} already existed, '

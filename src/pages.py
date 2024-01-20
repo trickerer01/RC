@@ -126,8 +126,7 @@ async def main(args: Sequence[str]) -> None:
             else:
                 Log.fatal('\nNo albums found. Aborted.')
             return
-
-        if removed_count > 0:
+        elif removed_count > 0:
             Log.info(f'[Deduplicate] {removed_count:d} / {orig_count:d} albums were removed as duplicates!')
 
         minid, maxid = get_min_max_ids(v_entries)

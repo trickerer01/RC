@@ -7,7 +7,6 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from asyncio import Task, CancelledError, sleep, get_running_loop
-from math import ceil
 from os import path, stat, remove, makedirs
 from random import uniform as frand
 from typing import Optional, Iterable, Dict
@@ -17,8 +16,8 @@ from aiohttp import ClientSession, ClientResponse, ClientPayloadError
 
 from config import Config
 from defs import (
-    CONNECT_RETRIES_BASE, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR,
-    DOWNLOAD_STATUS_CHECK_TIMER, DownloadResult, Mem, NamingFlags, PREFIX,
+    Mem, NamingFlags, DownloadResult, CONNECT_RETRIES_BASE, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
+    DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR, DOWNLOAD_STATUS_CHECK_TIMER,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request, make_session
@@ -65,8 +64,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     try:
         votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
         rating_float = float(a_html.find('span', class_='set-rating').text[:-1])
-        rating = str(round(rating_float) or '')
-        score = f'{round(ceil(votes_int * rating_float) / 100.0):d}'
+        rating = str(int(rating_float) or '')
+        score = f'{round((votes_int * rating_float) / 100.0):d}'
     except Exception:
         Log.warn(f'Warning: cannot extract score for {sname}.')
     try:
@@ -116,19 +115,19 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     if Config.save_descriptions or Config.save_comments:
         cidivs = a_html.find_all('div', class_='comment-info')
         cudivs = [cidiv.find('a') for cidiv in cidivs]
-        cbdivs = [cidiv.find('div', class_='coment-text') for cidiv in cidivs]
+        ctdivs = [cidiv.find('div', class_='coment-text') for cidiv in cidivs]
         desc_em = a_html.find('em')  # exactly one
         uploader_div = a_html.find('div', string=' Uploaded By: ')
         my_uploader = uploader_div.parent.find('a', class_='name').text.lower().strip() if uploader_div else 'unknown'
-        has_description = (cudivs[-1].text.lower() == my_uploader) if (cudivs and cbdivs) else False  # first comment by uploader
-        if cudivs and cbdivs:
-            assert len(cbdivs) == len(cudivs)
+        has_description = (cudivs[-1].text.lower() == my_uploader) if (cudivs and ctdivs) else False  # first comment by uploader
+        if cudivs and ctdivs:
+            assert len(ctdivs) == len(cudivs)
         if Config.save_descriptions:
-            desc_comment = (f'{cudivs[-1].text}:\n' + cbdivs[-1].get_text('\n').strip()) if has_description else ''
+            desc_comment = (f'{cudivs[-1].text}:\n' + ctdivs[-1].get_text('\n').strip()) if has_description else ''
             desc_base = (f'\n{my_uploader}:\n' + desc_em.get_text('\n') + '\n') if desc_em else ''
             ai.my_description = desc_base or (f'\n{desc_comment}\n' if desc_comment else '')
         if Config.save_comments:
-            comments_list = [f'{cudivs[i].text}:\n' + cbdivs[i].get_text('\n').strip() for i in range(len(cbdivs) - int(has_description))]
+            comments_list = [f'{cudivs[i].text}:\n' + ctdivs[i].get_text('\n').strip() for i in range(len(ctdivs) - int(has_description))]
             ai.my_comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
