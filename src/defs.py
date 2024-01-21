@@ -34,13 +34,13 @@ EXTENSIONS_I = (DEFAULT_EXT, 'jpeg')
 START_TIME = datetime.now()
 
 SITE = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
-SITE_AJAX_REQUEST_SEARCH_PAGE = (
-    f'{SITE}/search/?mode=async&function=get_block&block_id=list_albums_albums_list_search_result&flag1='
-    f'&sort_by=post_date&tag_ids=%s&model_ids=%s&category_ids=%s&q=%s&from_albums=%d'
-)
+SITE_AJAX_REQUEST_SEARCH_PAGE = b64decode(
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2FsYnVtc19saXN0X3NlYX'
+    'JjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1zPSVk'
+).decode()
 """Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
 Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
-SITE_AJAX_REQUEST_ALBUM = f'{SITE}/comics/%d/a/'
+SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pY3MvJWQvYS8=').decode()
 """Params required: **album_id** - **int**\n
 Ex. SITE_AJAX_REQUEST_ALBUM % 11111"""
 # SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
