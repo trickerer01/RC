@@ -28,6 +28,8 @@ from pages import main as pages_main, main_sync as pages_main_sync
 # noinspection PyProtectedMember
 from util import normalize_path
 
+RUN_CONN_TESTS = 1
+
 
 def set_up_test(log=False) -> None:
     AlbumDownloadWorker._instance = None
@@ -100,7 +102,7 @@ class CmdTests(TestCase):
         c1 = BaseConfig()
         c1.read(parsed1, False)
         self.assertTrue(c1.use_id_sequence)
-        parsed2 = prepare_arglist(['-start', '1000', '-end', '999', '(a~b)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
+        parsed2 = prepare_arglist(['-start', '1000', '-end', '999', '(69~9s)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
                                    '-script', 'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', '0x8', '-log', 'trace'], False)
         c2 = BaseConfig()
         c2.read(parsed2, False)
@@ -115,6 +117,8 @@ class CmdTests(TestCase):
 
 class DownloadTests(TestCase):
     def test_ids_touch(self):
+        if not RUN_CONN_TESTS:
+            return
         set_up_test()
         tempdir = normalize_path(gettempdir())
         tempdir_id = '33123'
@@ -136,6 +140,8 @@ class DownloadTests(TestCase):
         print(f'{self._testMethodName} passed')
 
     def test_pages_touch(self):
+        if not RUN_CONN_TESTS:
+            return
         set_up_test()
         tempdir = normalize_path(gettempdir())
         tempdir_id = '325'
@@ -158,6 +164,8 @@ class DownloadTests(TestCase):
         print(f'{self._testMethodName} passed')
 
     def test_ids_full(self):
+        if not RUN_CONN_TESTS:
+            return
         set_up_test()
         tempdir = normalize_path(gettempdir())
         tempdir_id = '2151'
@@ -179,6 +187,8 @@ class DownloadTests(TestCase):
         print(f'{self._testMethodName} passed')
 
     def test_pages_full(self):
+        if not RUN_CONN_TESTS:
+            return
         set_up_test()
         tempdir = normalize_path(gettempdir())
         tempdir_id = '2545'
