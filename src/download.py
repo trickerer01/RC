@@ -18,6 +18,7 @@ from config import Config
 from defs import (
     Mem, NamingFlags, DownloadResult, CONNECT_RETRIES_BASE, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
     DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR, DOWNLOAD_STATUS_CHECK_TIMER,
+    FULLPATH_MAX_BASE_LEN,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request, make_session
@@ -145,11 +146,11 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     # <fname_part1>_(<TAGS...>)
     extra_len = 1 + 2 + 1  # 1 underscore + 2 brackets + 1 extra slash
     if has_naming_flag(NamingFlags.TAGS):
-        while len(my_tags) > max(0, 180 - (len(ai.my_folder) + len(fname_part1) + len(fname_part2) + extra_len)):
+        while len(my_tags) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part1) + len(fname_part2) + extra_len)):
             my_tags = my_tags[:max(0, my_tags.rfind(TAGS_CONCAT_CHAR))]
         fname_part1 += f'_({my_tags})' if len(my_tags) > 0 else ''
-    if len(my_tags) == 0 and len(fname_part1) > max(0, 180 - (len(ai.my_folder) + len(fname_part2) + extra_len)):
-        fname_part1 = fname_part1[:max(0, 180 - (len(ai.my_folder) + len(fname_part2) + extra_len))]
+    if len(my_tags) == 0 and len(fname_part1) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len)):
+        fname_part1 = fname_part1[:max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len))]
     fname_part1 = re_replace_symbols.sub('_', fname_part1)
     fname_mid = ''
     ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
