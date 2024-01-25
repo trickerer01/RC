@@ -9,7 +9,8 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from typing import List, Optional, Collection, Iterable, MutableSequence
 
 from bigstrings import TAG_ALIASES, TAG_NUMS_DECODED, ART_NUMS_DECODED, CAT_NUMS_DECODED
-from defs import LoggingFlags, TAGS_CONCAT_CHAR, PREFIX
+from defs import LoggingFlags, TAGS_CONCAT_CHAR
+from iinfo import AlbumInfo
 from logger import Log
 from rex import (
     re_replace_symbols, re_wtag, re_idval, re_uscore_mult, re_not_a_letter, re_numbered_or_counted_tag, re_or_group,
@@ -176,11 +177,11 @@ def trim_undersores(base_str: str) -> str:
     return re_uscore_mult.sub('_', base_str).strip('_')
 
 
-def is_filtered_out_by_extra_tags(idi: int, tags_raw: Collection[str], extra_tags: List[str], id_seq: List[int], subfolder: str) -> bool:
+def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: List[str], extra_tags: List[str], id_seq: List[int], subfolder: str) -> bool:
     suc = True
-    sname = f'{PREFIX}{idi:d}.album'
+    sname = ai.sname
     sfol = f'[{subfolder}] ' if subfolder else ''
-    if id_seq and idi not in id_seq:
+    if id_seq and ai.my_id not in id_seq:
         suc = False
         Log.trace(f'{sfol}Album {sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!',
                   LoggingFlags.EX_MISSING_TAGS)

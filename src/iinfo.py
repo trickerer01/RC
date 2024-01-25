@@ -11,7 +11,7 @@ from enum import IntEnum
 from typing import Dict, Iterable, Union, List, Tuple
 
 from config import Config
-from defs import PREFIX, UTF8
+from defs import PREFIX, UTF8, DEFAULT_EXT
 from util import normalize_path, normalize_filename
 
 __all__ = ('AlbumInfo', 'ImageInfo', 'get_min_max_ids', 'export_album_info')
@@ -58,6 +58,10 @@ class AlbumInfo:
             f'[{self.state_str}] \'{PREFIX}{self.my_id:d}_{self.my_title}.album\''
             f'\nDest: \'{self.my_folder}\''
         )
+
+    @property
+    def sname(self) -> str:
+        return f'{PREFIX}{self.my_id:d}.album'
 
     @property
     def my_shortname(self) -> str:
@@ -113,13 +117,20 @@ class ImageInfo:
 
     @property
     def is_preview(self) -> bool:
-        return self.my_id == self.my_album.my_id and self.my_link.endswith('preview.jpg')
+        return self.my_id == self.my_album.my_id and self.my_link.endswith(f'preview.{DEFAULT_EXT}')
 
     def __eq__(self, other: Union[ImageInfo, int]) -> bool:
         return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
 
     def __repr__(self) -> str:
-        return f'[{self.state_str}] \'{PREFIX}{self.my_id:d}.jpg\'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
+        return (
+            f'[{self.state_str}] \'{self.my_album.sname}/{self.sname}\''
+            f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
+        )
+
+    @property
+    def sname(self) -> str:
+        return f'{PREFIX}{self.my_id:d}.{DEFAULT_EXT}'
 
     @property
     def my_shortname(self) -> str:

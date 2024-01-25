@@ -44,7 +44,7 @@ async def download(sequence: Iterable[AlbumInfo], session: ClientSession = None)
 async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn, idwn = AlbumDownloadWorker.get(), ImageDownloadWorker.get()
     scenario = Config.scenario  # type: Optional[DownloadScenario]
-    sname = f'{PREFIX}{ai.my_id:d}.album'
+    sname = ai.sname
     my_tags = 'no_tags'
     rating = ai.my_rating
     score = ''
@@ -87,7 +87,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     for add_tag in [ca.replace(' ', '_') for ca in my_categories + my_authors if len(ca) > 0]:
         if add_tag not in tags_raw:
             tags_raw.append(add_tag)
-    if is_filtered_out_by_extra_tags(ai.my_id, tags_raw, Config.extra_tags, Config.id_sequence, ai.my_subfolder):
+    if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.my_subfolder):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
         return DownloadResult.FAIL_SKIPPED
     for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
@@ -99,7 +99,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             except Exception:
                 pass
     if scenario is not None:
-        matching_sq = scenario.get_matching_subquery(ai.my_id, tags_raw, score, rating)
+        matching_sq = scenario.get_matching_subquery(ai, tags_raw, score, rating)
         utpalways_sq = scenario.get_utp_always_subquery() if tdiv is None else None
         if matching_sq:
             ai.my_subfolder = matching_sq.subfolder
@@ -179,7 +179,6 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     file_links = [str(elem.get('data-src')) for elem in r_html.find_all('img', class_='hidden')]
     for ilink in file_links:
-        # 'https://<site>/get_image/8/<hash>/main/111x222/<my_id - my_id % 1000>/<my_id>/img_id.jpg'
         iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
         ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}')
         ai.my_images.append(ii)
@@ -195,9 +194,10 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     return DownloadResult.SUCCESS
 
 
-async def check_image_download_status(idi: int, dest: str, init_size: int, resp: ClientResponse) -> None:
+async def check_image_download_status(ii: ImageInfo, init_size: int, resp: ClientResponse) -> None:
     idwn = ImageDownloadWorker.get()
-    sname = f'{PREFIX}{idi:d}.jpg'
+    sname = ii.sname
+    dest = ii.my_fullpath
     check_timer = float(DOWNLOAD_STATUS_CHECK_TIMER)
     slow_con_dwn_threshold = max(1, DOWNLOAD_STATUS_CHECK_TIMER * Config.throttle * Mem.KB)
     last_size = init_size
@@ -220,7 +220,7 @@ async def check_image_download_status(idi: int, dest: str, init_size: int, resp:
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
-    sname = f'{PREFIX}{ii.my_album.my_id}.album/{PREFIX}{ii.my_id:d}.jpg'
+    sname = f'{ii.my_album.sname}/{ii.sname}'
     sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
@@ -278,7 +278,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
                 idwn.add_to_writes(ii)
                 ii.set_state(ImageInfo.State.WRITING)
-                status_checker = get_running_loop().create_task(check_image_download_status(ii.my_id, ii.my_fullpath, file_size, r))
+                status_checker = get_running_loop().create_task(check_image_download_status(ii, file_size, r))
                 async with async_open(ii.my_fullpath, 'ab') as outf:
                     async for chunk in r.content.iter_chunked(256 * Mem.KB):
                         await outf.write(chunk)
