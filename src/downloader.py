@@ -131,6 +131,7 @@ class AlbumDownloadWorker:
         arglist_base = [
             '-path', Config.dest_base, '-continue', '--store-continue-cmdfile',
             '-log', next(filter(lambda x: int(LOGGING_FLAGS[x], 16) == Config.logging_flags, LOGGING_FLAGS.keys())),
+            # *(('-quality', Config.quality) if Config.quality != DEFAULT_QUALITY and not Config.scenario else ()),
             *(('-utp', Config.utp) if Config.utp != DOWNLOAD_POLICY_DEFAULT and not Config.scenario else ()),
             *(('-minrating', Config.min_rating) if Config.min_rating else ()),
             *(('-minscore', Config.min_score) if Config.min_score else ()),
@@ -373,8 +374,8 @@ class ImageDownloadWorker:
     def session(self) -> ClientSession:
         return self._session
 
-    def is_writing(self, videst: Union[ImageInfo, str]) -> bool:
-        return (videst.my_fullpath if isinstance(videst, ImageInfo) else videst) in self._writes_active
+    def is_writing(self, iidest: Union[ImageInfo, str]) -> bool:
+        return (iidest.my_fullpath if isinstance(iidest, ImageInfo) else iidest) in self._writes_active
 
     def add_to_writes(self, vi: ImageInfo) -> None:
         self._writes_active.append(vi.my_fullpath)

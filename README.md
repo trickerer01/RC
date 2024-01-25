@@ -6,9 +6,10 @@ RC is a gallery downloader with a lot of features, most of which are filters for
 ### How to use
 ##### Python 3.7 or greater required
 - RC is a cmdline tool, no GUI
-- It consists of 2 main download modules: `pages.py` for pages scanning, `ids.py` - for album ids traversal
-- Invoke `python pages.py --help` or `python ids.py --help` for possible arguments for each module (the differences are minimal)
-- See `requirements.txt` for additional module dependencies
+- It consists of 2 main download modules: `pages.py` for pages scanning, `ids.py` - for gallery (a.k.a album) ids traversal
+- See `requirements.txt` for additional dependencies. Install with:
+  - `python -m pip install -r requirements.txt`
+- Invoke `python pages.py --help` or `python ids.py --help` to list possible arguments for each module (the differences are minimal)
 - For bug reports, questions and feature requests use our [issue tracker](https://github.com/trickerer01/RC/issues)
 
 #### Search & filters
@@ -56,9 +57,9 @@ RC is a gallery downloader with a lot of features, most of which are filters for
 
 4. Gallery naming
   - Gallery names are generated based on gallery *title* and *tags*:
-  - Base template: ***rc\_\<album_id>\_\<score>_\<title>\_(\<tags>)/rc\_<image_id>\.ext***. It can be adjusted it using `-naming` argument
+  - Base template: ***rc\_\<album_id>\_\<score>_\<title>\_(\<tags>)/rc\_<image_id>\.ext***. It can be adjusted using `-naming` argument
   - Non-descriptive or way-too-long tags will be dropped
-  - If resulting file full path is too long to fit into 240 symbols, first the tags will be gradually dropped; if not enough, title will be shrunk to fit; general advice: do not download to folders way too deep down the folder tree
+  - If resulting gallery folder full path is too long to fit into 160 symbols, first the tags will be gradually dropped; if not enough, title will be shrunk to fit; general advice: do not download to folders way too deep down the folder tree
 
 5. Using 'file' mode
   - Although not required as cmdline argument, there is a default mode app runs in which is a `cmd` mode
