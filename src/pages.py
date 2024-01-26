@@ -114,8 +114,7 @@ async def main(args: Sequence[str]) -> None:
                 if title not in known_names:
                     known_names[title] = v_entries[i]
                 else:
-                    Log.debug(f'Removing duplicate of {PREFIX}{known_names[title].my_id:d}: '
-                              f'{PREFIX}{v_entries[i].my_id:d} \'{v_entries[i].my_title}\'')
+                    Log.debug(f'Removing duplicate of {known_names[title].sname}: {v_entries[i].sname} \'{v_entries[i].my_title}\'')
                     del v_entries[i]
 
         removed_count = orig_count - len(v_entries)

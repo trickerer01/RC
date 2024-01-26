@@ -55,6 +55,7 @@ class AlbumDownloadWorker:
         self._session = session
         self._orig_count = len(self._seq)
         self._scanned_count = 0
+        self._downloaded_count = 0
         self._filtered_count_after = 0
         self._skipped_count = 0
         self._minmax_id = get_min_max_ids(self._seq)
@@ -175,16 +176,29 @@ class AlbumDownloadWorker:
 
     async def _after_download(self) -> None:
         newline = '\n'
-        Log.info(f'\n[Albums] scan finished, {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
+        Log.info(f'\n[Albums] Scan finished, {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
                  f'{self._filtered_count_after:d} already existed, '
                  f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
         if len(self._failed_items) > 0:
             Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
+            self._failed_items.clear()
+
+    def after_download_all(self) -> None:
+        newline = '\n'
+        Log.info(f'[Albums] Done. {self._downloaded_count:d} / {self._scanned_count:d} album(s) downloaded')
+        if len(self._downloads_active) > 0:
+            Log.fatal(f'active album downloads queue is still at {len(self._downloads_active):d} != 0!')
+        if len(self._failed_items) > 0:
+            Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
 
     def at_album_completed(self, ai: AlbumInfo) -> None:
-        Log.info(f'Album {PREFIX}{ai.my_id:d}: all images processed')
+        Log.info(f'Album {ai.sname}: all images processed')
+        if all(ii.state == ImageInfo.State.DONE for ii in ai.my_images):
+            self._downloaded_count += 1
+        else:
+            self._failed_items.append(ai.my_id)
         ai.my_images.clear()
         ai.set_state(AlbumInfo.State.PROCESSED)
         if ai.my_id in self._downloads_active:
@@ -323,8 +337,9 @@ class ImageDownloadWorker:
         return await getattr(adwn, '_continue_file_checker')()
 
     async def _after_download(self) -> None:
+        adwn = AlbumDownloadWorker.get()
         newline = '\n'
-        Log.info(f'\nDone. {self._downloaded_count:d} / {self._orig_count:d} file(s) downloaded, '
+        Log.info(f'\n[Images] Done. {self._downloaded_count:d} / {self._orig_count:d} file(s) downloaded, '
                  f'{self._filtered_count_after:d} already existed, '
                  f'{self._skipped_count:d} skipped')
         if len(self._seq) > 0:
@@ -333,6 +348,7 @@ class ImageDownloadWorker:
             Log.fatal(f'active writes count is still at {len(self._writes_active):d} != 0!')
         if len(self._failed_items) > 0:
             Log.fatal(f'failed items:\n{newline.join(sorted(self._failed_items))}')
+        adwn.after_download_all()
 
     async def run(self) -> None:
         adwn = AlbumDownloadWorker.get()
@@ -341,7 +357,7 @@ class ImageDownloadWorker:
             return
         self._seq.sort(key=lambda ii: ii.my_album.my_id)
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
-        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} albums in queue, '
+        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s) in queue, '
                  f'bound {minid:d} to {maxid:d}. Working...\n')
         for cv in as_completed([self._prod(), self._state_reporter(), self._continue_file_checker(),
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
