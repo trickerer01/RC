@@ -105,7 +105,7 @@ class AlbumDownloadWorker:
                 await sleep(0.07)
 
     async def _state_reporter(self) -> None:
-        base_sleep_time = calc_sleep_time(5.0)
+        base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while len(self._seq) + self._queue.qsize() + len(self._scans_active) > 0:
@@ -298,7 +298,7 @@ class ImageDownloadWorker:
 
     async def _state_reporter(self) -> None:
         adwn = AlbumDownloadWorker.get()
-        base_sleep_time = calc_sleep_time(5.0)
+        base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while len(self._seq) + self._queue.qsize() + len(self._downloads_active) > 0:
