@@ -105,6 +105,8 @@ RC is a gallery downloader with a lot of features, most of which are filters for
     - `python pages.py -pages 2 -path PATH -search_art ARTIST -search_tag TAG1,TAG2`
   - Up to 30 albums on page 3 with any of 3 tags from any of 2 authors under any of 2 categories, exclude any kind of `vore` or `fart`, with minimum score of 50 and minimum rating of 90%, use proxy, save to a custom location, save tags, log everything, use shortest names for files, setup for interrupt & continue:
     - `python pages.py -log trace -start 3 -pages 1 -path PATH --store-continue-cmdfile -proxy https://127.0.0.1:222 -tdump -minscore 50 -minrating 90 -search_cat CATEGORY1,CAT_EGORY2 -search_art ART_IST1,ARTIST2 -search_tag TAG1,TAG2,TAG3 -search_rule_cat any -search_rule_art any -search_rule_tag any -naming 0 -*vore -fart*`
+  - All videos uploaded by a user, if tagged with either of 2 desired tags, sorted into subfolders by several desired (known) authors, putting remaining videos into a separate folder, setup for interrupt & continue:
+    - `python pages.py -pages 9999 -path PATH --store-continue-cmdfile -uploader USER_ID (TAG1~TAG2) -script "name1: AUTHOR1; name2: AUTHOR2; name3: AUTHOR3; rest: * -utp always"`
 
 2. Ids
   - All existing albums in range:
