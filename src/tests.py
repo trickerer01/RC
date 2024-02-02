@@ -66,7 +66,7 @@ class CmdTests(TestCase):
         c1 = BaseConfig()
         c1.read(parsed1, True)
         self.assertTrue(c1.get_maxid)
-        parsed2 = prepare_arglist(['-start', '2', '-pages', '1', '(2d~3d)', '-script',
+        parsed2 = prepare_arglist(['-start', '2', '-pages', '1', '-uploader', '1234', '(2d~3d)', '-script',
                                    'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', 'prefix|score', '-log', 'warn'], True)
         c2 = BaseConfig()
         c2.read(parsed2, True)
@@ -74,7 +74,7 @@ class CmdTests(TestCase):
         self.assertEqual(8, c2.logging_flags)
         self.assertEqual(1, len(c2.extra_tags))
         self.assertEqual(4, len(c2.scenario))
-        # self.assertEqual(1234, c2.uploader)
+        self.assertEqual(1234, c2.uploader)
         self.assertEqual('', c2.search)
         self.assertEqual(SEARCH_RULE_DEFAULT, c2.search_rule_art)
         self.assertIsNone(c2.use_id_sequence)

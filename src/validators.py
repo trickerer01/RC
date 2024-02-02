@@ -18,6 +18,9 @@ from util import normalize_path
 
 
 def find_and_resolve_config_conflicts() -> bool:
+    # if Config.playlist_name and (Config.search or Config.search_tags or Config.search_arts or Config.search_cats):
+    #     Log.fatal('\nError: cannot use search within playlist! Please use one or the other')
+    #     raise ValueError
     if Config.uploader and (Config.search or Config.search_tags or Config.search_arts or Config.search_cats):
         Log.fatal('\nError: cannot use search within uploader\'s albums! Please use one or the other')
         raise ValueError

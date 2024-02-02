@@ -44,10 +44,11 @@ Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
 SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pY3MvJWQvYS8=').decode()
 """Params required: **album_id** - **int**\n
 Ex. SITE_AJAX_REQUEST_ALBUM % 11111"""
-# SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
-#     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
-# """Params required: **user_id**, **page** - **int**, **int**\n
-# Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
+SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21tdW5pdHkvJWQvdW5rL2NvbWljcy8/bW9kZT1hc3luYyZmdW5jdGlvbj1nZXRfYmxvY2smYmxvY2tfaWQ9bGlzdF9hbGJ1bX'
+    'NfY3JlYXRlZF9hbGJ1bXMmc29ydF9ieT0mZnJvbV9hbGJ1bXM9JWQ=').decode()
+"""Params required: **user_id**, **page** - **int**, **int**\n
+Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.2'
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}

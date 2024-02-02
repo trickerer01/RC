@@ -64,10 +64,6 @@ class AlbumInfo:
         return f'{PREFIX}{self.my_id:d}.album'
 
     @property
-    def my_shortname(self) -> str:
-        return normalize_path(f'{PREFIX}{self.my_id:d}')
-
-    @property
     def my_sfolder(self) -> str:
         return normalize_path(self.my_subfolder)
 
@@ -134,7 +130,7 @@ class ImageInfo:
 
     @property
     def my_shortname(self) -> str:
-        return f'{self.my_sfolder}{self.my_album.my_shortname}{PREFIX}{self.my_id:d}{self.my_ext}'
+        return f'{self.my_sfolder}{self.my_album.sname}/{PREFIX}{self.my_id:d}{self.my_ext}'
 
     @property
     def my_sfolder(self) -> str:
