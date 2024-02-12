@@ -50,7 +50,7 @@ SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
 """Params required: **user_id**, **page** - **int**, **int**\n
 Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
 
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.5 Firefox/102.0 PaleMoon/32.5.2'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.6 Firefox/102.0 PaleMoon/33.0.0'
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
 
 # untagged albums download policy
