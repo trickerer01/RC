@@ -18,7 +18,7 @@ from config import Config
 from defs import (
     DownloadResult, Mem, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
     START_TIME, UTF8, LOGGING_FLAGS, CONNECT_TIMEOUT_BASE, DOWNLOAD_POLICY_DEFAULT, NAMING_FLAGS_DEFAULT,
-    DOWNLOAD_MODE_DEFAULT,
+    DOWNLOAD_MODE_DEFAULT, CONNECT_REQUEST_DELAY,
 )
 from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from logger import Log
@@ -355,9 +355,10 @@ class ImageDownloadWorker:
         if not self._seq:
             return
         self._seq.sort(key=lambda ii: ii.my_album.my_id)
+        eta_min = int(2.0 + (CONNECT_REQUEST_DELAY * 1.5 + 0.02) * len(self._seq))
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
-        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s) in queue, '
-                 f'bound {minid:d} to {maxid:d}. Working...\n')
+        Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s), bound {minid:d} to {maxid:d}. Working...\n'
+                 f'\nThis will take at least {eta_min:d} seconds!\n')
         for cv in as_completed([self._prod(), self._state_reporter(), self._continue_file_checker(),
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
