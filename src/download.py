@@ -9,7 +9,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from asyncio import Task, CancelledError, sleep, get_running_loop
 from os import path, stat, remove, makedirs
 from random import uniform as frand
-from typing import Optional, Iterable, Dict
+from typing import Optional, List, Dict
 
 from aiofile import async_open
 from aiohttp import ClientSession, ClientResponse, ClientPayloadError
@@ -22,7 +22,7 @@ from defs import (
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request, make_session
-from iinfo import AlbumInfo, ImageInfo, export_album_info
+from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from rex import re_replace_symbols, re_read_href
 from scenario import DownloadScenario
@@ -32,7 +32,9 @@ from util import has_naming_flag
 __all__ = ('download', 'at_interrupt')
 
 
-async def download(sequence: Iterable[AlbumInfo], session: ClientSession = None) -> None:
+async def download(sequence: List[AlbumInfo], filtered_count: int, session: ClientSession = None) -> None:
+    minid, maxid = get_min_max_ids(sequence)
+    Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n')
     async with session or make_session() as session:
         with AlbumDownloadWorker(sequence, process_album, session) as adwn:
             with ImageDownloadWorker(download_image, session) as idwn:

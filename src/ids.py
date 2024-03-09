@@ -13,7 +13,7 @@ from typing import Sequence
 from cmdargs import HelpPrintExitException, prepare_arglist
 from config import Config
 from download import download, at_interrupt
-from iinfo import AlbumInfo, get_min_max_ids
+from iinfo import AlbumInfo
 from logger import Log
 from tagger import extract_id_or_group
 from util import at_startup
@@ -44,15 +44,13 @@ async def main(args: Sequence[str]) -> None:
 
     v_entries = [AlbumInfo(idi) for idi in Config.id_sequence]
     orig_count = len(v_entries)
+    removed_count = 0
 
     if orig_count == 0:
         Log.fatal('\nNo albums found. Aborted.')
         return
 
-    minid, maxid = get_min_max_ids(v_entries)
-    Log.info(f'\nOk! {len(v_entries):d} ids, bound {minid:d} to {maxid:d}. Working...\n')
-
-    await download(v_entries)
+    await download(v_entries, removed_count)
 
 
 async def run_main(args: Sequence[str]) -> None:

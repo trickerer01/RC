@@ -8,7 +8,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 from __future__ import annotations
 from enum import IntEnum
-from typing import Dict, Iterable, Union, List, Tuple
+from typing import Dict, Iterable, Union, Tuple, List
 
 from config import Config
 from defs import PREFIX, UTF8, DEFAULT_EXT
@@ -149,7 +149,7 @@ class ImageInfo:
         return self._state.name
 
 
-def get_min_max_ids(seq: List[AlbumInfo]) -> Tuple[int, int]:
+def get_min_max_ids(seq: Iterable[AlbumInfo]) -> Tuple[int, int]:
     return min(seq, key=lambda x: x.my_id).my_id, max(seq, key=lambda x: x.my_id).my_id
 
 
