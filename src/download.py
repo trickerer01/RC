@@ -36,7 +36,7 @@ async def download(sequence: List[AlbumInfo], filtered_count: int, session: Clie
     minid, maxid = get_min_max_ids(sequence)
     eta_min = int(2.0 + (CONNECT_REQUEST_DELAY + 0.3 + 0.05) * len(sequence))
     Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n'
-             f'\nThis will take at least {eta_min:d} seconds ({f"{format_time(eta_min)}" if eta_min >= 60 else ""})!\n')
+             f'\nThis will take at least {eta_min:d} seconds{f" ({format_time(eta_min)})" if eta_min >= 60 else ""}!\n')
     async with session or make_session() as session:
         with AlbumDownloadWorker(sequence, process_album, session) as adwn:
             with ImageDownloadWorker(download_image, session) as idwn:

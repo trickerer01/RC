@@ -358,7 +358,7 @@ class ImageDownloadWorker:
         eta_min = int(2.0 + (CONNECT_REQUEST_DELAY * 1.5 + 0.02) * len(self._seq))
         minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s), bound {minid:d} to {maxid:d}. Working...\n'
-                 f'\nThis will take at least {eta_min:d} seconds ({f"{format_time(eta_min)}" if eta_min >= 60 else ""})!\n')
+                 f'\nThis will take at least {eta_min:d} seconds{f" ({format_time(eta_min)})" if eta_min >= 60 else ""}!\n')
         for cv in as_completed([self._prod(), self._state_reporter(), self._continue_file_checker(),
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
