@@ -215,6 +215,7 @@ HELP_ARG_UNFINISH = 'Do not clean up unfinished files on interrupt'
 HELP_ARG_TIMEOUT = 'Connection timeout (in seconds)'
 HELP_ARG_THROTTLE = 'Download speed threshold (in KB/s) to assume throttling, drop connection and retry'
 HELP_ARG_UPLOADER = 'Uploader user id (integer, filters still apply)'
+# HELP_ARG_MODEL = 'Artist name (download directly from artist\'s page)'
 HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable deduplication of search results (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
