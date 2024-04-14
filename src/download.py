@@ -155,7 +155,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         fname_part1 += f'_({my_tags})' if len(my_tags) > 0 else ''
     if len(my_tags) == 0 and len(fname_part1) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len)):
         fname_part1 = fname_part1[:max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len))]
-    fname_part1 = re_replace_symbols.sub('_', fname_part1)
+    fname_part1 = re_replace_symbols.sub('_', fname_part1.strip())
     fname_mid = ''
     ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
 
