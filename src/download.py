@@ -137,27 +137,6 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
     rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
-    fname_part2 = ''
-    my_score = (f'{f"+" if score.isnumeric() else ""}{score}' if len(score) > 0
-                else '' if len(rating) > 0 else 'unk')
-    my_rating = (f'{", " if  len(my_score) > 0 else ""}{rating}{"%" if rating.isnumeric() else ""}' if len(rating) > 0
-                 else '' if len(my_score) > 0 else 'unk')
-    fname_part1 = (
-        f'{rc_}{ai.my_id:d}'
-        f'{f"_({my_score}{my_rating})" if has_naming_flag(NamingFlags.SCORE) else ""}'
-        f'{f"_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.TITLE) else ""}'
-    )
-    # <fname_part1>_(<TAGS...>)
-    extra_len = 1 + 2 + 1  # 1 underscore + 2 brackets + 1 extra slash
-    if has_naming_flag(NamingFlags.TAGS):
-        while len(my_tags) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part1) + len(fname_part2) + extra_len)):
-            my_tags = my_tags[:max(0, my_tags.rfind(TAGS_CONCAT_CHAR))]
-        fname_part1 += f'_({my_tags})' if len(my_tags) > 0 else ''
-    if len(my_tags) == 0 and len(fname_part1) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len)):
-        fname_part1 = fname_part1[:max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len))]
-    fname_part1 = re_replace_symbols.sub('_', fname_part1.strip())
-    fname_mid = ''
-    ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
 
     album_th = a_html.find('a', class_='th', href=re_read_href)
     try:
@@ -191,8 +170,30 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         ai.my_images.clear()
         return DownloadResult.FAIL_ALREADY_EXISTS
 
-    Log.info(f'{sname}: {len(ai.my_images):d} images')
+    Log.info(f'{sname}: {ai.images_count:d} images')
     [idwn.store_image_info(ii) for ii in ai.my_images]
+
+    fname_part2 = ''
+    my_score = (f'{f"+" if score.isnumeric() else ""}{score}' if len(score) > 0
+                else '' if len(rating) > 0 else 'unk')
+    my_rating = (f'{", " if  len(my_score) > 0 else ""}{rating}{"%" if rating.isnumeric() else ""}' if len(rating) > 0
+                 else '' if len(my_score) > 0 else 'unk')
+    fname_part1 = (
+        f'{rc_}{ai.my_id:d}'
+        f'{f"_({my_score}{my_rating})" if has_naming_flag(NamingFlags.SCORE) else ""}'
+        f'{f"_[{ai.images_count:d}]_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.TITLE) else ""}'
+    )
+    # <fname_part1>_(<TAGS...>)
+    extra_len = 1 + 2 + 1  # 1 underscore + 2 brackets + 1 extra slash
+    if has_naming_flag(NamingFlags.TAGS):
+        while len(my_tags) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part1) + len(fname_part2) + extra_len)):
+            my_tags = my_tags[:max(0, my_tags.rfind(TAGS_CONCAT_CHAR))]
+        fname_part1 += f'_({my_tags})' if len(my_tags) > 0 else ''
+    if len(my_tags) == 0 and len(fname_part1) > max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len)):
+        fname_part1 = fname_part1[:max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len))]
+    fname_part1 = re_replace_symbols.sub('_', fname_part1).strip()
+    fname_mid = ''
+    ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
 
     ai.set_state(AlbumInfo.State.SCANNED)
     return DownloadResult.SUCCESS

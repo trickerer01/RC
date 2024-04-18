@@ -47,6 +47,10 @@ class AlbumInfo:
     def state(self) -> AlbumInfo.State:
         return self._state
 
+    @property
+    def images_count(self) -> int:
+        return len(self.my_images)
+
     def all_done(self) -> bool:
         return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.my_images) if self.my_images else False
 
