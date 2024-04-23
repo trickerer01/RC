@@ -251,13 +251,18 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
     while (not skip) and retries < CONNECT_RETRIES_BASE:
         try:
+            file_exists = path.isfile(ii.my_fullpath)
+            file_size = stat(ii.my_fullpath).st_size if file_exists else 0
+
             if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
-                Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
-                with open(ii.my_fullpath, 'wb'):
-                    ii.set_state(ImageInfo.State.DONE)
+                if file_exists:
+                    Log.warn(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
+                else:
+                    Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
+                    with open(ii.my_fullpath, 'wb'):
+                        ii.set_state(ImageInfo.State.DONE)
                 break
 
-            file_size = stat(ii.my_fullpath).st_size if path.isfile(ii.my_fullpath) else 0
             hkwargs = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}  # type: Dict[str, Dict[str, str]]
             r = None
             async with await wrap_request(idwn.session, 'GET', ii.my_link, **hkwargs) as r:
