@@ -69,11 +69,11 @@ class AlbumDownloadWorker:
 
     async def _at_task_start(self, ai: AlbumInfo) -> None:
         self._scans_active.append(ai)
-        Log.trace(f'[queue] {ai.sname} added to queue')
+        Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
         self._scans_active.remove(ai)
-        Log.trace(f'[queue] {ai.sname} removed from queue')
+        Log.trace(f'[queue] {ai.sname} removed from active')
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.FAIL_SKIPPED:
@@ -259,11 +259,11 @@ class ImageDownloadWorker:
 
     async def _at_task_start(self, ii: ImageInfo) -> None:
         self._downloads_active.append(ii)
-        Log.trace(f'[queue] {ii.sname} added to queue')
+        Log.trace(f'[queue] {ii.sname} added to active')
 
     async def _at_task_finish(self, ii: ImageInfo, result: DownloadResult) -> None:
         self._downloads_active.remove(ii)
-        Log.trace(f'[queue] {ii.sname} removed from queue')
+        Log.trace(f'[queue] {ii.sname} removed from active')
         if ii.my_album.all_done():
             AlbumDownloadWorker.get().at_album_completed(ii.my_album)
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
