@@ -256,7 +256,9 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
             if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
                 if file_exists:
-                    Log.warn(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
+                    Log.info(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
+                    ii.set_state(ImageInfo.State.DONE)
+                    return DownloadResult.FAIL_ALREADY_EXISTS
                 else:
                     Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
                     with open(ii.my_fullpath, 'wb'):
