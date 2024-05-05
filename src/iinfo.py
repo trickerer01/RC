@@ -26,22 +26,38 @@ class AlbumInfo:
         PROCESSED = 4
 
     def __init__(self, m_id: int, m_title='', *, preview_link='') -> None:
-        self.my_id = m_id or 0
-        self.my_title = m_title or ''
+        self._id = m_id or 0
 
-        self.my_subfolder = ''
-        self.my_name = ''
-        self.my_rating = ''
-        self.my_preview_link = preview_link
+        self.title = m_title or ''
+        self.subfolder = ''
+        self.name = ''
+        self.rating = ''
+        self.preview_link = preview_link
+        self.tags = ''
+        self.description = ''
+        self.comments = ''
+        self.images = list()  # type: List[ImageInfo]
 
-        self.my_tags = ''
-        self.my_description = ''
-        self.my_comments = ''
-        self.my_images = list()  # type: List[ImageInfo]
         self._state = AlbumInfo.State.NEW
 
     def set_state(self, state: AlbumInfo.State) -> None:
         self._state = state
+
+    def all_done(self) -> bool:
+        return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.images) if self.images else False
+
+    def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
+        return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
+
+    def __str__(self) -> str:
+        return (
+            f'[{self.state_str}] \'{PREFIX}{self.id:d}_{self.title}.album\''
+            f'\nDest: \'{self.my_folder}\''
+        )
+
+    @property
+    def id(self) -> int:
+        return self._id
 
     @property
     def state(self) -> AlbumInfo.State:
@@ -49,43 +65,33 @@ class AlbumInfo:
 
     @property
     def images_count(self) -> int:
-        return len(self.my_images)
-
-    def all_done(self) -> bool:
-        return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.my_images) if self.my_images else False
-
-    def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
-        return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
-
-    def __repr__(self) -> str:
-        return (
-            f'[{self.state_str}] \'{PREFIX}{self.my_id:d}_{self.my_title}.album\''
-            f'\nDest: \'{self.my_folder}\''
-        )
+        return len(self.images)
 
     @property
     def sname(self) -> str:
-        return f'{PREFIX}{self.my_id:d}.album'
+        return f'{PREFIX}{self.id:d}.album'
 
     @property
     def my_sfolder(self) -> str:
-        return normalize_path(self.my_subfolder)
+        return normalize_path(self.subfolder)
 
     @property
     def my_sfolder_full(self) -> str:
-        return normalize_path(f'{self.my_sfolder}{self.my_name}')
+        return normalize_path(f'{self.my_sfolder}{self.name}')
 
     @property
     def my_folder_base(self) -> str:
-        return normalize_path(f'{Config.dest_base}{self.my_subfolder}')
+        return normalize_path(f'{Config.dest_base}{self.subfolder}')
 
     @property
     def my_folder(self) -> str:
-        return normalize_path(f'{self.my_folder_base}{self.my_name}')
+        return normalize_path(f'{self.my_folder_base}{self.name}')
 
     @property
     def state_str(self) -> str:
         return self._state.name
+
+    __repr__ = __str__
 
 
 class ImageInfo:
@@ -99,17 +105,35 @@ class ImageInfo:
         FAILED = 6
 
     def __init__(self, album_info: AlbumInfo, m_id: int, m_link: str, m_filename: str) -> None:
-        self.my_album = album_info
-        self.my_id = m_id or 0
-        self.my_link = m_link or ''
-        self.my_filename = m_filename or ''
-        self.my_ext = self.my_filename[self.my_filename.rfind('.'):]
+        self._album = album_info
+        self._id = m_id or 0
 
-        self.my_expected_size = 0
+        self.link = m_link or ''
+        self.filename = m_filename or ''
+        self.ext = self.filename[self.filename.rfind('.'):]
+        self.expected_size = 0
+
         self._state = ImageInfo.State.NEW
 
     def set_state(self, state: ImageInfo.State) -> None:
         self._state = state
+
+    def __eq__(self, other: Union[ImageInfo, int]) -> bool:
+        return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
+
+    def __str__(self) -> str:
+        return (
+            f'[{self.state_str}] \'{self.album.sname}/{self.sname}\''
+            f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.link}\''
+        )
+
+    @property
+    def id(self) -> int:
+        return self._id
+
+    @property
+    def album(self) -> AlbumInfo:
+        return self._album
 
     @property
     def state(self) -> ImageInfo.State:
@@ -117,44 +141,37 @@ class ImageInfo:
 
     @property
     def is_preview(self) -> bool:
-        return self.my_id == self.my_album.my_id and self.my_link.endswith(f'preview.{DEFAULT_EXT}')
-
-    def __eq__(self, other: Union[ImageInfo, int]) -> bool:
-        return self.my_id == other.my_id if isinstance(other, type(self)) else self.my_id == other if isinstance(other, int) else False
-
-    def __repr__(self) -> str:
-        return (
-            f'[{self.state_str}] \'{self.my_album.sname}/{self.sname}\''
-            f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.my_link}\''
-        )
+        return self.id == self.album.id and self.link.endswith(f'preview.{DEFAULT_EXT}')
 
     @property
     def sname(self) -> str:
-        return f'{PREFIX}{self.my_id:d}.{DEFAULT_EXT}'
+        return f'{PREFIX}{self.id:d}.{DEFAULT_EXT}'
 
     @property
     def my_shortname(self) -> str:
-        return f'{self.my_sfolder}{self.my_album.sname}/{PREFIX}{self.my_id:d}{self.my_ext}'
+        return f'{self.my_sfolder}{self.album.sname}/{PREFIX}{self.id:d}{self.ext}'
 
     @property
     def my_sfolder(self) -> str:
-        return self.my_album.my_sfolder
+        return self.album.my_sfolder
 
     @property
     def my_folder(self) -> str:
-        return self.my_album.my_folder
+        return self.album.my_folder
 
     @property
     def my_fullpath(self) -> str:
-        return normalize_filename(self.my_filename, self.my_folder)
+        return normalize_filename(self.filename, self.my_folder)
 
     @property
     def state_str(self) -> str:
         return self._state.name
 
+    __repr__ = __str__
+
 
 def get_min_max_ids(seq: Iterable[AlbumInfo]) -> Tuple[int, int]:
-    return min(seq, key=lambda x: x.my_id).my_id, max(seq, key=lambda x: x.my_id).my_id
+    return min(seq, key=lambda x: x.id).id, max(seq, key=lambda x: x.id).id
 
 
 def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
@@ -162,10 +179,10 @@ def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
     tags_dict, desc_dict, comm_dict = dict(), dict(), dict()  # type: Dict[str, Dict[int, str]]
     for ai in info_list:
         if ai.state == AlbumInfo.State.PROCESSED:
-            for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.my_tags, ai.my_description, ai.my_comments)):
+            for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.tags, ai.description, ai.comments)):
                 if ai.my_sfolder not in d:
                     d[ai.my_sfolder] = dict()
-                d[ai.my_sfolder][ai.my_id] = s
+                d[ai.my_sfolder][ai.id] = s
     for conf, dct, name, proc_cb in zip(
         (Config.save_tags, Config.save_descriptions, Config.save_comments),
         (tags_dict, desc_dict, comm_dict),

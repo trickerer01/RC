@@ -199,7 +199,7 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: List[str], extra_tags
     suc = True
     sname = ai.sname
     sfol = f'[{subfolder}] ' if subfolder else ''
-    if id_seq and ai.my_id not in id_seq:
+    if id_seq and ai.id not in id_seq:
         suc = False
         Log.trace(f'{sfol}Album {sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!',
                   LoggingFlags.EX_MISSING_TAGS)

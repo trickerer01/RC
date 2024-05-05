@@ -50,11 +50,11 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     scenario = Config.scenario  # type: Optional[DownloadScenario]
     sname = ai.sname
     my_tags = 'no_tags'
-    rating = ai.my_rating
+    rating = ai.rating
     score = ''
 
     ai.set_state(AlbumInfo.State.ACTIVE)
-    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.my_id, session=adwn.session)
+    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id, session=adwn.session)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
         return DownloadResult.FAIL_RETRIES
@@ -63,9 +63,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.error(f'Got error 404 for {sname}, skipping...')
         return DownloadResult.FAIL_SKIPPED
 
-    if not ai.my_title:
+    if not ai.title:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
-        ai.my_title = titleh1.text if titleh1 else ''
+        ai.title = titleh1.text if titleh1 else ''
     try:
         votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
         rating_float = float(a_html.find('span', class_='set-rating').text[:-1])
@@ -91,7 +91,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     for add_tag in [ca.replace(' ', '_') for ca in my_categories + my_authors if len(ca) > 0]:
         if add_tag not in tags_raw:
             tags_raw.append(add_tag)
-    if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.my_subfolder):
+    if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
         return DownloadResult.FAIL_SKIPPED
     for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
@@ -106,9 +106,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         matching_sq = scenario.get_matching_subquery(ai, tags_raw, score, rating)
         utpalways_sq = scenario.get_utp_always_subquery() if tdiv is None else None
         if matching_sq:
-            ai.my_subfolder = matching_sq.subfolder
+            ai.subfolder = matching_sq.subfolder
         elif utpalways_sq:
-            ai.my_subfolder = utpalways_sq.subfolder
+            ai.subfolder = utpalways_sq.subfolder
         else:
             Log.info(f'Info: unable to find matching or utp scenario subquery for {sname}, skipping...')
             return DownloadResult.FAIL_SKIPPED
@@ -116,7 +116,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.warn(f'Warning: could not extract tags from {sname}, skipping due to untagged albums download policy...')
         return DownloadResult.FAIL_SKIPPED
     if Config.save_tags:
-        ai.my_tags = ' '.join(sorted(tags_raw))
+        ai.tags = ' '.join(sorted(tags_raw))
     if Config.save_descriptions or Config.save_comments:
         cidivs = a_html.find_all('div', class_='comment-info')
         cudivs = [cidiv.find('a') for cidiv in cidivs]
@@ -130,10 +130,10 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         if Config.save_descriptions:
             desc_comment = (f'{cudivs[-1].text}:\n' + ctdivs[-1].get_text('\n').strip()) if has_description else ''
             desc_base = (f'\n{my_uploader}:\n' + desc_em.get_text('\n') + '\n') if desc_em else ''
-            ai.my_description = desc_base or (f'\n{desc_comment}\n' if desc_comment else '')
+            ai.description = desc_base or (f'\n{desc_comment}\n' if desc_comment else '')
         if Config.save_comments:
             comments_list = [f'{cudivs[i].text}:\n' + ctdivs[i].get_text('\n').strip() for i in range(len(ctdivs) - int(has_description))]
-            ai.my_comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
+            ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
     rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
@@ -146,14 +146,14 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         return DownloadResult.FAIL_RETRIES
     try:
         preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
-        ai.my_preview_link = preview_href_1
+        ai.preview_link = preview_href_1
     except Exception:
         Log.error(f'Cannot find preview section for {sname}, failed!')
         return DownloadResult.FAIL_RETRIES
 
     if Config.include_previews:
-        pii = ImageInfo(ai, ai.my_id, ai.my_preview_link, f'{rc_}!{ai.my_id}_{ai.my_preview_link[ai.my_preview_link.rfind("/") + 1:]}')
-        ai.my_images.append(pii)
+        pii = ImageInfo(ai, ai.id, ai.preview_link, f'{rc_}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
+        ai.images.append(pii)
 
     r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/', session=adwn.session)
     if r_html is None:
@@ -164,14 +164,14 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     for ilink in file_links:
         iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
         ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}')
-        ai.my_images.append(ii)
-    if path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.my_images):
-        Log.info(f'Album {sname} \'{ai.my_name}\' and all its {len(ai.my_images):d} images already exist. Skipped.')
-        ai.my_images.clear()
+        ai.images.append(ii)
+    if path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
+        Log.info(f'Album {sname} \'{ai.name}\' and all its {len(ai.images):d} images already exist. Skipped.')
+        ai.images.clear()
         return DownloadResult.FAIL_ALREADY_EXISTS
 
     Log.info(f'{sname}: {ai.images_count:d} images')
-    [idwn.store_image_info(ii) for ii in ai.my_images]
+    [idwn.store_image_info(ii) for ii in ai.images]
 
     fname_part2 = ''
     my_score = (f'{f"+" if score.isnumeric() else ""}{score}' if len(score) > 0
@@ -179,9 +179,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     my_rating = (f'{", " if  len(my_score) > 0 else ""}{rating}{"%" if rating.isnumeric() else ""}' if len(rating) > 0
                  else '' if len(my_score) > 0 else 'unk')
     fname_part1 = (
-        f'{rc_}{ai.my_id:d}'
+        f'{rc_}{ai.id:d}'
         f'{f"_({my_score}{my_rating})" if has_naming_flag(NamingFlags.SCORE) else ""}'
-        f'{f"_[{ai.images_count:d}]_{ai.my_title}" if ai.my_title and has_naming_flag(NamingFlags.TITLE) else ""}'
+        f'{f"_[{ai.images_count:d}]_{ai.title}" if ai.title and has_naming_flag(NamingFlags.TITLE) else ""}'
     )
     # <fname_part1>_(<TAGS...>)
     extra_len = 1 + 2 + 1  # 1 underscore + 2 brackets + 1 extra slash
@@ -193,7 +193,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         fname_part1 = fname_part1[:max(0, FULLPATH_MAX_BASE_LEN - (len(ai.my_folder) + len(fname_part2) + extra_len))]
     fname_part1 = re_replace_symbols.sub('_', fname_part1).strip()
     fname_mid = ''
-    ai.my_name = f'{fname_part1}{fname_mid}{fname_part2}'
+    ai.name = f'{fname_part1}{fname_mid}{fname_part2}'
 
     ai.set_state(AlbumInfo.State.SCANNED)
     return DownloadResult.SUCCESS
@@ -225,8 +225,8 @@ async def check_image_download_status(ii: ImageInfo, init_size: int, resp: Clien
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
-    sname = f'{ii.my_album.sname}/{ii.sname}'
-    sfilename = f'{ii.my_sfolder}{ii.my_album.my_sfolder_full}{ii.my_filename}'
+    sname = f'{ii.album.sname}/{ii.sname}'
+    sfilename = f'{ii.my_sfolder}{ii.album.my_sfolder_full}{ii.filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
     skip = Config.dm == DOWNLOAD_MODE_SKIP and not ii.is_preview
@@ -245,7 +245,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
         else:
             rc_curfile = path.isfile(ii.my_fullpath)
             if rc_curfile and Config.continue_mode is False:
-                Log.info(f'{ii.my_filename} already exists. Skipped.')
+                Log.info(f'{ii.filename} already exists. Skipped.')
                 ii.set_state(ImageInfo.State.DONE)
                 return DownloadResult.FAIL_ALREADY_EXISTS
 
@@ -267,7 +267,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
             hkwargs = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}  # type: Dict[str, Dict[str, str]]
             r = None
-            async with await wrap_request(idwn.session, 'GET', ii.my_link, **hkwargs) as r:
+            async with await wrap_request(idwn.session, 'GET', ii.link, **hkwargs) as r:
                 content_len = r.content_length or 0
                 content_range_s = r.headers.get('Content-Range', '/').split('/', 1)
                 content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
@@ -280,12 +280,12 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     retries = CONNECT_RETRIES_BASE - 1
                     ret = DownloadResult.FAIL_NOT_FOUND
                 if r.content_type and 'text' in r.content_type:
-                    Log.error(f'File not found at {ii.my_link}!')
-                    raise FileNotFoundError(ii.my_link)
+                    Log.error(f'File not found at {ii.link}!')
+                    raise FileNotFoundError(ii.link)
 
-                ii.my_expected_size = file_size + content_len
+                ii.expected_size = file_size + content_len
                 starting_str = f' <continuing at {file_size:d}>' if file_size else ''
-                total_str = f' / {ii.my_expected_size / Mem.MB:.2f}' if file_size else ''
+                total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
                 Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
 
                 idwn.add_to_writes(ii)
@@ -298,9 +298,9 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 idwn.remove_from_writes(ii)
 
                 file_size = stat(ii.my_fullpath).st_size
-                if ii.my_expected_size and file_size != ii.my_expected_size:
-                    Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.my_expected_size:d}')
-                    raise IOError(ii.my_link)
+                if ii.expected_size and file_size != ii.expected_size:
+                    Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
+                    raise IOError(ii.link)
 
                 ii.set_state(ImageInfo.State.DONE)
                 break

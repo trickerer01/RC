@@ -111,11 +111,11 @@ async def main(args: Sequence[str]) -> None:
         if allow_duplicates is False:
             known_names = dict()
             for i in reversed(range(len(v_entries))):  # type: int
-                title = v_entries[i].my_title.lower()
+                title = v_entries[i].title.lower()
                 if title not in known_names:
                     known_names[title] = v_entries[i]
                 else:
-                    Log.debug(f'Removing duplicate of {known_names[title].sname}: {v_entries[i].sname} \'{v_entries[i].my_title}\'')
+                    Log.debug(f'Removing duplicate of {known_names[title].sname}: {v_entries[i].sname} \'{v_entries[i].title}\'')
                     del v_entries[i]
 
         removed_count = orig_count - len(v_entries)

@@ -79,10 +79,10 @@ class AlbumDownloadWorker:
         elif result == DownloadResult.FAIL_SKIPPED:
             self._skipped_count += 1
         elif result == DownloadResult.FAIL_RETRIES:
-            self._failed_items.append(ai.my_id)
+            self._failed_items.append(ai.id)
         elif result == DownloadResult.SUCCESS:
             self._scanned_count += 1
-            self._downloads_active[ai.my_id] = ai
+            self._downloads_active[ai.id] = ai
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -194,14 +194,14 @@ class AlbumDownloadWorker:
 
     def at_album_completed(self, ai: AlbumInfo) -> None:
         Log.info(f'Album {ai.sname}: all images processed')
-        if all(ii.state == ImageInfo.State.DONE for ii in ai.my_images):
+        if all(ii.state == ImageInfo.State.DONE for ii in ai.images):
             self._downloaded_count += 1
         else:
-            self._failed_items.append(ai.my_id)
-        ai.my_images.clear()
+            self._failed_items.append(ai.id)
+        ai.images.clear()
         ai.set_state(AlbumInfo.State.PROCESSED)
-        if ai.my_id in self._downloads_active:
-            del self._downloads_active[ai.my_id]
+        if ai.id in self._downloads_active:
+            del self._downloads_active[ai.id]
 
     async def run(self) -> None:
         for cv in as_completed([self._prod(), self._state_reporter(), *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
@@ -264,8 +264,8 @@ class ImageDownloadWorker:
     async def _at_task_finish(self, ii: ImageInfo, result: DownloadResult) -> None:
         self._downloads_active.remove(ii)
         Log.trace(f'[queue] {ii.sname} removed from active')
-        if ii.my_album.all_done():
-            AlbumDownloadWorker.get().at_album_completed(ii.my_album)
+        if ii.album.all_done():
+            AlbumDownloadWorker.get().at_album_completed(ii.album)
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.FAIL_SKIPPED:
@@ -274,7 +274,7 @@ class ImageDownloadWorker:
             self._failed_items.append(ii.my_shortname)
         elif result == DownloadResult.SUCCESS:
             self._downloaded_count += 1
-            self._downloaded_amount += ii.my_expected_size
+            self._downloaded_amount += ii.expected_size
 
     async def _prod(self) -> None:
         while len(self._seq) > 0:
@@ -354,9 +354,9 @@ class ImageDownloadWorker:
         self._my_start_time = get_elapsed_time_i()
         if not self._seq:
             return
-        self._seq.sort(key=lambda ii: ii.my_album.my_id)
+        self._seq.sort(key=lambda ii: ii.album.id)
         eta_min = int(2.0 + (CONNECT_REQUEST_DELAY * 1.5 + 0.02) * len(self._seq))
-        minid, maxid = min(self._seq, key=lambda x: x.my_id).my_id, max(self._seq, key=lambda x: x.my_id).my_id
+        minid, maxid = min(self._seq, key=lambda x: x.id).id, max(self._seq, key=lambda x: x.id).id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s), bound {minid:d} to {maxid:d}. Working...\n'
                  f'\nThis will take at least {eta_min:d} seconds{f" ({format_time(eta_min)})" if eta_min >= 60 else ""}!\n')
         for cv in as_completed([self._prod(), self._state_reporter(), self._continue_file_checker(),
