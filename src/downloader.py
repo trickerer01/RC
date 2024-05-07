@@ -321,7 +321,7 @@ class ImageDownloadWorker:
                 allow_prediction = self._downloaded_count >= min(200, 25 + self._orig_count // 50)
                 not_done = queue_size + download_count != 0
                 bps_str = f'{bps / Mem.KB:.2f}' if allow_prediction else '??'
-                eamount = self._downloaded_amount / max(1, self._downloaded_count) * self._orig_count
+                eamount = self._downloaded_amount / max(1, self._downloaded_count) * (self._orig_count - self._filtered_count_after)
                 eamount_str = f'{"~" * not_done}{eamount / Mem.MB:.{"0" if not_done else "2"}f}' if allow_prediction else '??'
                 damount_str = f'{self._downloaded_amount / Mem.MB:.2f} Mb / {eamount_str} Mb, {bps_str} Kb/s'
                 eta_str = format_time(int((queue_size + download_count) / dps)) if allow_prediction else '??:??:??'

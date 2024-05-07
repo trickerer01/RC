@@ -15,6 +15,7 @@ from config import Config
 from download import download, at_interrupt
 from iinfo import AlbumInfo
 from logger import Log
+from path_util import scan_dest_folder
 from tagger import extract_id_or_group
 from util import at_startup
 from validators import find_and_resolve_config_conflicts
@@ -49,6 +50,8 @@ async def main(args: Sequence[str]) -> None:
     if orig_count == 0:
         Log.fatal('\nNo albums found. Aborted.')
         return
+
+    scan_dest_folder()
 
     await download(v_entries, removed_count)
 

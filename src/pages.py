@@ -20,6 +20,7 @@ from download import download, at_interrupt
 from fetch_html import make_session, fetch_html
 from iinfo import AlbumInfo
 from logger import Log
+from path_util import scan_dest_folder
 from rex import re_page_entry, re_paginator
 from util import at_startup
 from validators import find_and_resolve_config_conflicts
@@ -128,6 +129,8 @@ async def main(args: Sequence[str]) -> None:
             return
         elif removed_count > 0:
             Log.info(f'[Deduplicate] {removed_count:d} / {orig_count:d} albums were removed as duplicates!')
+
+        scan_dest_folder()
 
         await download(v_entries, removed_count, s)
 

@@ -9,10 +9,9 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from re import compile as re_compile
 from typing import Pattern
 
-from defs import EXTENSIONS_I
-
 # common
-re_media_filename = re_compile(fr'^(?:rc_)?(\d+).+?\.(?:{"|".join(EXTENSIONS_I)})$')
+re_media_filename = re_compile(fr'^(?:rc_)?(\d+)\.jpe?g$')
+re_album_foldername = re_compile(r'^(?:rc_)?(\d+)[^\[]+(?:\[(\d+)\])?.*?$')
 re_replace_symbols = re_compile(r'[^0-9a-zA-Z.,_+%!\-()\[\] ]+')
 re_ext = re_compile(r'(\.[^&]{3,5})&')
 re_read_href = re_compile(r'/read/.+?')

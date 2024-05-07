@@ -7,7 +7,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from asyncio import Task, CancelledError, sleep, get_running_loop
-from os import path, stat, remove, makedirs
+from os import path, stat, remove, makedirs, rename, listdir
 from random import uniform as frand
 from typing import Optional, List, Dict
 
@@ -24,10 +24,11 @@ from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request, make_session
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
-from rex import re_replace_symbols, re_read_href
+from path_util import folders_already_exists
+from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
 from scenario import DownloadScenario
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
-from util import has_naming_flag, format_time
+from util import has_naming_flag, format_time, normalize_path
 
 __all__ = ('download', 'at_interrupt')
 
@@ -138,17 +139,22 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
 
+    try:
+        expected_pages_count = int(a_html.find('div', class_='label', string='Pages:').next_sibling.string)
+    except Exception:
+        Log.error(f'Cannot find expected pages count section for {sname}, failed!')
+        return DownloadResult.FAIL_RETRIES
     album_th = a_html.find('a', class_='th', href=re_read_href)
     try:
         read_href_1 = str(album_th.get('href'))[:-1]
     except Exception:
-        Log.error(f'Cannot find download section for {sname}, failed!')
+        Log.error(f'Error: cannot find download section for {sname}! Aborted!')
         return DownloadResult.FAIL_RETRIES
     try:
         preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
         ai.preview_link = preview_href_1
     except Exception:
-        Log.error(f'Cannot find preview section for {sname}, failed!')
+        Log.error(f'Error: cannot find preview section for {sname}! Aborted!')
         return DownloadResult.FAIL_RETRIES
 
     if Config.include_previews:
@@ -161,17 +167,14 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         return DownloadResult.FAIL_RETRIES
 
     file_links = [str(elem.get('data-src')) for elem in r_html.find_all('img', class_='hidden')]
+    if len(file_links) != expected_pages_count:
+        Log.error(f'Error: {sname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
+        return DownloadResult.FAIL_RETRIES
+
     for ilink in file_links:
         iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
         ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}')
         ai.images.append(ii)
-    if path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
-        Log.info(f'Album {sname} \'{ai.name}\' and all its {len(ai.images):d} images already exist. Skipped.')
-        ai.images.clear()
-        return DownloadResult.FAIL_ALREADY_EXISTS
-
-    Log.info(f'{sname}: {ai.images_count:d} images')
-    [idwn.store_image_info(ii) for ii in ai.images]
 
     fname_part2 = ''
     my_score = (f'{f"+" if score.isnumeric() else ""}{score}' if len(score) > 0
@@ -194,6 +197,36 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     fname_part1 = re_replace_symbols.sub('_', fname_part1).strip()
     fname_mid = ''
     ai.name = f'{fname_part1}{fname_mid}{fname_part2}'
+
+    existing_folder = folders_already_exists(ai.id)
+    if existing_folder:
+        existing_folder_name = path.split(existing_folder)[1]
+        if Config.continue_mode:
+            if existing_folder_name != ai.name:
+                old_pages_count = int(re_album_foldername.fullmatch(existing_folder_name).group(2))
+                if old_pages_count > expected_pages_count:
+                    Log.warn(f'{sname} (or similar) found but its pages count is greater ({old_pages_count} vs {ai.images_count})! '
+                             f'Preserving old name.')
+                    ai.name = existing_folder_name
+                else:
+                    Log.info(f'{sname} (or similar) found. Enforcing new name (was \'{existing_folder_name}\').')
+                rename(normalize_path(existing_folder), ai.my_folder)
+        else:
+            existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), listdir(existing_folder)))
+            ai_filenames = [imi.filename for imi in ai.images]
+            if (len(existing_files) == ai.images_count and all(filename in ai_filenames for filename in existing_files)):
+                Log.info(f'Album {sname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
+                ai.images.clear()
+                return DownloadResult.FAIL_ALREADY_EXISTS
+            Log.warn(f'{sname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
+            rename(normalize_path(existing_folder), ai.my_folder)
+    elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
+        Log.info(f'Album {sname} and all its {len(ai.images):d} images already exist. Skipped.')
+        ai.images.clear()
+        return DownloadResult.FAIL_ALREADY_EXISTS
+
+    Log.info(f'{sname}: {ai.images_count:d} images')
+    [idwn.store_image_info(ii) for ii in ai.images]
 
     ai.set_state(AlbumInfo.State.SCANNED)
     return DownloadResult.SUCCESS

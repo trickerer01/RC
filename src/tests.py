@@ -26,6 +26,8 @@ from logger import Log
 # noinspection PyProtectedMember
 from pages import main as pages_main, main_sync as pages_main_sync
 # noinspection PyProtectedMember
+from path_util import found_foldernames_dict
+# noinspection PyProtectedMember
 from util import normalize_path
 
 RUN_CONN_TESTS = 1
@@ -34,6 +36,7 @@ RUN_CONN_TESTS = 1
 def set_up_test(log=False) -> None:
     AlbumDownloadWorker._instance = None
     ImageDownloadWorker._instance = None
+    found_foldernames_dict.clear()
     Log._disabled = not log
 
 
