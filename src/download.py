@@ -226,7 +226,7 @@ async def check_image_download_status(ii: ImageInfo, init_size: int, resp: Clien
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
     sname = f'{ii.album.sname}/{ii.sname}'
-    sfilename = f'{ii.my_sfolder}{ii.album.my_sfolder_full}{ii.filename}'
+    sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
     skip = Config.dm == DOWNLOAD_MODE_SKIP and not ii.is_preview
