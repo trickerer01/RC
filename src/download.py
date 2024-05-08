@@ -24,7 +24,7 @@ from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from fetch_html import fetch_html, wrap_request, make_session
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
-from path_util import folders_already_exists
+from path_util import folders_already_exists, try_rename
 from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
 from scenario import DownloadScenario
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
@@ -210,7 +210,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                     ai.name = existing_folder_name
                 else:
                     Log.info(f'{sname} (or similar) found. Enforcing new name (was \'{existing_folder_name}\').')
-                rename(normalize_path(existing_folder), ai.my_folder)
+                    if not try_rename(normalize_path(existing_folder), ai.my_folder):
+                        Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
         else:
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), listdir(existing_folder)))
             ai_filenames = [imi.filename for imi in ai.images]
@@ -218,8 +219,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 Log.info(f'Album {sname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
-            Log.warn(f'{sname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
-            rename(normalize_path(existing_folder), ai.my_folder)
+            Log.info(f'{sname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
+            if not rename(normalize_path(existing_folder), ai.my_folder):
+                Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
         Log.info(f'Album {sname} and all its {len(ai.images):d} images already exist. Skipped.')
         ai.images.clear()

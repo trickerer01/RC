@@ -6,7 +6,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from os import path, listdir
+from os import path, listdir, rename
 from typing import List, Optional, Dict
 
 from config import Config
@@ -16,7 +16,7 @@ from rex import re_album_foldername
 from scenario import DownloadScenario
 from util import normalize_path
 
-__all__ = ('folders_already_exists', 'scan_dest_folder')
+__all__ = ('folders_already_exists', 'scan_dest_folder', 'try_rename')
 
 found_foldernames_dict = dict()  # type: Dict[str, List[str]]
 
@@ -82,6 +82,14 @@ def folders_already_exists(idi: int) -> str:
             if len(fullpath) > 0:
                 return fullpath
     return ''
+
+
+def try_rename(oldpath: str, newpath: str) -> bool:
+    try:
+        rename(oldpath, newpath)
+        return True
+    except Exception:
+        return False
 
 #
 #
