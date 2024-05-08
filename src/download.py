@@ -7,7 +7,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from asyncio import Task, CancelledError, sleep, get_running_loop
-from os import path, stat, remove, makedirs, rename, listdir
+from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
 from typing import Optional, List, Dict
 
@@ -220,7 +220,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
             Log.info(f'{sname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
-            if not rename(normalize_path(existing_folder), ai.my_folder):
+            if not try_rename(normalize_path(existing_folder), ai.my_folder):
                 Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
         Log.info(f'Album {sname} and all its {len(ai.images):d} images already exist. Skipped.')
