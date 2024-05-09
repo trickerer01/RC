@@ -166,7 +166,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.error(f'Error: unable to retreive html for {sname} page 1! Aborted!')
         return DownloadResult.FAIL_RETRIES
 
-    file_links = [str(elem.get('data-src')) for elem in r_html.find_all('img', class_='hidden')]
+    file_links = [str(elem.get('data-src') or elem.get('data-original')) for elem in r_html.find_all('img', class_=['hidden', 'visible'])]
     if len(file_links) != expected_pages_count:
         Log.error(f'Error: {sname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
         return DownloadResult.FAIL_RETRIES
