@@ -194,6 +194,8 @@ def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
         for subfolder, sdct in dct.items():
             if not sdct:
                 continue
+            if Config.skip_empty_lists and not any(sdct[idi] for idi in sdct.keys()):
+                continue
             keys = sorted(sdct.keys())
             min_id, max_id = keys[0], keys[-1]
             fullpath = f'{normalize_path(f"{Config.dest_base}{subfolder}")}{PREFIX}!{name}_{min_id:d}-{max_id:d}.txt'

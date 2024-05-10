@@ -19,6 +19,7 @@ CONNECT_REQUEST_DELAY = 0.2
 
 MAX_DEST_SCAN_SUB_DEPTH = 2
 MAX_IMAGES_QUEUE_SIZE = 10
+MAX_SCAN_QUEUE_SIZE = 1
 DOWNLOAD_STATUS_CHECK_TIMER = 60
 DOWNLOAD_QUEUE_STALL_CHECK_TIMER = 30
 DOWNLOAD_CONTINUE_FILE_CHECK_TIMER = 30
@@ -210,6 +211,7 @@ HELP_ARG_LOGGING = (
     f' All messages equal or above this level will be logged. Default is \'info\''
 )
 HELP_ARG_DUMP_INFO = 'Save tags / comments to text file (separately)'
+HELP_ARG_SKIP_EMPTY_LISTS = 'Do not store tags / descriptions / comments list if it contains no useful data'
 HELP_ARG_CONTINUE = 'Try to continue unfinished files, may be slower if most files already exist'
 HELP_ARG_UNFINISH = 'Do not clean up unfinished files on interrupt'
 HELP_ARG_TIMEOUT = 'Connection timeout (in seconds)'
