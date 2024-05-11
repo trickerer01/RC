@@ -6,21 +6,22 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from asyncio import Task, CancelledError, sleep, get_running_loop
+from asyncio import sleep
 from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
 from typing import Optional, List, Dict
 
 from aiofile import async_open
-from aiohttp import ClientSession, ClientResponse, ClientPayloadError
+from aiohttp import ClientSession, ClientPayloadError
 
 from config import Config
 from defs import (
     Mem, NamingFlags, DownloadResult, CONNECT_RETRIES_BASE, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
-    DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR, DOWNLOAD_STATUS_CHECK_TIMER,
+    DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR,
     FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
+from dthrottler import ThrottleChecker
 from fetch_html import fetch_html, wrap_request, make_session
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
@@ -234,30 +235,6 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     return DownloadResult.SUCCESS
 
 
-async def check_image_download_status(ii: ImageInfo, init_size: int, resp: ClientResponse) -> None:
-    idwn = ImageDownloadWorker.get()
-    sname = ii.sname
-    dest = ii.my_fullpath
-    check_timer = float(DOWNLOAD_STATUS_CHECK_TIMER)
-    slow_con_dwn_threshold = max(1, DOWNLOAD_STATUS_CHECK_TIMER * Config.throttle * Mem.KB)
-    last_size = init_size
-    try:
-        while True:
-            await sleep(check_timer)
-            if not idwn.is_writing(dest):  # finished already
-                Log.error(f'{sname} status checker is still running for finished download!')
-                break
-            file_size = stat(dest).st_size if path.isfile(dest) else 0
-            if file_size < last_size + slow_con_dwn_threshold:
-                last_speed = (file_size - last_size) / Mem.KB / DOWNLOAD_STATUS_CHECK_TIMER
-                Log.warn(f'{sname} status check failed at {file_size:d} ({last_speed:.2f} KB/s)! Interrupting current try...')
-                resp.connection.transport.abort()  # abort download task (forcefully - close connection)
-                break
-            last_size = file_size
-    except CancelledError:
-        pass
-
-
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
     sname = f'{ii.album.sname}/{ii.sname}'
@@ -265,7 +242,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     retries = 0
     ret = DownloadResult.SUCCESS
     skip = Config.dm == DOWNLOAD_MODE_SKIP and not ii.is_preview
-    status_checker = None  # type: Optional[Task]
+    status_checker = ThrottleChecker(ii)
 
     if skip is True:
         ii.set_state(ImageInfo.State.DONE)
@@ -319,6 +296,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     Log.error(f'File not found at {ii.link}!')
                     raise FileNotFoundError(ii.link)
 
+                status_checker.prepare(r, file_size)
                 ii.expected_size = file_size + content_len
                 starting_str = f' <continuing at {file_size:d}>' if file_size else ''
                 total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
@@ -326,11 +304,11 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
                 idwn.add_to_writes(ii)
                 ii.set_state(ImageInfo.State.WRITING)
-                status_checker = get_running_loop().create_task(check_image_download_status(ii, file_size, r))
+                status_checker.run()
                 async with async_open(ii.my_fullpath, 'ab') as outf:
                     async for chunk in r.content.iter_chunked(256 * Mem.KB):
                         await outf.write(chunk)
-                status_checker.cancel()
+                status_checker.reset()
                 idwn.remove_from_writes(ii)
 
                 file_size = stat(ii.my_fullpath).st_size
@@ -351,8 +329,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             # Network error may be thrown before item is added to active downloads
             if idwn.is_writing(ii):
                 idwn.remove_from_writes(ii)
-            if status_checker is not None:
-                status_checker.cancel()
+            status_checker.reset()
             if retries < CONNECT_RETRIES_BASE:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
                 await sleep(frand(1.0, 7.0))
