@@ -58,7 +58,11 @@ class AlbumDownloadWorker:
         self._downloaded_count = 0
         self._filtered_count_after = 0
         self._skipped_count = 0
+        self._404_count = 0
         self._minmax_id = get_min_max_ids(self._seq)
+
+        self._notfound_counter = 0
+        self._extra_ids = list()  # type: List[int]
 
         self._downloads_active = dict()  # type: Dict[int, AlbumInfo]
         self._scans_active = list()  # type: List[AlbumInfo]
@@ -67,17 +71,36 @@ class AlbumDownloadWorker:
         self._total_queue_size_last = 0
         self._scan_queue_size_last = 0
 
+    def _extend_with_extra(self) -> None:
+        extra_cur = Config.lookahead - self._notfound_counter
+        if extra_cur > 0:
+            last_id = Config.end_id + len(self._extra_ids)
+            extra_idseq = [(last_id + i + 1) for i in range(extra_cur)]
+            extra_vis = [AlbumInfo(idi) for idi in extra_idseq]
+            minid, maxid = get_min_max_ids(extra_vis)
+            Log.warn(f'[lookahead] extending queue after {last_id:d} with {extra_cur:d} extra ids: {minid:d}-{maxid:d}')
+            self._seq.extend(extra_vis)
+            self._extra_ids.extend(extra_idseq)
+
+    def _at_download_result(self, result: DownloadResult) -> None:
+        self._notfound_counter = self._notfound_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
+        if not not Config.lookahead and self.get_workload_size() <= 1:
+            self._extend_with_extra()
+
     async def _at_task_start(self, ai: AlbumInfo) -> None:
         self._scans_active.append(ai)
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
+        self._at_download_result(result)
         self._scans_active.remove(ai)
         Log.trace(f'[queue] {ai.sname} removed from active')
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._filtered_count_after += 1
         elif result == DownloadResult.FAIL_SKIPPED:
             self._skipped_count += 1
+        elif result == DownloadResult.FAIL_NOT_FOUND:
+            self._404_count += 1
         elif result == DownloadResult.FAIL_RETRIES:
             self._failed_items.append(ai.id)
         elif result == DownloadResult.SUCCESS:
@@ -85,8 +108,8 @@ class AlbumDownloadWorker:
             self._downloads_active[ai.id] = ai
 
     async def _prod(self) -> None:
-        while len(self._seq) > 0:
-            if self._queue.full() is False:
+        while self.get_workload_size() > 0:
+            if self._queue.full() is False and self._seq:
                 self._seq[0].set_state(AlbumInfo.State.QUEUED)
                 await self._queue.put((self._seq[0], self._func(self._seq[0])))
                 del self._seq[0]
@@ -108,7 +131,7 @@ class AlbumDownloadWorker:
         base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
-        while len(self._seq) + self._queue.qsize() + len(self._scans_active) > 0:
+        while self.get_workload_size() > 0:
             await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             scan_count = len(self._scans_active)
@@ -152,8 +175,8 @@ class AlbumDownloadWorker:
         base_sleep_time = calc_sleep_time(3.0)
         write_delay = DOWNLOAD_CONTINUE_FILE_CHECK_TIMER
         last_check_seconds = 0
-        while len(self._seq) + self._queue.qsize() + len(self._scans_active) + len(self._downloads_active) > 0:
-            if len(self._seq) + self._queue.qsize() + len(self._scans_active) == 0:
+        while self.get_workload_size() + len(self._downloads_active) > 0:
+            if self.get_workload_size() == 0:
                 elapsed_seconds = get_elapsed_time_i()
                 if elapsed_seconds >= write_delay and elapsed_seconds - last_check_seconds >= write_delay:
                     last_check_seconds = elapsed_seconds
@@ -175,9 +198,10 @@ class AlbumDownloadWorker:
 
     async def _after_download(self) -> None:
         newline = '\n'
-        Log.info(f'\n[Albums] Scan finished, {self._scanned_count:d} / {self._orig_count:d} album(s) enqueued for download, '
+        Log.info(f'\n[Albums] Scan finished, {self._scanned_count:d} / {self._orig_count:d}'
+                 f'{f"+{self.get_extra_count():d}" if Config.lookahead else ""} album(s) enqueued for download, '
                  f'{self._filtered_count_after:d} already existed, '
-                 f'{self._skipped_count:d} skipped')
+                 f'{self._skipped_count:d} skipped, {self._404_count:d} not found')
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
         if len(self._failed_items) > 0:
@@ -215,6 +239,15 @@ class AlbumDownloadWorker:
     @property
     def session(self) -> ClientSession:
         return self._session
+
+    def get_workload_size(self) -> int:
+        return len(self._seq) + self._queue.qsize() + len(self._scans_active)
+
+    def get_extra_count(self) -> int:
+        return len(self._extra_ids)
+
+    def get_extra_ids(self) -> List[int]:
+        return self._extra_ids
 
 
 class ImageDownloadWorker:
@@ -301,7 +334,7 @@ class ImageDownloadWorker:
         base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
-        while len(self._seq) + self._queue.qsize() + len(self._downloads_active) > 0:
+        while self.get_workload_size() > 0:
             await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             download_count = len(self._downloads_active)
@@ -396,6 +429,9 @@ class ImageDownloadWorker:
 
     def remove_from_writes(self, vi: ImageInfo) -> None:
         self._writes_active.remove(vi.my_fullpath)
+
+    def get_workload_size(self) -> int:
+        return len(self._seq) + self._queue.qsize() + len(self._downloads_active)
 
 #
 #

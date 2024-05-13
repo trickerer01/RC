@@ -51,6 +51,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn, idwn = AlbumDownloadWorker.get(), ImageDownloadWorker.get()
     scenario = Config.scenario  # type: Optional[DownloadScenario]
     sname = ai.sname
+    extra_ids = adwn.get_extra_ids()
     my_tags = 'no_tags'
     rating = ai.rating
     score = ''
@@ -63,7 +64,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     if a_html.find('title', string='404 Not Found'):
         Log.error(f'Got error 404 for {sname}, skipping...')
-        return DownloadResult.FAIL_SKIPPED
+        return DownloadResult.FAIL_NOT_FOUND
 
     if not ai.title:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
@@ -93,7 +94,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     for add_tag in [ca.replace(' ', '_') for ca in my_categories + my_authors if len(ca) > 0]:
         if add_tag not in tags_raw:
             tags_raw.append(add_tag)
-    if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder):
+    if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
         return DownloadResult.FAIL_SKIPPED
     for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
