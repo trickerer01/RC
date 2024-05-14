@@ -170,7 +170,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     file_links = [str(elem.get('data-src') or elem.get('data-original')) for elem in r_html.find_all('img', class_=['hidden', 'visible'])]
     if len(file_links) != expected_pages_count:
-        Log.error(f'Error: {sname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
+        Log.error(f'Error: {ai.sfsname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
         return DownloadResult.FAIL_RETRIES
 
     for ilink in file_links:
@@ -207,29 +207,29 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             if existing_folder_name != ai.name:
                 old_pages_count = int(re_album_foldername.fullmatch(existing_folder_name).group(2))
                 if old_pages_count > expected_pages_count:
-                    Log.warn(f'{sname} (or similar) found but its pages count is greater ({old_pages_count} vs {ai.images_count})! '
+                    Log.warn(f'{ai.sfsname} (or similar) found but its pages count is greater ({old_pages_count} vs {ai.images_count})! '
                              f'Preserving old name.')
                     ai.name = existing_folder_name
                 else:
-                    Log.info(f'{sname} (or similar) found. Enforcing new name (was \'{existing_folder_name}\').')
+                    Log.info(f'{ai.sfsname} (or similar) found. Enforcing new name (was \'{existing_folder_name}\').')
                     if not try_rename(normalize_path(existing_folder), ai.my_folder):
                         Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
         else:
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), listdir(existing_folder)))
             ai_filenames = [imi.filename for imi in ai.images]
             if (len(existing_files) == ai.images_count and all(filename in ai_filenames for filename in existing_files)):
-                Log.info(f'Album {sname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
+                Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
-            Log.info(f'{sname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
+            Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
             if not try_rename(normalize_path(existing_folder), ai.my_folder):
                 Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
-        Log.info(f'Album {sname} and all its {len(ai.images):d} images already exist. Skipped.')
+        Log.info(f'Album {ai.sfsname} and all its {len(ai.images):d} images already exist. Skipped.')
         ai.images.clear()
         return DownloadResult.FAIL_ALREADY_EXISTS
 
-    Log.info(f'{sname}: {ai.images_count:d} images')
+    Log.info(f'{ai.sfsname}: {ai.images_count:d} images')
     [idwn.store_image_info(ii) for ii in ai.images]
 
     ai.set_state(AlbumInfo.State.SCANNED)

@@ -72,6 +72,10 @@ class AlbumInfo:
         return f'{PREFIX}{self.id:d}.album'
 
     @property
+    def sfsname(self) -> str:
+        return normalize_filename(self.sname, self.subfolder)
+
+    @property
     def my_sfolder(self) -> str:
         return normalize_path(self.subfolder)
 
