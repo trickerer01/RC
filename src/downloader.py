@@ -61,7 +61,7 @@ class AlbumDownloadWorker:
         self._404_count = 0
         self._minmax_id = get_min_max_ids(self._seq)
 
-        self._notfound_counter = 0
+        self._404_counter = 0
         self._extra_ids = list()  # type: List[int]
 
         self._downloads_active = dict()  # type: Dict[int, AlbumInfo]
@@ -72,7 +72,7 @@ class AlbumDownloadWorker:
         self._scan_queue_size_last = 0
 
     def _extend_with_extra(self) -> None:
-        extra_cur = Config.lookahead - self._notfound_counter
+        extra_cur = Config.lookahead - self._404_counter
         if extra_cur > 0:
             last_id = Config.end_id + len(self._extra_ids)
             extra_idseq = [(last_id + i + 1) for i in range(extra_cur)]
@@ -82,17 +82,14 @@ class AlbumDownloadWorker:
             self._seq.extend(extra_vis)
             self._extra_ids.extend(extra_idseq)
 
-    def _at_download_result(self, result: DownloadResult) -> None:
-        self._notfound_counter = self._notfound_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
-        if not not Config.lookahead and self.get_workload_size() <= 1:
-            self._extend_with_extra()
-
     async def _at_task_start(self, ai: AlbumInfo) -> None:
         self._scans_active.append(ai)
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
-        self._at_download_result(result)
+        self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
+        if len(self._seq) + self._queue.qsize() == 0 and not not Config.lookahead:
+            self._extend_with_extra()
         self._scans_active.remove(ai)
         Log.trace(f'[queue] {ai.sname} removed from active')
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
