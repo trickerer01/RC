@@ -108,6 +108,12 @@ class ImageInfo:
         DONE = 5
         FAILED = 6
 
+    class Flags(IntEnum):
+        NONE = 0x0
+        ALREADY_EXISTED_EXACT = 0x1
+        ALREADY_EXISTED_SIMILAR = 0x2
+        FILE_WAS_CREATED = 0x4
+
     def __init__(self, album_info: AlbumInfo, m_id: int, m_link: str, m_filename: str) -> None:
         self._album = album_info
         self._id = m_id or 0
@@ -118,9 +124,16 @@ class ImageInfo:
         self.expected_size = 0
 
         self._state = ImageInfo.State.NEW
+        self._flags = ImageInfo.Flags.NONE
 
     def set_state(self, state: ImageInfo.State) -> None:
         self._state = state
+
+    def set_flag(self, flag: ImageInfo.Flags) -> None:
+        self._flags |= flag
+
+    def has_flag(self, flag: Union[int, ImageInfo.Flags]) -> bool:
+        return bool(self._flags & flag)
 
     def __eq__(self, other: Union[ImageInfo, int]) -> bool:
         return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
@@ -138,10 +151,6 @@ class ImageInfo:
     @property
     def album(self) -> AlbumInfo:
         return self._album
-
-    @property
-    def state(self) -> ImageInfo.State:
-        return self._state
 
     @property
     def is_preview(self) -> bool:
@@ -166,6 +175,10 @@ class ImageInfo:
     @property
     def my_fullpath(self) -> str:
         return normalize_filename(self.filename, self.my_folder)
+
+    @property
+    def state(self) -> ImageInfo.State:
+        return self._state
 
     @property
     def state_str(self) -> str:

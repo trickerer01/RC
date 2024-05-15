@@ -257,14 +257,18 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 raise IOError(f'ERROR: Unable to create subfolder \'{ii.my_folder}\'!')
         else:
             rc_curfile = path.isfile(ii.my_fullpath)
-            if rc_curfile and Config.continue_mode is False:
-                Log.info(f'{ii.filename} already exists. Skipped.')
-                ii.set_state(ImageInfo.State.DONE)
-                return DownloadResult.FAIL_ALREADY_EXISTS
+            if rc_curfile:
+                ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
+                if Config.continue_mode is False:
+                    Log.info(f'{ii.filename} already exists. Skipped.')
+                    ii.set_state(ImageInfo.State.DONE)
+                    return DownloadResult.FAIL_ALREADY_EXISTS
 
     while (not skip) and retries < CONNECT_RETRIES_BASE:
         try:
             file_exists = path.isfile(ii.my_fullpath)
+            if file_exists and retries == 0:
+                ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
             file_size = stat(ii.my_fullpath).st_size if file_exists else 0
 
             if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
@@ -275,6 +279,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 else:
                     Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
                     with open(ii.my_fullpath, 'wb'):
+                        ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
                         ii.set_state(ImageInfo.State.DONE)
                 break
 
@@ -307,6 +312,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 ii.set_state(ImageInfo.State.WRITING)
                 status_checker.run()
                 async with async_open(ii.my_fullpath, 'ab') as outf:
+                    ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
                     async for chunk in r.content.iter_chunked(256 * Mem.KB):
                         await outf.write(chunk)
                 status_checker.reset()
@@ -334,7 +340,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if retries < CONNECT_RETRIES_BASE:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
                 await sleep(frand(1.0, 7.0))
-            elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath):
+            elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 remove(ii.my_fullpath)
 

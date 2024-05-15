@@ -396,15 +396,15 @@ class ImageDownloadWorker:
 
     def at_interrupt(self) -> None:
         if len(self._downloads_active) > 0:
-            paths_active = sorted(ii.my_fullpath for ii in self._downloads_active if path.isfile(ii.my_fullpath))
+            active_items = sorted([ii for ii in self._downloads_active if path.isfile(ii.my_fullpath) and
+                                   ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED)], key=lambda ii: ii.id)
             if Config.keep_unfinished:
-                unfinished_str = '\n '.join(f'{i + 1:d}) {s}' for i, s in enumerate(paths_active))
-                Log.debug(f'at_interrupt: keeping {len(paths_active):d} unfinished file(s):\n {unfinished_str}')
+                unfinished_str = '\n '.join(f'{i + 1:d}) {ii.my_fullpath}' for i, ii in enumerate(active_items))
+                Log.debug(f'at_interrupt: keeping {len(active_items):d} unfinished file(s):\n {unfinished_str}')
                 return
-            Log.debug(f'at_interrupt: cleaning {len(paths_active):d} unfinished file(s)...')
-            for unfinished in paths_active:
-                Log.debug(f'at_interrupt: trying to remove \'{unfinished}\'...')
-                remove(unfinished)
+            for ii in active_items:
+                Log.debug(f'at_interrupt: trying to remove \'{ii.my_fullpath}\'...')
+                remove(ii.my_fullpath)
 
     def store_image_info(self, ii: ImageInfo) -> None:
         self._orig_count += 1
