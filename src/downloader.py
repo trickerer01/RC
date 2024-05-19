@@ -10,7 +10,7 @@ from __future__ import annotations
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import sleep, as_completed
 from os import path, remove, makedirs
-from typing import List, Tuple, Coroutine, Any, Callable, Optional, Iterable, Union, Dict
+from typing import List, Tuple, Coroutine, Any, Callable, Optional, Union, Dict
 
 from aiohttp import ClientSession
 
@@ -44,11 +44,12 @@ class AlbumDownloadWorker:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         AlbumDownloadWorker._instance = None
 
-    def __init__(self, sequence: Iterable[AlbumInfo], func: Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]],
+    def __init__(self, sequence: List[AlbumInfo], func: Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]],
                  session: ClientSession) -> None:
         assert AlbumDownloadWorker._instance is None
         AlbumDownloadWorker._instance = self
 
+        self._original_sequence = sequence
         self._func = func
         self._seq = [ai for ai in sequence]  # form our own container to erase from
         self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]]
@@ -80,6 +81,7 @@ class AlbumDownloadWorker:
             minid, maxid = get_min_max_ids(extra_vis)
             Log.warn(f'[lookahead] extending queue after {last_id:d} with {extra_cur:d} extra ids: {minid:d}-{maxid:d}')
             self._seq.extend(extra_vis)
+            self._original_sequence.extend(extra_vis)
             self._extra_ids.extend(extra_idseq)
 
     async def _at_task_start(self, ai: AlbumInfo) -> None:
