@@ -291,11 +291,11 @@ class ImageDownloadWorker:
 
     async def _at_task_start(self, ii: ImageInfo) -> None:
         self._downloads_active.append(ii)
-        Log.trace(f'[queue] {ii.sname} added to active')
+        # Log.trace(f'[queue] {ii.sname} added to active')
 
     async def _at_task_finish(self, ii: ImageInfo, result: DownloadResult) -> None:
         self._downloads_active.remove(ii)
-        Log.trace(f'[queue] {ii.sname} removed from active')
+        # Log.trace(f'[queue] {ii.sname} removed from active')
         if ii.album.all_done():
             AlbumDownloadWorker.get().at_album_completed(ii.album)
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
