@@ -76,7 +76,7 @@ re_tags_to_not_exclude = re_compile(
     r'p(?:a(?:inful|ladins|ragon|uline)|ersona(?:_\d)?|i(?:kachu|ssing)|mv|o(?:kemon|ny|wergirl)|'  # p
     r'r(?:e(?:dator|gnant)|ison(?:er)?|olapse))|'  # p
     r'r(?:a(?:d(?:eong3d|roachhd)|p(?:e|unzel)|tchet)|e(?:becca|dapple2|ey.+?)|i(?:eklig|kolo)|opeboundart|u(?:bber|kia)|yona)|'  # r
-    r's(?:a(?:dako|itou|mira|ntalol|yuri)|ca(?:lie|t)|e(?:cazz?|lf_fuck)|h(?:ackles|emale.+?)|i(?:lkymilk|ms(?:_\d)?|th_jedi)|'  # s
+    r's(?:a(?:dako|itou|mira|ntalol|yuri)|ca(?:lie|t)|e(?:cazz?|lf.*)|h(?:ackles|emale.+?)|i(?:lkymilk|ms(?:_\d)?|th_jedi)|'  # s
     r'k(?:arlet|yrim)|l(?:ave|eepy_b|yxxx24)|mell|o(?:ft_vore|lo(?:_.+?)?|phi[ae]|r(?:aka|idormi))|'  # s
     r'p(?:i(?:der|troast|zzy)|l(?:atoon|ucky.*?)|o(?:ks|nty))|t(?:a(?:lkek|r(?:_.+?|craft|fox))|ra(?:ight|pon)|udio34)|'  # s
     r'uccubus|ylveon)|'  # s
