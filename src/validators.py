@@ -19,11 +19,14 @@ from util import normalize_path
 
 def find_and_resolve_config_conflicts() -> bool:
     # if Config.playlist_name and (Config.search or Config.search_tags or Config.search_arts or Config.search_cats):
-    #     Log.fatal('\nError: cannot use search within playlist! Please use one or the other')
+    #     Log.fatal('\nError: cannot use search within playlist! Please use one or the other, or filter using extra tags')
     #     raise ValueError
     if Config.uploader and (Config.search or Config.search_tags or Config.search_arts or Config.search_cats):
-        Log.fatal('\nError: cannot use search within uploader\'s albums! Please use one or the other')
+        Log.fatal('\nError: cannot use search within uploader\'s albums! Please use one or the other, or filter using extra tags')
         raise ValueError
+    # if Config.model and (Config.search or Config.search_tags or Config.search_arts or Config.search_cats):
+    #     Log.fatal('\nError: cannot use search within artist\'s videos! Please use one or the other, or filter using extra tags')
+    #     raise ValueError
     if Config.use_id_sequence in (False, None) and Config.start_id > Config.end_id:
         Log.fatal(f'\nError: invalid album id bounds: start ({Config.start_id:d}) > end ({Config.end_id:d})')
         raise ValueError
