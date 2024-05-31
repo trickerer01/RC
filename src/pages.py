@@ -42,14 +42,14 @@ async def main(args: Sequence[str]) -> None:
     if find_and_resolve_config_conflicts() is True:
         await sleep(3.0)
 
-    def check_id_bounds(album_id: int) -> bool:
+    def check_id_bounds(album_id: int) -> int:
         if album_id > Config.end_id:
             Log.trace(f'skipping {album_id:d} > {Config.end_id:d}')
-            return False
+            return 1
         if album_id < Config.start_id:
             Log.trace(f'skipping {album_id:d} < {Config.start_id:d}')
-            return False
-        return True
+            return -1
+        return 0
 
     v_entries = list()
     maxpage = Config.end if Config.start == Config.end else 0
@@ -94,10 +94,15 @@ async def main(args: Sequence[str]) -> None:
             Log.info(f'page {pi - 1:d}...{" (this is the last page!)" if (0 < maxpage == pi - 1) else ""}')
 
             arefs = a_html.find_all('a', class_=album_ref_class)
+            lower_count = 0
+            orig_count = len(arefs)
             for aref in arefs:
                 href = str(aref.get('href'))
                 cur_id = int(re_page_entry.search(href).group(1))
-                if check_id_bounds(cur_id) is False:
+                bound_res = check_id_bounds(cur_id)
+                if bound_res != 0:
+                    if bound_res < 0:
+                        lower_count += 1
                     continue
                 elif cur_id in v_entries:
                     Log.warn(f'Warning: id {cur_id:d} already queued, skipping')
@@ -105,6 +110,11 @@ async def main(args: Sequence[str]) -> None:
                 my_title = aref.parent.find('div', class_='thumb_title').text
                 my_preview_link = aref.parent.find('img').get('data-original')
                 v_entries.append(AlbumInfo(cur_id, my_title, preview_link=my_preview_link))
+
+            if pi - 1 > Config.start and lower_count == orig_count > 0 and not Config.scan_all_pages:
+                if maxpage == 0 or pi - 1 < maxpage:
+                    Log.info(f'Page {pi - 1:d} has all post ids below lower bound. Pages scan stopped!')
+                break
 
         v_entries.reverse()
         orig_count = len(v_entries)
