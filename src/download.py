@@ -173,9 +173,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.error(f'Error: {ai.sfsname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
         return DownloadResult.FAIL_RETRIES
 
-    for ilink in file_links:
+    for iidx, ilink in enumerate(file_links):
         iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
-        ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}')
+        ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}', num=iidx + 1)
         ai.images.append(ii)
 
     fname_part2 = ''
@@ -238,7 +238,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
-    sname = f'{ii.album.sname}/{ii.sname}'
+    sname = f'{ii.album.sname}/{ii.sname} {ii.my_num_fmt}'
     sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
     retries = 0
     ret = DownloadResult.SUCCESS

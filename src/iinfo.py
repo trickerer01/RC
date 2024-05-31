@@ -117,9 +117,10 @@ class ImageInfo:
         ALREADY_EXISTED_SIMILAR = 0x2
         FILE_WAS_CREATED = 0x4
 
-    def __init__(self, album_info: AlbumInfo, m_id: int, m_link: str, m_filename: str) -> None:
+    def __init__(self, album_info: AlbumInfo, m_id: int, m_link: str, m_filename: str, *, num=1) -> None:
         self._album = album_info
         self._id = m_id or 0
+        self._num = num or 1
 
         self.link = m_link or ''
         self.filename = m_filename or ''
@@ -143,7 +144,7 @@ class ImageInfo:
 
     def __str__(self) -> str:
         return (
-            f'[{self.state_str}] \'{self.album.sname}/{self.sname}\''
+            f'[{self.state_str}] {self.my_num_fmt} \'{self.album.sname}/{self.sname}\''
             f'\nDest: \'{self.my_fullpath}\'\nLink: \'{self.link}\''
         )
 
@@ -152,12 +153,20 @@ class ImageInfo:
         return self._id
 
     @property
+    def num(self) -> int:
+        return self._num
+
+    @property
     def album(self) -> AlbumInfo:
         return self._album
 
     @property
     def is_preview(self) -> bool:
         return self.id == self.album.id and self.link.endswith(f'preview.{DEFAULT_EXT}')
+
+    @property
+    def my_num_fmt(self) -> str:
+        return f'({self.num:d} / {self.album.images_count:d})'
 
     @property
     def sname(self) -> str:
