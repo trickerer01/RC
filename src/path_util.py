@@ -16,7 +16,7 @@ from rex import re_album_foldername
 from scenario import DownloadScenario
 from util import normalize_path
 
-__all__ = ('folders_already_exists', 'scan_dest_folder', 'try_rename')
+__all__ = ('folder_already_exists', 'scan_dest_folder', 'try_rename')
 
 found_foldernames_dict = dict()  # type: Dict[str, List[str]]
 
@@ -69,7 +69,7 @@ def folder_exists_in_folder(base_folder: str, idi: int) -> str:
     return ''
 
 
-def folders_already_exists(idi: int) -> str:
+def folder_already_exists(idi: int) -> str:
     scenario = Config.scenario  # type: Optional[DownloadScenario]
     if scenario:
         for q in scenario.queries:

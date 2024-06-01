@@ -25,7 +25,7 @@ from dthrottler import ThrottleChecker
 from fetch_html import fetch_html, wrap_request, make_session
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
-from path_util import folders_already_exists, try_rename
+from path_util import folder_already_exists, try_rename
 from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
 from scenario import DownloadScenario
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
@@ -200,7 +200,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     fname_mid = ''
     ai.name = f'{fname_part1}{fname_mid}{fname_part2}'
 
-    existing_folder = folders_already_exists(ai.id)
+    existing_folder = folder_already_exists(ai.id)
     if existing_folder:
         existing_folder_name = path.split(existing_folder)[1]
         if Config.continue_mode:

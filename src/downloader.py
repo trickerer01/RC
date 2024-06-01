@@ -22,6 +22,7 @@ from defs import (
 )
 from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from logger import Log
+from path_util import folder_already_exists
 from util import format_time, get_elapsed_time_i, get_elapsed_time_s, calc_sleep_time
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
@@ -89,6 +90,11 @@ class AlbumDownloadWorker:
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
+        if result != DownloadResult.SUCCESS:
+            foundfiles = list(filter(None, [folder_already_exists(ai.id)]))
+            if foundfiles:
+                newline = '\n'
+                Log.info(f'{ai.sname} scan returned {str(result)} but it was already downloaded:\n - {f"{newline} - ".join(foundfiles)}')
         self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
         if len(self._seq) + self._queue.qsize() == 0 and not not Config.lookahead:
             self._extend_with_extra()
