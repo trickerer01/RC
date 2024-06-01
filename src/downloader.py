@@ -90,7 +90,7 @@ class AlbumDownloadWorker:
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
-        if result != DownloadResult.SUCCESS:
+        if result in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED):
             founditems = list(filter(None, [folder_already_exists_arr(ai.id)]))
             if any(ffs for ffs in founditems):
                 newline = '\n'
