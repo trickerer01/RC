@@ -139,7 +139,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
-    rc_ = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
+    prefix = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
 
     try:
         expected_pages_count = int(a_html.find('div', class_='label', string='Pages:').next_sibling.string)
@@ -160,7 +160,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         return DownloadResult.FAIL_RETRIES
 
     if Config.include_previews:
-        pii = ImageInfo(ai, ai.id, ai.preview_link, f'{rc_}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
+        pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
         ai.images.append(pii)
 
     r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/', session=adwn.session)
@@ -175,7 +175,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     for iidx, ilink in enumerate(file_links):
         iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
-        ii = ImageInfo(ai, int(iid), ilink, f'{rc_}{iid}.{iext}', num=iidx + 1)
+        ii = ImageInfo(ai, int(iid), ilink, f'{prefix}{iid}.{iext}', num=iidx + 1)
         ai.images.append(ii)
 
     fname_part2 = ''
@@ -184,7 +184,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     my_rating = (f'{", " if  len(my_score) > 0 else ""}{rating}{"%" if rating.isnumeric() else ""}' if len(rating) > 0
                  else '' if len(my_score) > 0 else 'unk')
     fname_part1 = (
-        f'{rc_}{ai.id:d}'
+        f'{prefix}{ai.id:d}'
         f'{f"_({my_score}{my_rating})" if has_naming_flag(NamingFlags.SCORE) else ""}'
         f'{f"_[{ai.images_count:d}]_{ai.title}" if ai.title and has_naming_flag(NamingFlags.TITLE) else ""}'
     )
@@ -211,7 +211,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                              f'Preserving old name.')
                     ai.name = existing_folder_name
                 else:
-                    Log.info(f'{ai.sfsname} (or similar) found. Enforcing new name (was \'{existing_folder_name}\').')
+                    Log.info(f'{ai.sfsname} (or similar) found. Enforcing new name (was \'{existing_folder}\').')
                     if not try_rename(normalize_path(existing_folder), ai.my_folder):
                         Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
         else:
@@ -221,7 +221,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
-            Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder_name}\')')
+            Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder}\')')
             if not try_rename(normalize_path(existing_folder), ai.my_folder):
                 Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
@@ -256,8 +256,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             except Exception:
                 raise IOError(f'ERROR: Unable to create subfolder \'{ii.my_folder}\'!')
         else:
-            rc_curfile = path.isfile(ii.my_fullpath)
-            if rc_curfile:
+            curfile = path.isfile(ii.my_fullpath)
+            if curfile:
                 ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
                 if Config.continue_mode is False:
                     Log.info(f'{ii.filename} already exists. Skipped.')
