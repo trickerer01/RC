@@ -202,18 +202,28 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     existing_folder = folder_already_exists(ai.id)
     if existing_folder:
+        curalbum_folder, curalbum_name = path.split(existing_folder.strip('/'))
         existing_folder_name = path.split(existing_folder)[1]
         if Config.continue_mode:
-            if existing_folder_name != ai.name:
+            if existing_folder != ai.my_folder:
                 old_pages_count = int(re_album_foldername.fullmatch(existing_folder_name).group(2))
                 if old_pages_count > expected_pages_count:
                     Log.warn(f'{ai.sfsname} (or similar) found but its pages count is greater ({old_pages_count} vs {ai.images_count})! '
                              f'Preserving old name.')
                     ai.name = existing_folder_name
                 else:
-                    Log.info(f'{ai.sfsname} (or similar) found. Enforcing new name (was \'{existing_folder}\').')
-                    if not try_rename(normalize_path(existing_folder), ai.my_folder):
-                        Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
+                    if (Config.no_rename_move is False
+                       or (path.isdir(ai.my_folder_base) and path.samefile(curalbum_folder, ai.my_folder_base))):
+                        Log.info(f'{ai.sfsname} (or similar) found. Enforcing new name (was \'{existing_folder}\').')
+                        if not try_rename(normalize_path(existing_folder), ai.my_folder):
+                            Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
+                    else:
+                        new_subfolder = normalize_path(path.relpath(curalbum_folder, Config.dest_base))
+                        Log.info(f'{ai.sfsname} (or similar) found. Enforcing old path + new name '
+                                 f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
+                        ai.subfolder = new_subfolder
+                        if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
+                            Log.warn(f'Warning: file {ai.sfsname} already exists! Old folder will be preserved.')
         else:
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), listdir(existing_folder)))
             ai_filenames = [imi.filename for imi in ai.images]
@@ -221,9 +231,17 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
-            Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder}\')')
-            if not try_rename(normalize_path(existing_folder), ai.my_folder):
-                Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
+            if Config.no_rename_move:
+                Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder}\')')
+                if not try_rename(normalize_path(existing_folder), ai.my_folder):
+                    Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
+            else:
+                new_subfolder = normalize_path(path.relpath(curalbum_folder, Config.dest_base))
+                Log.info(f'{ai.sfsname} (or similar) found. Enforcing old path + new name '
+                         f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
+                ai.subfolder = new_subfolder
+                if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
+                    Log.warn(f'Warning: file {ai.sfsname} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
         Log.info(f'Album {ai.sfsname} and all its {len(ai.images):d} images already exist. Skipped.')
         ai.images.clear()
