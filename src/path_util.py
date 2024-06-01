@@ -16,7 +16,7 @@ from rex import re_album_foldername
 from scenario import DownloadScenario
 from util import normalize_path
 
-__all__ = ('folder_already_exists', 'scan_dest_folder', 'try_rename')
+__all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 
 found_foldernames_dict = dict()  # type: Dict[str, List[str]]
 
@@ -35,7 +35,7 @@ def scan_dest_folder() -> None:
     assert len(found_foldernames_dict.keys()) == 0
     if path.isdir(Config.dest_base):
         Log.info('Scanning dest folder...')
-        dest_base = path.abspath(Config.dest_base)
+        dest_base = Config.dest_base
         scan_depth = MAX_DEST_SCAN_SUB_DEPTH + Config.folder_scan_levelup
         for _ in range(Config.folder_scan_levelup):
             longpath, dirname = path.split(path.abspath(dest_base))
@@ -93,6 +93,33 @@ def folder_already_exists(idi: int) -> str:
             if len(fullpath) > 0:
                 return fullpath
     return ''
+
+
+def folder_exists_in_folder_arr(base_folder: str, idi: int) -> List[str]:
+    orig_folder_names = found_foldernames_dict.get(normalize_path(base_folder))
+    folder_folders = list()
+    if path.isdir(base_folder) and orig_folder_names is not None:
+        for fname in orig_folder_names:
+            try:
+                f_match = re_album_foldername.match(fname)
+                f_id = f_match.group(1)
+                if str(idi) == f_id:
+                    folder_folders.append(f'{normalize_path(base_folder)}{fname}')
+            except Exception:
+                continue
+    return folder_folders
+
+
+def folder_already_exists_arr(idi: int) -> List[str]:
+    scenario = Config.scenario  # type: Optional[DownloadScenario]
+    found_folders = list()
+    if scenario:
+        for q in scenario.queries:
+            found_folders.extend(folder_exists_in_folder_arr(f'{Config.dest_base}{q.subfolder}', idi))
+    else:
+        for fullpath in found_foldernames_dict:
+            found_folders.extend(folder_exists_in_folder_arr(fullpath, idi))
+    return found_folders
 
 
 def try_rename(oldpath: str, newpath: str) -> bool:
