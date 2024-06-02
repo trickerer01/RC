@@ -9,6 +9,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from typing import List, Optional, Collection, Iterable, MutableSequence
 
 from bigstrings import TAG_ALIASES, TAG_NUMS_DECODED, ART_NUMS_DECODED, CAT_NUMS_DECODED
+from config import Config
 from defs import LoggingFlags, TAGS_CONCAT_CHAR
 from iinfo import AlbumInfo
 from logger import Log
@@ -247,30 +248,35 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: List[str], extra_tags
         suc = False
         Log.trace(f'{sfol}Album {sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!',
                   LoggingFlags.EX_MISSING_TAGS)
-    for extag in extra_tags:
-        if extag.startswith('('):
-            if get_or_group_matching_tag(extag, tags_raw) is None:
-                suc = False
-                Log.trace(f'{sfol}Album {sname} misses required tag matching \'{extag}\'. Skipped!',
-                          LoggingFlags.EX_MISSING_TAGS)
-        elif extag.startswith('-('):
-            neg_matches = get_neg_and_group_matches(extag, tags_raw)
-            if neg_matches:
-                suc = False
-                Log.info(f'{sfol}Album {sname} contains excluded tags combination \'{extag}\': {",".join(neg_matches)}. Skipped!',
-                         LoggingFlags.EX_EXCLUDED_TAGS)
-        else:
-            negative = extag.startswith('-')
-            my_extag = extag[1:] if negative else extag
-            mtag = get_matching_tag(my_extag, tags_raw)
-            if mtag is not None and negative:
-                suc = False
-                Log.info(f'{sfol}Album {sname} contains excluded tag \'{mtag}\'. Skipped!',
-                         LoggingFlags.EX_EXCLUDED_TAGS)
-            elif mtag is None and not negative:
-                suc = False
-                Log.trace(f'{sfol}Album {sname} misses required tag matching \'{my_extag}\'. Skipped!',
-                          LoggingFlags.EX_MISSING_TAGS)
+
+    taglists_to_check = [tags_raw]
+    if Config.check_uploader and ai.uploader:
+        taglists_to_check.append([ai.uploader])
+    for taglist in taglists_to_check:
+        for extag in extra_tags:
+            if extag.startswith('('):
+                if get_or_group_matching_tag(extag, taglist) is None:
+                    suc = False
+                    Log.trace(f'{sfol}Video {sname} misses required tag matching \'{extag}\'. Skipped!',
+                              LoggingFlags.EX_MISSING_TAGS)
+            elif extag.startswith('-('):
+                neg_matches = get_neg_and_group_matches(extag, taglist)
+                if neg_matches:
+                    suc = False
+                    Log.info(f'{sfol}Video {sname} contains excluded tags combination \'{extag}\': {",".join(neg_matches)}. Skipped!',
+                             LoggingFlags.EX_EXCLUDED_TAGS)
+            else:
+                negative = extag.startswith('-')
+                my_extag = extag[1:] if negative else extag
+                mtag = get_matching_tag(my_extag, taglist)
+                if mtag is not None and negative:
+                    suc = False
+                    Log.info(f'{sfol}Video {sname} contains excluded tag \'{mtag}\'. Skipped!',
+                             LoggingFlags.EX_EXCLUDED_TAGS)
+                elif mtag is None and not negative:
+                    suc = False
+                    Log.trace(f'{sfol}Video {sname} misses required tag matching \'{my_extag}\'. Skipped!',
+                              LoggingFlags.EX_MISSING_TAGS)
     return not suc
 
 

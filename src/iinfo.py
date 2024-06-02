@@ -39,6 +39,7 @@ class AlbumInfo:
         self.tags = ''
         self.description = ''
         self.comments = ''
+        self.uploader = ''
         self.images = list()  # type: List[ImageInfo]
 
         self._state = AlbumInfo.State.NEW
