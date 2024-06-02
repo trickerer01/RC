@@ -7,13 +7,12 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from os import path, listdir, rename, makedirs
-from typing import List, Optional, Dict
+from typing import List, Dict
 
 from config import Config
 from defs import MAX_DEST_SCAN_SUB_DEPTH
 from logger import Log
 from rex import re_album_foldername
-from scenario import DownloadScenario
 from util import normalize_path
 
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
@@ -82,17 +81,10 @@ def folder_exists_in_folder(base_folder: str, idi: int) -> str:
 
 
 def folder_already_exists(idi: int) -> str:
-    scenario = Config.scenario  # type: Optional[DownloadScenario]
-    if scenario:
-        for q in scenario.queries:
-            fullpath = folder_exists_in_folder(f'{Config.dest_base}{q.subfolder}', idi)
-            if len(fullpath) > 0:
-                return fullpath
-    else:
-        for fullpath in found_foldernames_dict:
-            fullpath = folder_exists_in_folder(fullpath, idi)
-            if len(fullpath) > 0:
-                return fullpath
+    for fullpath in found_foldernames_dict:
+        fullpath = folder_exists_in_folder(fullpath, idi)
+        if len(fullpath) > 0:
+            return fullpath
     return ''
 
 
@@ -112,14 +104,9 @@ def folder_exists_in_folder_arr(base_folder: str, idi: int) -> List[str]:
 
 
 def folder_already_exists_arr(idi: int) -> List[str]:
-    scenario = Config.scenario  # type: Optional[DownloadScenario]
     found_folders = list()
-    if scenario:
-        for q in scenario.queries:
-            found_folders.extend(folder_exists_in_folder_arr(f'{Config.dest_base}{q.subfolder}', idi))
-    else:
-        for fullpath in found_foldernames_dict:
-            found_folders.extend(folder_exists_in_folder_arr(fullpath, idi))
+    for fullpath in found_foldernames_dict:
+        found_folders.extend(folder_exists_in_folder_arr(fullpath, idi))
     return found_folders
 
 
