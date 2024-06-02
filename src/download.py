@@ -231,13 +231,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
-            if Config.no_rename_move:
+            if Config.no_rename_move is False:
                 Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing new name (was \'{existing_folder}\')')
                 if not try_rename(normalize_path(existing_folder), ai.my_folder):
                     Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
             else:
                 new_subfolder = normalize_path(path.relpath(curalbum_folder, Config.dest_base))
-                Log.info(f'{ai.sfsname} (or similar) found. Enforcing old path + new name '
+                Log.info(f'{ai.sfsname} (or similar) found but its image set differs! Enforcing old path + new name '
                          f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                 ai.subfolder = new_subfolder
                 if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
