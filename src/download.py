@@ -96,7 +96,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             tags_raw.append(add_tag)
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
-        return DownloadResult.FAIL_SKIPPED
+        return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
     for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
         if len(vsrs) > 0 and csri is not None:
             try:
@@ -151,13 +151,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         read_href_1 = str(album_th.get('href'))[:-1]
     except Exception:
         Log.error(f'Error: cannot find download section for {sname}! Aborted!')
-        return DownloadResult.FAIL_RETRIES
+        return DownloadResult.FAIL_DELETED
     try:
         preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
         ai.preview_link = preview_href_1
     except Exception:
         Log.error(f'Error: cannot find preview section for {sname}! Aborted!')
-        return DownloadResult.FAIL_RETRIES
+        return DownloadResult.FAIL_DELETED
 
     if Config.include_previews:
         pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
