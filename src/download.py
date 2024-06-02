@@ -228,7 +228,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), listdir(existing_folder)))
             ai_filenames = [imi.filename for imi in ai.images]
             if (len(existing_files) == ai.images_count and all(filename in ai_filenames for filename in existing_files)):
-                Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.')
+                Log.info(f'Album {ai.sfsname} (or similar) found and all its {len(ai.images):d} images already exist. Skipped.'
+                         f'\n Location: \'{existing_folder}\'')
                 ai.images.clear()
                 return DownloadResult.FAIL_ALREADY_EXISTS
             if Config.no_rename_move is False:
