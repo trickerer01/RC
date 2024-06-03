@@ -30,7 +30,7 @@ from path_util import found_foldernames_dict
 # noinspection PyProtectedMember
 from util import normalize_path
 
-RUN_CONN_TESTS = 1
+RUN_CONN_TESTS = 0
 
 
 def set_up_test(log=False) -> None:
