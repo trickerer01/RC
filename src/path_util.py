@@ -10,7 +10,7 @@ from os import path, listdir, rename, makedirs
 from typing import List, Dict
 
 from config import Config
-from defs import MAX_DEST_SCAN_SUB_DEPTH
+from defs import PREFIX, DEFAULT_EXT
 from logger import Log
 from rex import re_album_foldername
 from util import normalize_path
@@ -18,6 +18,31 @@ from util import normalize_path
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 
 found_foldernames_dict = dict()  # type: Dict[str, List[str]]
+
+
+def report_duplicates() -> None:
+    found_vs = dict()
+    for k in found_foldernames_dict:  # type: str, List[str]
+        if not found_foldernames_dict[k]:
+            continue
+        for fname in found_foldernames_dict[k]:
+            if not fname.startswith(PREFIX):
+                continue
+            fm = re_album_foldername.fullmatch(fname)
+            if fm:
+                fid = fm.group(1)
+                if fid not in found_vs:
+                    found_vs[fid] = [''] * 0
+                found_vs[fid].append(k + fname)
+    if found_vs:
+        Log.info('Duplicates found:')
+        n = '\n  - '
+        for kk in found_vs:
+            vv = found_vs[kk]
+            if len(vv) > 1:
+                Log.info(f' {PREFIX}{kk}.{DEFAULT_EXT}:{n}{n.join(vv)}')
+    else:
+        Log.info('No duplicates found')
 
 
 def scan_dest_folder() -> None:
@@ -58,12 +83,15 @@ def scan_dest_folder() -> None:
         scan_folder(dest_base, 0)
         if Config.dest_base not in found_foldernames_dict:
             found_foldernames_dict[Config.dest_base] = list()
-            scan_folder(Config.dest_base, 0)
+            scan_folder(Config.dest_base, Config.folder_scan_levelup)
         base_folders_count = len(found_foldernames_dict[dest_base])
         total_files_count = sum(len(li) for li in found_foldernames_dict.values())
         Log.info(f'Found {base_folders_count:d} folder(s) in base and '
                  f'{total_files_count - base_folders_count:d} folder(s) in {len(found_foldernames_dict.keys()) - 1:d} subfolder(s) '
                  f'(total folders: {total_files_count:d}, scan depth: {scan_depth:d})')
+
+    if Config.report_duplicates:
+        report_duplicates()
 
 
 def folder_exists_in_folder(base_folder: str, idi: int) -> str:
