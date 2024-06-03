@@ -49,7 +49,7 @@ async def download(sequence: List[AlbumInfo], filtered_count: int, session: Clie
 
 async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn, idwn = AlbumDownloadWorker.get(), ImageDownloadWorker.get()
-    scenario = Config.scenario  # type: Optional[DownloadScenario]
+    scenario: Optional[DownloadScenario] = Config.scenario
     sname = ai.sname
     extra_ids = adwn.get_extra_ids()
     my_tags = 'no_tags'
@@ -306,7 +306,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                         ii.set_state(ImageInfo.State.DONE)
                 break
 
-            hkwargs = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}  # type: Dict[str, Dict[str, str]]
+            hkwargs: Dict[str, Dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
             r = None
             async with await wrap_request(idwn.session, 'GET', ii.link, **hkwargs) as r:
                 content_len = r.content_length or 0

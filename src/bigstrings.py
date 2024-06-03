@@ -4296,10 +4296,13 @@ CAT_NUMS_ENCODED = (
     'b2ZfdGhlX2RlYWQiOiAiMTM0NiIsICJ6b21iaWVfbGFuZF9zYWdhIjogIjk4NiIsICJ6b290b3BpYSI6ICIxOSJ9'
 )
 
+TAG_NUMS_DECODED: Dict[str, str]
+ART_NUMS_DECODED: Dict[str, str]
+CAT_NUMS_DECODED: Dict[str, str]
 TAG_NUMS_DECODED, ART_NUMS_DECODED, CAT_NUMS_DECODED = (
     {k: (v[:v.find(',')] if ',' in v else v) for k, v in loads(b64decode(s)).items()}
     for s in (TAG_NUMS_ENCODED, ART_NUMS_ENCODED, CAT_NUMS_ENCODED)
-)  # type: Dict[str, str]
+)
 
 TAG_ALIASES = {
     'aela_the_huntress_(world_of_warcraft)': 'world_of_warcraft',

@@ -32,7 +32,7 @@ class AlbumDownloadWorker:
     Async queue wrapper which binds list of lists of arguments to a download function call and processes them
     asynchronously with a limit of simulteneous downloads defined by MAX_IMAGES_QUEUE_SIZE
     """
-    _instance = None  # type: Optional[AlbumDownloadWorker]
+    _instance: Optional[AlbumDownloadWorker] = None
 
     @staticmethod
     def get() -> Optional[AlbumDownloadWorker]:
@@ -52,7 +52,7 @@ class AlbumDownloadWorker:
         self._original_sequence = sequence
         self._func = func
         self._seq = [ai for ai in sequence]  # form our own container to erase from
-        self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]]
+        self._queue: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
         self._session = session
         self._orig_count = len(self._seq)
         self._scanned_count = 0
@@ -63,11 +63,11 @@ class AlbumDownloadWorker:
         self._minmax_id = get_min_max_ids(self._seq)
 
         self._404_counter = 0
-        self._extra_ids = list()  # type: List[int]
+        self._extra_ids: List[int] = list()
 
-        self._downloads_active = dict()  # type: Dict[int, AlbumInfo]
-        self._scans_active = list()  # type: List[AlbumInfo]
-        self._failed_items = list()  # type: List[int]
+        self._downloads_active: Dict[int, AlbumInfo] = dict()
+        self._scans_active: List[AlbumInfo] = list()
+        self._failed_items: List[int] = list()
 
         self._total_queue_size_last = 0
         self._scan_queue_size_last = 0
@@ -241,7 +241,7 @@ class ImageDownloadWorker:
     Async queue wrapper which binds list of lists of arguments to a download function call and processes them
     asynchronously with a limit of simulteneous downloads defined by MAX_IMAGES_QUEUE_SIZE
     """
-    _instance = None  # type: Optional[ImageDownloadWorker]
+    _instance: Optional[ImageDownloadWorker] = None
 
     def __enter__(self) -> ImageDownloadWorker:
         return self
@@ -259,17 +259,17 @@ class ImageDownloadWorker:
 
         self._func = func
         self._session = session
-        self._seq = list()  # type: List[ImageInfo]
-        self._queue = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)  # type: AsyncQueue[Tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]]
+        self._seq: List[ImageInfo] = list()
+        self._queue: AsyncQueue[Tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
         self._orig_count = 0
         self._downloaded_count = 0
         self._downloaded_amount = 0
         self._filtered_count_after = 0
         self._skipped_count = 0
 
-        self._downloads_active = list()  # type: List[ImageInfo]
-        self._writes_active = list()  # type: List[str]
-        self._failed_items = list()  # type: List[str]
+        self._downloads_active: List[ImageInfo] = list()
+        self._writes_active: List[str] = list()
+        self._failed_items: List[str] = list()
 
         self._my_start_time = 0
         self._total_queue_size_last = 0

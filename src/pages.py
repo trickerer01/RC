@@ -36,7 +36,7 @@ async def main(args: Sequence[str]) -> None:
 
     Config.read(arglist, True)
 
-    allow_duplicates = arglist.allow_duplicate_names  # type: bool
+    allow_duplicates: bool = arglist.allow_duplicate_names
     album_ref_class = 'th'
 
     if find_and_resolve_config_conflicts() is True:
@@ -121,7 +121,8 @@ async def main(args: Sequence[str]) -> None:
 
         if allow_duplicates is False:
             known_names = dict()
-            for i in reversed(range(len(v_entries))):  # type: int
+            i: int
+            for i in reversed(range(len(v_entries))):
                 title = v_entries[i].title.lower()
                 if title not in known_names:
                     known_names[title] = v_entries[i]

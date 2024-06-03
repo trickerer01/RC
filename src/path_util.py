@@ -17,12 +17,13 @@ from util import normalize_path
 
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 
-found_foldernames_dict = dict()  # type: Dict[str, List[str]]
+found_foldernames_dict: Dict[str, List[str]] = dict()
 
 
 def report_duplicates() -> None:
     found_vs = dict()
-    for k in found_foldernames_dict:  # type: str, List[str]
+    k: str
+    for k in found_foldernames_dict:
         if not found_foldernames_dict[k]:
             continue
         for fname in found_foldernames_dict[k]:
