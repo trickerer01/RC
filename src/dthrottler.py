@@ -36,7 +36,7 @@ class ThrottleChecker:
 
     def run(self) -> None:
         assert self._cheker is None
-        self._cheker = get_running_loop().create_task(self._check_video_download_status())
+        self._cheker = get_running_loop().create_task(self._check_album_download_status())
 
     def reset(self) -> None:
         if self._cheker is not None:
@@ -64,7 +64,7 @@ class ThrottleChecker:
         Log.trace(f'[throttler] recalculation, speeds + threshold: {str(all_speeds)}. New speed threshold: {avg_speed:.6f} KB/s')
         self._slow_download_amount_threshold = self._calc_threshold(avg_speed)
 
-    async def _check_video_download_status(self) -> None:
+    async def _check_album_download_status(self) -> None:
         dwn = ImageDownloadWorker.get()
         dest = self._ii.my_fullpath
         last_size = self._init_size

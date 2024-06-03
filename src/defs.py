@@ -143,6 +143,12 @@ ACTION_STORE_TRUE = 'store_true'
 
 HELP_ARG_VERSION = 'Show program\'s version number and exit'
 HELP_ARG_GET_MAXID = 'Print maximum id and exit'
+HELP_ARG_ID_END = 'End album id'
+HELP_ARG_ID_COUNT = 'Ids count to process'
+HELP_ARG_ID_START = 'Start album id. Required'
+HELP_ARG_PAGE_END = 'End page number'
+HELP_ARG_PAGE_COUNT = 'Pages count to process'
+HELP_ARG_PAGE_START = 'Start page number. Default is \'1\''
 HELP_ARG_BEGIN_STOP_ID = 'Album id lower / upper bounds filter to only download albums where \'begin_id >= album_id >= stop_id\''
 HELP_ARG_LOOKAHEAD = (
     'Continue scanning indefinitely after reaching end id until number of non-existing videos encountered in a row'
@@ -229,6 +235,7 @@ HELP_ARG_LOGGING = (
     f'Logging level: {{{str(list(LOGGING_FLAGS.keys())).replace(" ", "")[1:-1]}}}.'
     f' All messages equal or above this level will be logged. Default is \'info\''
 )
+# HELP_ARG_DUMP_SCREENSHOTS = 'Save screenshots (jpg, very slow)'
 HELP_ARG_DUMP_INFO = 'Save tags / comments to text file (separately)'
 HELP_ARG_SKIP_EMPTY_LISTS = 'Do not store tags / descriptions / comments list if it contains no useful data'
 HELP_ARG_MERGE_LISTS = 'Merge exising tags / descriptions / comments list(s) with saved info (only if saving is enabled)'
