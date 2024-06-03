@@ -94,6 +94,27 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     for add_tag in [ca.replace(' ', '_') for ca in my_categories + my_authors if len(ca) > 0]:
         if add_tag not in tags_raw:
             tags_raw.append(add_tag)
+    if Config.save_tags:
+        ai.tags = ' '.join(sorted(tags_raw))
+    if Config.save_descriptions or Config.save_comments or Config.check_description_pos or Config.check_description_neg:
+        cidivs = a_html.find_all('div', class_='comment-info')
+        cudivs = [cidiv.find('a') for cidiv in cidivs]
+        ctdivs = [cidiv.find('div', class_='coment-text') for cidiv in cidivs]
+        desc_em = a_html.find('em')  # exactly one
+        uploader_div = a_html.find('div', string=' Uploaded By: ')
+        my_uploader = uploader_div.parent.find('a', class_='name').text.lower().strip() if uploader_div else 'unknown'
+        has_description = (cudivs[-1].text.lower() == my_uploader) if (cudivs and ctdivs) else False  # first comment by uploader
+        if cudivs and ctdivs:
+            assert len(ctdivs) == len(cudivs)
+        if Config.save_descriptions or Config.check_description_pos or Config.check_description_neg:
+            desc_comment = (f'{cudivs[-1].text}:\n' + ctdivs[-1].get_text('\n').strip()) if has_description else ''
+            desc_base = (f'\n{my_uploader}:\n' + desc_em.get_text('\n') + '\n') if desc_em else ''
+            ai.description = desc_base or (f'\n{desc_comment}\n' if desc_comment else '')
+        if Config.save_comments:
+            comments_list = [f'{cudivs[i].text}:\n' + ctdivs[i].get_text('\n').strip() for i in range(len(ctdivs) - int(has_description))]
+            ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
+    if Config.check_uploader and ai.uploader and ai.uploader not in tags_raw:
+        tags_raw.append(ai.uploader)
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
         return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
@@ -118,25 +139,6 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     elif tdiv is None and len(Config.extra_tags) > 0 and Config.utp != DOWNLOAD_POLICY_ALWAYS:
         Log.warn(f'Warning: could not extract tags from {sname}, skipping due to untagged albums download policy...')
         return DownloadResult.FAIL_SKIPPED
-    if Config.save_tags:
-        ai.tags = ' '.join(sorted(tags_raw))
-    if Config.save_descriptions or Config.save_comments:
-        cidivs = a_html.find_all('div', class_='comment-info')
-        cudivs = [cidiv.find('a') for cidiv in cidivs]
-        ctdivs = [cidiv.find('div', class_='coment-text') for cidiv in cidivs]
-        desc_em = a_html.find('em')  # exactly one
-        uploader_div = a_html.find('div', string=' Uploaded By: ')
-        my_uploader = uploader_div.parent.find('a', class_='name').text.lower().strip() if uploader_div else 'unknown'
-        has_description = (cudivs[-1].text.lower() == my_uploader) if (cudivs and ctdivs) else False  # first comment by uploader
-        if cudivs and ctdivs:
-            assert len(ctdivs) == len(cudivs)
-        if Config.save_descriptions:
-            desc_comment = (f'{cudivs[-1].text}:\n' + ctdivs[-1].get_text('\n').strip()) if has_description else ''
-            desc_base = (f'\n{my_uploader}:\n' + desc_em.get_text('\n') + '\n') if desc_em else ''
-            ai.description = desc_base or (f'\n{desc_comment}\n' if desc_comment else '')
-        if Config.save_comments:
-            comments_list = [f'{cudivs[i].text}:\n' + ctdivs[i].get_text('\n').strip() for i in range(len(ctdivs) - int(has_description))]
-            ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     my_tags = filtered_tags(sorted(tags_raw)) or my_tags
 
     prefix = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
