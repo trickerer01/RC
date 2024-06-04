@@ -10,7 +10,7 @@ from typing import List, Optional, Collection, Iterable, MutableSequence, Union
 
 from bigstrings import TAG_ALIASES, TAG_NUMS_DECODED, ART_NUMS_DECODED, CAT_NUMS_DECODED
 from config import Config
-from defs import LoggingFlags, TAGS_CONCAT_CHAR
+from defs import TAGS_CONCAT_CHAR
 from iinfo import AlbumInfo
 from logger import Log
 from rex import (
@@ -277,26 +277,25 @@ def trim_undersores(base_str: str) -> str:
 def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: List[str], extra_tags: List[str],
                                   id_seq: List[int], subfolder: str, id_seq_ex: List[int] = None) -> bool:
     suc = True
-    sname = ai.sname
-    sfol = f'[{subfolder}] ' if subfolder else ''
+    sname = f'{f"[{subfolder}] " if subfolder else ""}Album {ai.sname}'
     if id_seq and ai.id not in id_seq and not (id_seq_ex and ai.id in id_seq_ex):
         suc = False
-        Log.trace(f'{sfol}Album {sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!',
-                  LoggingFlags.EX_MISSING_TAGS)
+        Log.trace(f'{sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!')
 
     for extag in extra_tags:
         if extag.startswith('('):
             or_match_base = get_or_group_matching_tag(extag, tags_raw)
             or_match_titl = match_text(extag, ai.title, 'or') if Config.check_title_pos and ai.title else None
             or_match_desc = match_text(extag, ai.description, 'or') if Config.check_description_pos and ai.description else None
+            if or_match_base:
+                Log.trace(f'{sname} has BASE POS match: \'{str(or_match_base)}\'')
             if or_match_titl:
-                Log.trace(f'{sfol}Album {sname} has TITL POS match: {str(or_match_titl)}')
+                Log.trace(f'{sname} has TITL POS match: \'{str(or_match_titl)}\'')
             if or_match_desc:
-                Log.trace(f'{sfol}Album {sname} has DESC POS match: {str(or_match_desc)}')
+                Log.trace(f'{sname} has DESC POS match: \'{str(or_match_desc)}\'')
             if not bool(or_match_base or or_match_titl or or_match_desc):
                 suc = False
-                Log.trace(f'{sfol}Album {sname} misses required tag matching \'{extag}\'. Skipped!',
-                          LoggingFlags.EX_MISSING_TAGS)
+                Log.trace(f'{sname} misses required tag matching \'{extag}\'. Skipped!')
         elif extag.startswith('-('):
             neg_matches = get_neg_and_group_matches(extag, tags_raw)
             for conf, cn, td in zip(
@@ -307,36 +306,36 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: List[str], extra_tags
                 if conf and td:
                     for tmatch in match_text(extag, td, 'and'):
                         tmatch_s = tmatch[:50]
-                        Log.trace(f'{sfol}Album {sname} has {cn} NEG match: {tmatch_s}')
+                        Log.trace(f'{sname} has {cn} NEG match: \'{tmatch_s}\'')
                         if tmatch_s not in neg_matches:
                             neg_matches.append(f'{tmatch_s}...')
             if neg_matches:
                 suc = False
-                Log.info(f'{sfol}Album {sname} contains excluded tags combination \'{extag}\': {",".join(neg_matches)}. Skipped!',
-                         LoggingFlags.EX_EXCLUDED_TAGS)
+                Log.info(f'{sname} contains excluded tags combination \'{extag}\': {",".join(neg_matches)}. Skipped!')
         else:
             negative = extag.startswith('-')
             my_extag = extag[1:] if negative else extag
             mtag = get_matching_tag(my_extag, tags_raw)
+            if negative is False and mtag:
+                Log.trace(f'{sname} has BASE POS match: \'{mtag}\'')
             for conf, cn, np, td in zip(
                 (Config.check_title_pos, Config.check_title_neg, Config.check_description_pos, Config.check_description_neg),
                 ('TITL', 'TITL', 'DESC', 'DESC'),
                 ('NEG', 'POS', 'NEG', 'POS'),
                 (ai.title, ai.title, ai.description, ai.description)
             ):
-                if conf and td and not mtag:
+                if conf and td and ((np == 'NEG') == negative) and not mtag:
                     mtag = match_text(my_extag, td)
                     if mtag:
                         mtag = f'{mtag[:50]}...'
-                        Log.trace(f'{sfol}Album {sname} has {cn} {np} match: {mtag}')
+                        if negative is False:
+                            Log.trace(f'{sname} has {cn} {np} match: \'{mtag}\'')
             if mtag is not None and negative:
                 suc = False
-                Log.info(f'{sfol}Album {sname} contains excluded tag \'{mtag}\'. Skipped!',
-                         LoggingFlags.EX_EXCLUDED_TAGS)
+                Log.info(f'{sname} contains excluded tag \'{mtag}\'. Skipped!')
             elif mtag is None and not negative:
                 suc = False
-                Log.trace(f'{sfol}Album {sname} misses required tag matching \'{my_extag}\'. Skipped!',
-                          LoggingFlags.EX_MISSING_TAGS)
+                Log.trace(f'{sname} misses required tag matching \'{my_extag}\'. Skipped!')
     return not suc
 
 

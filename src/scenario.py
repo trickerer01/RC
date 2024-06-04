@@ -10,7 +10,7 @@ from argparse import ArgumentParser, ZERO_OR_MORE
 from typing import List, Optional
 
 from defs import (
-    LoggingFlags, UNTAGGED_POLICIES, DOWNLOAD_POLICY_DEFAULT, DOWNLOAD_POLICY_ALWAYS, ACTION_STORE_TRUE,
+    UNTAGGED_POLICIES, DOWNLOAD_POLICY_DEFAULT, DOWNLOAD_POLICY_ALWAYS, ACTION_STORE_TRUE,
 )
 from iinfo import AlbumInfo
 from logger import Log
@@ -118,8 +118,7 @@ class DownloadScenario(object):
                     if len(vsrs) > 0 and csri is not None and sq_skip is False:
                         try:
                             if int(vsrs) < csri:
-                                Log.info(f'[{sq.subfolder}] Album {ai.sname} has low {srn} \'{vsrs}{pc}\' (required {csri:d})!',
-                                         LoggingFlags.EX_LOW_SCORE)
+                                Log.info(f'[{sq.subfolder}] Album {ai.sname} has low {srn} \'{vsrs}{pc}\' (required {csri:d})!')
                                 sq_skip = True
                         except Exception:
                             pass
