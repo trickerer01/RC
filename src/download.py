@@ -16,7 +16,7 @@ from aiohttp import ClientSession, ClientPayloadError
 
 from config import Config
 from defs import (
-    Mem, NamingFlags, DownloadResult, CONNECT_RETRIES_BASE, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
+    Mem, NamingFlags, DownloadResult, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
     DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR,
     FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY,
 )
@@ -287,7 +287,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     ii.set_state(ImageInfo.State.DONE)
                     return DownloadResult.FAIL_ALREADY_EXISTS
 
-    while (not skip) and retries < CONNECT_RETRIES_BASE:
+    while (not skip) and retries <= Config.retries:
         try:
             file_exists = path.isfile(ii.my_fullpath)
             if file_exists and retries == 0:
@@ -319,7 +319,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     break
                 if r.status == 404:
                     Log.error(f'Got 404 for {sname}...!')
-                    retries = CONNECT_RETRIES_BASE - 1
+                    retries = Config.retries
                     ret = DownloadResult.FAIL_NOT_FOUND
                 if r.content_type and 'text' in r.content_type:
                     Log.error(f'File not found at {ii.link}!')
@@ -360,7 +360,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if idwn.is_writing(ii):
                 idwn.remove_from_writes(ii)
             status_checker.reset()
-            if retries < CONNECT_RETRIES_BASE:
+            if retries <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
                 await sleep(frand(1.0, 7.0))
             elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
@@ -368,7 +368,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 remove(ii.my_fullpath)
 
     ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS) else
-           DownloadResult.SUCCESS if retries < CONNECT_RETRIES_BASE else
+           DownloadResult.SUCCESS if retries <= Config.retries else
            DownloadResult.FAIL_RETRIES)
 
     if ret not in (DownloadResult.SUCCESS, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS):

@@ -258,10 +258,9 @@ def try_merge_info_files(info_dict: Dict[int, str], subfolder: str, list_type: s
 
 def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
     """Saves tags, descriptions and comments for each subfolder in scenario and base dest folder based on album info"""
-    tags_dict: Dict[str, Dict[int, str]]
-    desc_dict: Dict[str, Dict[int, str]]
-    comm_dict: Dict[str, Dict[int, str]]
-    tags_dict, desc_dict, comm_dict = dict(), dict(), dict()
+    tags_dict: Dict[str, Dict[int, str]] = dict()
+    desc_dict: Dict[str, Dict[int, str]] = dict()
+    comm_dict: Dict[str, Dict[int, str]] = dict()
     for ai in info_list:
         if ai.state == AlbumInfo.State.PROCESSED:
             for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.tags, ai.description, ai.comments)):
