@@ -69,6 +69,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     if not ai.title:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
         ai.title = titleh1.text if titleh1 else ''
+
+    Log.debug(f'DEBUG: Scanning {sname}: \'{ai.title}\'')
+
     try:
         votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
         rating_float = float(a_html.find('span', class_='set-rating').text[:-1])
