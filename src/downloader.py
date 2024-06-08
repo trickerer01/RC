@@ -52,7 +52,7 @@ class AlbumDownloadWorker:
         self._original_sequence = sequence
         self._func = func
         self._seq = [ai for ai in sequence]  # form our own container to erase from
-        self._queue: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
+        self._queue: AsyncQueue[Tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
         self._session = session
         self._orig_count = len(self._seq)
         self._scanned_count = 0
@@ -124,7 +124,7 @@ class AlbumDownloadWorker:
 
     async def _cons(self) -> None:
         while len(self._seq) + self._queue.qsize() > 0:
-            if self._queue.empty() is False and len(self._scans_active) < MAX_IMAGES_QUEUE_SIZE:
+            if self._queue.empty() is False and len(self._scans_active) < 1:
                 ai, task = await self._queue.get()
                 await self._at_task_start(ai)
                 result = await task
