@@ -27,7 +27,7 @@ from logger import Log
 from pages import main as pages_main, main_sync as pages_main_sync
 # noinspection PyProtectedMember
 from path_util import found_foldernames_dict
-# noinspection PyProtectedMember
+from tagger import extract_id_or_group
 from util import normalize_path
 
 RUN_CONN_TESTS = 0
@@ -119,10 +119,14 @@ class CmdTests(TestCase):
 
     def test_cmd_ids(self):
         set_up_test()
-        parsed1 = prepare_arglist(['cmd', '-seq'], False)
+        parsed1 = prepare_arglist(['cmd', '-seq', '(id=23~id=982)'], False)
         c1 = BaseConfig()
         c1.read(parsed1, False)
+        self.assertEqual(1, len(c1.extra_tags))
+        c1.id_sequence = extract_id_or_group(c1.extra_tags)
         self.assertTrue(c1.use_id_sequence)
+        self.assertEqual(0, len(c1.extra_tags))
+        self.assertEqual(2, len(c1.id_sequence))
         parsed2 = prepare_arglist(['-start', '1000', '-end', '999', '(69~9s)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
                                    '-lookahead', '100',
                                    '-script', 'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', '0x8', '-log', 'trace'], False)
