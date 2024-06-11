@@ -255,7 +255,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         ai.images.clear()
         return DownloadResult.FAIL_ALREADY_EXISTS
 
-    Log.info(f'{ai.sfsname}: {ai.images_count:d} images')
+    Log.info(f'Saving {ai.sfsname}: {ai.images_count:d} images will be downloaded to {ai.my_sfolder_full}')
     [idwn.store_image_info(ii) for ii in ai.images]
 
     ai.set_state(AlbumInfo.State.SCANNED)
