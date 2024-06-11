@@ -24,13 +24,13 @@ from defs import (
     MAX_DEST_SCAN_UPLEVELS_DEFAULT, HELP_ARG_RETRIES, CONNECT_RETRIES_BASE,
 )
 from logger import Log
-from version import APP_NAME, APP_VERSION
 from scenario import DownloadScenario
 from tagger import valid_extra_tag, valid_tags, valid_artists, valid_categories
 from validators import (
     valid_int, positive_nonzero_int, valid_rating, valid_path, valid_filepath_abs, valid_search_string, valid_proxy, naming_flags,
     log_level, positive_int, valid_session_id,
 )
+from version import APP_NAME, APP_VERSION
 
 __all__ = ('prepare_arglist', 'HelpPrintExitException')
 

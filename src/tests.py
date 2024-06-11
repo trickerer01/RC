@@ -25,9 +25,9 @@ from logger import Log
 from pages import main as pages_main, main_sync as pages_main_sync
 # noinspection PyProtectedMember
 from path_util import found_foldernames_dict
-from version import APP_NAME, APP_VERSION
 from tagger import extract_id_or_group
 from util import normalize_path
+from version import APP_NAME, APP_VERSION
 
 RUN_CONN_TESTS = 0
 
