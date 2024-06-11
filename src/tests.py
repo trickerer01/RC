@@ -16,9 +16,7 @@ from unittest.mock import patch
 from cmdargs import prepare_arglist
 # noinspection PyProtectedMember
 from config import BaseConfig
-from defs import (
-    APP_NAME, APP_VERSION, DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT,
-)
+from defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 # noinspection PyProtectedMember
 from ids import main as ids_main, main_sync as ids_main_sync
@@ -27,6 +25,7 @@ from logger import Log
 from pages import main as pages_main, main_sync as pages_main_sync
 # noinspection PyProtectedMember
 from path_util import found_foldernames_dict
+from version import APP_NAME, APP_VERSION
 from tagger import extract_id_or_group
 from util import normalize_path
 
