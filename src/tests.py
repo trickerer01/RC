@@ -89,6 +89,7 @@ class CmdTests(TestCase):
         self.assertEqual(3, c3.start)
         self.assertEqual(4, c3.end)
         # self.assertEqual(QUALITIES[3], c3.quality)
+        # self.assertEqual(QUALITY_480P, c3.quality)
         # self.assertEqual('480p', c3.quality)
         self.assertEqual(12, c3.min_score)
         self.assertTrue(c3.continue_mode)

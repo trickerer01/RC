@@ -30,7 +30,7 @@ class SubQueryParams(object):
                  utp: str, id_sequence: List[int]) -> None:
         self.subfolder: str = subfolder or ''
         self.extra_tags: List[str] = extra_tags or list()
-        # self.quality: str = quality or ''
+        # self.quality: str = quality or Quality()
         self.minrating: int = minrating or 0
         self.minscore: Optional[int] = minscore
         self.untagged_policy: str = utp or ''

@@ -197,7 +197,7 @@ HELP_ARG_STORE_CONTINUE_CMDFILE = (
     'Store and automatically update cmd file which allows to later continue with unfinished download queue (using ids module, file mode)'
 )
 HELP_ARG_REPORT_DUPLICATES = (
-    f'Report duplicate downloaded posts (regardless of quality) after initial destination folder scan.'
+    f'Report duplicate downloaded posts after initial destination folder scan.'
     f' Simplified - only names starting with \'{PREFIX}\''
 )
 # HELP_ARG_CHECK_UPLOADER = (
