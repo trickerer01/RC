@@ -4822,6 +4822,7 @@ TAG_ALIASES = {
     'peehole': 'urethral',
     'penile_penetration': 'urethral',
     'tongue_in_urethra': 'urethral',
+    'urethra_insertion': 'urethral',
     'urethral_bulge': 'urethral',
     'urethral_licking': 'urethral',
     'urethral_penetration': 'urethral',
