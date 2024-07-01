@@ -15,7 +15,7 @@ RC is a gallery downloader with a lot of features, most of which are filters for
 #### Search
 - RC provides advanced searching functionality (`pages.py` module). Search is performed using extended website native API
 - There are 4 search arguments available each corresponding to different parts of search API. It's possible to utilize all four at once but usually a single one is enough
-  - `-search <STRING>` - search using raw string, matching any word. Concatenate using `-`:
+  - `-search <STRING>` - search using raw string, matching all words (see below). Concatenate using `-`:
     - `-search after-hours`
   - `-search_tag <TAGS>`, `-search_cat <CATEGORIES>`, `-search_art <ARTISTS>` - search using one or more tag/category/artist names (see below). Concatenate using `,`:
     - `-search_tag 1girl,side_view`
@@ -30,6 +30,7 @@ RC is a gallery downloader with a lot of features, most of which are filters for
   - `-search_art hydrafxx,medeister -search_rule_art any`
 - Note that overall search always obeys `AND` rule:
   - _search string_ `AND` _ANY_OF/ALL the tags_ `AND` _ANY_OF/ALL the artists_ `AND` _ANY_OF/ALL the categories_
+- How raw string search really works: when trying to match word(s) in the search string server performs no additional steps. Words in provided string may match title, tags, categories or author. Matching is **exact** so word 'all' will **not** match 'tall', 'calling' or everything else containing this symbol sequence but this exact word
 
 #### Filters
 - Initial search results / ids list can be then filtered further using `extra tags` (see below)
