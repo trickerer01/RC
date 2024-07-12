@@ -9,7 +9,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from asyncio import sleep
 from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
-from typing import Optional, List, Dict
+from typing import List, Dict
 
 from aiofile import async_open
 from aiohttp import ClientSession, ClientPayloadError
@@ -27,7 +27,6 @@ from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
 from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
-from scenario import DownloadScenario
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
 from util import has_naming_flag, format_time, normalize_path
 
@@ -49,7 +48,7 @@ async def download(sequence: List[AlbumInfo], filtered_count: int, session: Clie
 
 async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn, idwn = AlbumDownloadWorker.get(), ImageDownloadWorker.get()
-    scenario: Optional[DownloadScenario] = Config.scenario
+    scenario = Config.scenario
     sname = ai.sname
     extra_ids = adwn.get_extra_ids()
     my_tags = 'no_tags'
@@ -120,7 +119,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     if Config.check_uploader and ai.uploader and ai.uploader not in tags_raw:
         tags_raw.append(ai.uploader)
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
-        Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario is not None else ""} extra tags, skipping...')
+        Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario else ""} extra tags, skipping...')
         return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
     for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
         if len(vsrs) > 0 and csri is not None:
@@ -130,7 +129,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                     return DownloadResult.FAIL_SKIPPED
             except Exception:
                 pass
-    if scenario is not None:
+    if scenario:
         matching_sq = scenario.get_matching_subquery(ai, tags_raw, score, rating)
         utpalways_sq = scenario.get_utp_always_subquery() if tdiv is None else None
         if matching_sq:
