@@ -18,6 +18,7 @@ from util import normalize_path
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 
 found_foldernames_dict: Dict[str, List[str]] = dict()
+foldername_matches_cache: Dict[str, str] = dict()
 
 
 def report_duplicates() -> None:
@@ -95,40 +96,40 @@ def scan_dest_folder() -> None:
         report_duplicates()
 
 
-def folder_exists_in_folder(base_folder: str, idi: int) -> str:
-    orig_folder_names = found_foldernames_dict.get(normalize_path(base_folder))
-    if path.isdir(base_folder) and orig_folder_names is not None:
+def get_foldername_match(fname: str) -> str:
+    if fname not in foldername_matches_cache:
+        f_match = re_album_foldername.match(fname)
+        f_id = f_match.group(1) if f_match else ''
+        foldername_matches_cache[fname] = f_id
+    return foldername_matches_cache[fname]
+
+
+def folder_exists_in_folder(base_folder: str, idi: int, check_folder: bool) -> str:
+    orig_folder_names = found_foldernames_dict.get(base_folder)
+    if (not check_folder or path.isdir(base_folder)) and orig_folder_names is not None:
         for fname in orig_folder_names:
-            try:
-                f_match = re_album_foldername.match(fname)
-                f_id = f_match.group(1)
-                if str(idi) == f_id:
-                    return f'{normalize_path(base_folder)}{fname}'
-            except Exception:
-                continue
+            f_id = get_foldername_match(fname)
+            if f_id and str(idi) == f_id:
+                return f'{normalize_path(base_folder)}{fname}'
     return ''
 
 
-def folder_already_exists(idi: int) -> str:
+def folder_already_exists(idi: int, check_folder=True) -> str:
     for fullpath in found_foldernames_dict:
-        fullpath = folder_exists_in_folder(fullpath, idi)
+        fullpath = folder_exists_in_folder(fullpath, idi, check_folder)
         if len(fullpath) > 0:
             return fullpath
     return ''
 
 
 def folder_exists_in_folder_arr(base_folder: str, idi: int) -> List[str]:
-    orig_folder_names = found_foldernames_dict.get(normalize_path(base_folder))
+    orig_folder_names = found_foldernames_dict.get(base_folder)
     folder_folders = list()
     if path.isdir(base_folder) and orig_folder_names is not None:
         for fname in orig_folder_names:
-            try:
-                f_match = re_album_foldername.match(fname)
-                f_id = f_match.group(1)
-                if str(idi) == f_id:
-                    folder_folders.append(f'{normalize_path(base_folder)}{fname}')
-            except Exception:
-                continue
+            f_id = get_foldername_match(fname)
+            if f_id and str(idi) == f_id:
+                folder_folders.append(f'{normalize_path(base_folder)}{fname}')
     return folder_folders
 
 
