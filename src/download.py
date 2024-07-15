@@ -18,7 +18,7 @@ from config import Config
 from defs import (
     Mem, NamingFlags, DownloadResult, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
     DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR,
-    FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY,
+    FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from dthrottler import ThrottleChecker
@@ -365,7 +365,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.reset()
             if retries <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
-                await sleep(frand(1.0, 7.0))
+                await sleep(frand(*CONNECT_RETRY_DELAY))
             elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 remove(ii.my_fullpath)
