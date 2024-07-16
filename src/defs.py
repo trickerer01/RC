@@ -157,8 +157,8 @@ HELP_ARG_FSDEPTH = (
 )
 HELP_ARG_FSLEVELUP = 'Folder levels to go up before scanning for existing files. Destination folder is always checked'
 HELP_ARG_SESSION_ID = (
-    '\'PHPSESSID\' cookie. Comments as well as some tags to search for are hidden behind login wall.'
-    ' Using this cookie from logged in account resolves that problem'
+    '\'PHPSESSID\' cookie. Comments cannot be seen and some tags are hidden and cannot be searched for without logging in.'
+    ' Using this cookie from logged in account resolves that problem (tag/artist/category blacklists still apply)'
 )
 HELP_ARG_SEARCH_RULE = (
     f'Multiple search args of the same type combine logic. Default is \'{SEARCH_RULE_DEFAULT}\'.'
@@ -170,14 +170,17 @@ HELP_ARG_SEARCH_ACT = (
     ' Example: \'-search_tag 1girl,side_view -search_art artist_name -search_cat category_name\'.'
     ' Note that search obeys \'AND\' rule: search string AND ANY_OF/ALL the tags AND ANY_OF/ALL the artists AND ANY_OF/ALL the categories'
 )
-HELP_ARG_SEARCH_STR = 'Native search using string query (matching any word). Spaces must be replced with \'-\'. Ex. \'after-hours\''
+HELP_ARG_SEARCH_STR = (
+    'Native search using string query (matching any word in exact manner, check README for more info).'
+    ' Spaces must be replced with \'-\'. Ex. \'after-hours\''
+)
 HELP_ARG_PROXY = 'Proxy to use. Example: http://127.0.0.1:222'
 HELP_ARG_UTPOLICY = (
     f'Untagged albums download policy. By default these albums are ignored if you use extra \'tags\' / \'-tags\'.'
     f' \'{DOWNLOAD_POLICY_ALWAYS}\' to override'
 )
 HELP_ARG_DMMODE = '[Debug] Download (file creation) mode'
-HELP_ARG_ALL_PAGES = 'Do not interrupt pages scan if encountered a page having all posts filtered out'
+HELP_ARG_ALL_PAGES = 'Do not interrupt pages scan if encountered a page having all post ids filtered out'
 HELP_ARG_EXTRA_TAGS = (
     'All remaining \'args\' and \'-args\' count as tags to require or exclude. All spaces must be replaced with \'_\'.'
     ' Albums containing any of \'-tags\', or not containing all \'tags\' will be skipped.'
@@ -195,7 +198,8 @@ HELP_ARG_DWN_SCENARIO = (
     ' "1g: 1girl; 2g: 2girls -utp always"\''
 )
 HELP_ARG_STORE_CONTINUE_CMDFILE = (
-    'Store and automatically update cmd file which allows to later continue with unfinished download queue (using ids module, file mode)'
+    'Store and automatically update cmd file which allows to later continue with unfinished download queue'
+    ' (using ids module, file mode, check README for more info)'
 )
 HELP_ARG_REPORT_DUPLICATES = (
     f'Report duplicate downloaded posts after initial destination folder scan.'
@@ -231,7 +235,7 @@ HELP_ARG_LOGGING = (
     f'Logging level: {{{str(list(LOGGING_FLAGS.keys())).replace(" ", "")[1:-1]}}}.'
     f' All messages equal or above this level will be logged. Default is \'info\''
 )
-# HELP_ARG_DUMP_SCREENSHOTS = 'Save screenshots (jpg, very slow)'
+HELP_ARG_INCLUDE_PREVIEWS = 'Download album preview (ignores download mode)'
 HELP_ARG_DUMP_INFO = 'Save tags / comments to text file (separately)'
 HELP_ARG_SKIP_EMPTY_LISTS = 'Do not store tags / descriptions / comments list if it contains no useful data'
 HELP_ARG_MERGE_LISTS = 'Merge exising tags / descriptions / comments list(s) with saved info (only if saving is enabled)'
@@ -245,10 +249,9 @@ HELP_ARG_THROTTLE_AUTO = 'Enable automatic throttle threshold adjustment when cr
 HELP_ARG_UPLOADER = 'Uploader user id (integer, filters still apply)'
 # HELP_ARG_MODEL = 'Artist name (download directly from artist\'s page)'
 HELP_ARG_ALLOW_DUPLICATE_NAMES = (
-    'Disable deduplication of search results (by name).'
+    'Disable search results deduplication (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
 )
-HELP_ARG_INCLUDE_PREVIEWS = 'Download album preview (not affected by download mode)'
 
 
 class DownloadResult(IntEnum):
