@@ -57,7 +57,7 @@ class AlbumDownloadWorker:
         self._orig_count = len(self._seq)
         self._scanned_count = 0
         self._downloaded_count = 0
-        self._filtered_count_after = 0
+        self._already_exist_count = 0
         self._skipped_count = 0
         self._404_count = 0
         self._minmax_id = get_min_max_ids(self._seq)
@@ -102,10 +102,10 @@ class AlbumDownloadWorker:
         self._scans_active.remove(ai)
         Log.trace(f'[queue] {ai.sname} removed from active')
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
-            self._filtered_count_after += 1
-        elif result == DownloadResult.FAIL_SKIPPED:
+            self._already_exist_count += 1
+        elif result in (DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_FILTERED_OUTER):
             self._skipped_count += 1
-        elif result == DownloadResult.FAIL_NOT_FOUND:
+        elif result in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_DELETED):
             self._404_count += 1
         elif result == DownloadResult.FAIL_RETRIES:
             self._failed_items.append(ai.id)
@@ -186,7 +186,7 @@ class AlbumDownloadWorker:
         newline = '\n'
         Log.info(f'\n[Albums] Scan finished, {self._scanned_count:d} / {self._orig_count:d}'
                  f'{f"+{self.get_extra_count():d}" if Config.lookahead else ""} album(s) enqueued for download, '
-                 f'{self._filtered_count_after:d} already existed, '
+                 f'{self._already_exist_count:d} already existed, '
                  f'{self._skipped_count:d} skipped, {self._404_count:d} not found')
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
