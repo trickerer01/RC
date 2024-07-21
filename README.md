@@ -127,7 +127,7 @@ RC is a gallery downloader with a lot of features, most of which are filters for
     - `-search_tag 1girl,2girls,3girls,...,1boy1girl,2boys,3boys,3boys1girl,...,6girls`
 
 9. Scanning for unpublished posts
-  - There is always some posts which hasn't become public yet, many of them don't pass a review and never get published
+  - There is always a number of posts which haven't become public yet, many of them don't pass a review and never become available
   - Unpublished posts cannot be searched for so using direct link is the only option
   - `ids` module can automatically scan past maximum available post ID until it reaches the actual maximum post ID available.
   - Syntax: `-lookahead <AMOUNT>`. `<AMOUNT>` here is the number of sequential empty post IDs to assume the end of existing posts. Example:
