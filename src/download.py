@@ -10,6 +10,7 @@ from asyncio import sleep
 from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
 from typing import List, Dict
+from urllib.parse import urlparse
 
 from aiofile import async_open
 from aiohttp import ClientSession, ClientPayloadError
@@ -22,7 +23,7 @@ from defs import (
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from dthrottler import ThrottleChecker
-from fetch_html import fetch_html, wrap_request, make_session
+from fetch_html import fetch_html, wrap_request, make_session, ensure_conn_closed
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
@@ -38,11 +39,10 @@ async def download(sequence: List[AlbumInfo], filtered_count: int, session: Clie
     eta_min = int(2.0 + (CONNECT_REQUEST_DELAY + 0.3 + 0.05) * len(sequence))
     Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n'
              f'\nThis will take at least {eta_min:d} seconds{f" ({format_time(eta_min)})" if eta_min >= 60 else ""}!\n')
-    async with session or make_session() as session:
-        with AlbumDownloadWorker(sequence, process_album, session) as adwn:
-            with ImageDownloadWorker(download_image, session) as idwn:
-                await adwn.run()
-                await idwn.run()
+    async with session or make_session() as session, make_session(True) as session.np:
+        with AlbumDownloadWorker(sequence, process_album, session) as adwn, ImageDownloadWorker(download_image, session) as idwn:
+            await adwn.run()
+            await idwn.run()
     export_album_info(sequence)
 
 
@@ -291,6 +291,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     return DownloadResult.FAIL_ALREADY_EXISTS
 
     while (not skip) and retries <= Config.retries:
+        r = None
         try:
             file_exists = path.isfile(ii.my_fullpath)
             if file_exists and retries == 0:
@@ -310,47 +311,52 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 break
 
             hkwargs: Dict[str, Dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
-            r = None
-            async with await wrap_request(idwn.session, 'GET', ii.link, **hkwargs) as r:
-                content_len = r.content_length or 0
-                content_range_s = r.headers.get('Content-Range', '/').split('/', 1)
-                content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
-                if (content_len == 0 or r.status == 416) and file_size >= content_range:
-                    Log.warn(f'{sname} is already completed, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
-                    ii.set_state(ImageInfo.State.DONE)
-                    ret = DownloadResult.FAIL_ALREADY_EXISTS
-                    break
-                if r.status == 404:
-                    Log.error(f'Got 404 for {sname}...!')
-                    retries = Config.retries
-                    ret = DownloadResult.FAIL_NOT_FOUND
-                if r.content_type and 'text' in r.content_type:
-                    Log.error(f'File not found at {ii.link}!')
-                    raise FileNotFoundError(ii.link)
-
-                status_checker.prepare(r, file_size)
-                ii.expected_size = file_size + content_len
-                starting_str = f' <continuing at {file_size:d}>' if file_size else ''
-                total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
-                Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
-
-                idwn.add_to_writes(ii)
-                ii.set_state(ImageInfo.State.WRITING)
-                status_checker.run()
-                async with async_open(ii.my_fullpath, 'ab') as outf:
-                    ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
-                    async for chunk in r.content.iter_chunked(256 * Mem.KB):
-                        await outf.write(chunk)
-                status_checker.reset()
-                idwn.remove_from_writes(ii)
-
-                file_size = stat(ii.my_fullpath).st_size
-                if ii.expected_size and file_size != ii.expected_size:
-                    Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
-                    raise IOError(ii.link)
-
+            ckwargs = dict(allow_redirects=not Config.proxy or not Config.download_without_proxy)
+            r = await wrap_request(idwn.session, 'GET', ii.link, **ckwargs, **hkwargs)
+            while r.status in (301, 302):
+                if urlparse(r.headers['Location']).hostname != urlparse(ii.link).hostname:
+                    ckwargs.update(noproxy=True, allow_redirects=True)
+                ensure_conn_closed(r)
+                r = await wrap_request(idwn.session, 'GET', r.headers['Location'], **ckwargs, **hkwargs)
+            content_len = r.content_length or 0
+            content_range_s = r.headers.get('Content-Range', '/').split('/', 1)
+            content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
+            if (content_len == 0 or r.status == 416) and file_size >= content_range:
+                Log.warn(f'{sname} is already completed, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
                 ii.set_state(ImageInfo.State.DONE)
+                ret = DownloadResult.FAIL_ALREADY_EXISTS
                 break
+            if r.status == 404:
+                Log.error(f'Got 404 for {sname}...!')
+                retries = Config.retries
+                ret = DownloadResult.FAIL_NOT_FOUND
+            if r.content_type and 'text' in r.content_type:
+                Log.error(f'File not found at {ii.link}!')
+                raise FileNotFoundError(ii.link)
+
+            status_checker.prepare(r, file_size)
+            ii.expected_size = file_size + content_len
+            starting_str = f' <continuing at {file_size:d}>' if file_size else ''
+            total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
+            Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
+
+            idwn.add_to_writes(ii)
+            ii.set_state(ImageInfo.State.WRITING)
+            status_checker.run()
+            async with async_open(ii.my_fullpath, 'ab') as outf:
+                ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
+                async for chunk in r.content.iter_chunked(256 * Mem.KB):
+                    await outf.write(chunk)
+            status_checker.reset()
+            idwn.remove_from_writes(ii)
+
+            file_size = stat(ii.my_fullpath).st_size
+            if ii.expected_size and file_size != ii.expected_size:
+                Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
+                raise IOError(ii.link)
+
+            ii.set_state(ImageInfo.State.DONE)
+            break
         except Exception as e:
             import sys
             print(sys.exc_info()[0], sys.exc_info()[1])

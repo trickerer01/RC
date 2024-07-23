@@ -13,7 +13,7 @@ from enum import IntEnum
 CONNECT_RETRIES_BASE = 50
 CONNECT_TIMEOUT_BASE = 10
 CONNECT_REQUEST_DELAY = 0.2
-CONNECT_RETRY_DELAY = (1.0, 7.0)
+CONNECT_RETRY_DELAY = (4.0, 8.0)
 
 MAX_DEST_SCAN_SUB_DEPTH_DEFAULT = 1
 MAX_DEST_SCAN_UPLEVELS_DEFAULT = 0
@@ -174,7 +174,8 @@ HELP_ARG_SEARCH_STR = (
     'Native search using string query (matching any word in exact manner, check README for more info).'
     ' Spaces must be replced with \'-\'. Ex. \'after-hours\''
 )
-HELP_ARG_PROXY = 'Proxy to use. Example: http://127.0.0.1:222'
+HELP_ARG_PROXY = 'Proxy to use, supports basic auth. Example: http://user:pass@127.0.0.1:222'
+HELP_ARG_PROXYNODOWN = 'Don\'t use proxy to connect to file servers if they differ from the main host'
 HELP_ARG_UTPOLICY = (
     f'Untagged albums download policy. By default these albums are ignored if you use extra \'tags\' / \'-tags\'.'
     f' \'{DOWNLOAD_POLICY_ALWAYS}\' to override'

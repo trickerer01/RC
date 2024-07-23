@@ -130,7 +130,7 @@ class CmdTests(TestCase):
         self.assertEqual(0, len(c1.extra_tags))
         self.assertEqual(2, len(c1.id_sequence))
         parsed2 = prepare_arglist(['-start', '1000', '-end', '999', '(69~9s)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
-                                   '-lookahead', '100',
+                                   '-lookahead', '100', '-proxynodown', '-proxy', 'socks4://u1:p2@9.123.15.67:3128',
                                    '-script', 'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', '0x8', '-log', 'trace'], False)
         c2 = BaseConfig()
         c2.read(parsed2, False)
@@ -141,6 +141,8 @@ class CmdTests(TestCase):
         self.assertEqual(100, c2.lookahead)
         self.assertEqual(DOWNLOAD_MODE_TOUCH, c2.download_mode)
         self.assertTrue(c2.store_continue_cmdfile)
+        self.assertTrue(c2.download_without_proxy)
+        self.assertEqual(c2.proxy, 'socks4://u1:p2@9.123.15.67:3128')
         print(f'{self._testMethodName} passed')
 
     def test_cmd_wtags(self):
