@@ -25,6 +25,7 @@ __all__ = ('Config',)
 class BaseConfig:
     """Parameters container for params used in both **pages** and **ids** modules"""
     def __init__(self) -> None:
+        self.is_pages = False
         self.dest_base: Optional[str] = None
         self.proxy: Optional[str] = None
         self.download_without_proxy: Optional[bool] = None
@@ -80,6 +81,7 @@ class BaseConfig:
         self.nodelay = False
 
     def read(self, params: Namespace, pages: bool) -> None:
+        self.is_pages = pages
         self.dest_base = params.path
         self.proxy = params.proxy
         self.download_without_proxy = params.download_without_proxy
@@ -108,8 +110,8 @@ class BaseConfig:
         self.logging_flags = params.log_level
         self.start = params.start
         self.end = params.end
-        self.start_id = params.stop_id if pages else self.start
-        self.end_id = params.begin_id if pages else self.end
+        self.start_id = params.stop_id if self.is_pages else self.start
+        self.end_id = params.begin_id if self.is_pages else self.end
         self.timeout = ClientTimeout(total=None, connect=params.timeout or CONNECT_TIMEOUT_BASE)
         self.retries = getattr(params, 'retries', CONNECT_RETRIES_BASE)
         self.throttle = params.throttle
