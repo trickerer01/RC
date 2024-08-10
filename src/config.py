@@ -33,6 +33,7 @@ class BaseConfig:
         self.min_rating: Optional[int] = None
         self.min_score: Optional[int] = None
         # self.quality: Optional[Quality] = None
+        # self.duration: Optional[Duration] = None
         self.untagged_policy: Optional[str] = None
         self.folder_scan_depth = self.folder_scan_levelup = 0
         self.download_mode: Optional[str] = None
@@ -90,6 +91,7 @@ class BaseConfig:
         self.min_rating = params.minimum_rating
         self.min_score = params.minimum_score
         # self.quality = Quality(params.quality)
+        # self.duration = params.duration
         self.untagged_policy = params.untagged_policy
         self.folder_scan_depth = params.fsdepth
         self.folder_scan_levelup = params.fslevelup
@@ -146,6 +148,7 @@ class BaseConfig:
             '-path', self.dest_base, '-continue', '--store-continue-cmdfile',
             '-log', next(filter(lambda x: int(LOGGING_FLAGS[x], 16) == self.logging_flags, LOGGING_FLAGS.keys())),
             # *(('-quality', self.quality) if self.quality != DEFAULT_QUALITY and not self.scenario else ()),
+            # *(('-duration', str(self.duration)) if self.duration and not self.scenario else ()),
             *(('--report-duplicates',) if self.report_duplicates else ()),
             *(('--check-title-pos',) if self.check_title_pos else ()),
             *(('--check-title-neg',) if self.check_title_neg else ()),

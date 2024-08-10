@@ -29,7 +29,7 @@ from logger import Log
 from path_util import folder_already_exists, try_rename
 from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
 from tagger import filtered_tags, is_filtered_out_by_extra_tags
-from util import has_naming_flag, format_time, normalize_path
+from util import has_naming_flag, format_time, normalize_path, get_elapsed_time_i
 
 __all__ = ('download', 'at_interrupt')
 
@@ -69,7 +69,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
         ai.title = titleh1.text if titleh1 else ''
 
-    Log.debug(f'DEBUG: Scanning {sname}: \'{ai.title}\'')
+    Log.info(f'Scanning {sname}: \'{ai.title}\'')
 
     try:
         votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
@@ -345,6 +345,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.run()
             async with async_open(ii.my_fullpath, 'ab') as outf:
                 ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
+                if ii.album.dstart_time == 0:
+                    ii.album.dstart_time = get_elapsed_time_i()
                 async for chunk in r.content.iter_chunked(256 * Mem.KB):
                     await outf.write(chunk)
             status_checker.reset()
@@ -356,6 +358,12 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 raise IOError(ii.link)
 
             ii.set_state(ImageInfo.State.DONE)
+
+            if ii.album.all_done():
+                total_time = get_elapsed_time_i() - ii.album.dstart_time
+                total_size = ii.album.total_size()
+                Log.info(f'[download] {ii.album.sfsname} ({total_size / Mem.MB:.1f} Mb) completed in {format_time(total_time)} '
+                         f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
             break
         except Exception as e:
             import sys

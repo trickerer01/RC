@@ -41,6 +41,7 @@ class AlbumInfo:
         self.comments = ''
         self.uploader = ''
         self.images: List[ImageInfo] = list()
+        self.dstart_time = 0
 
         self._state = AlbumInfo.State.NEW
 
@@ -49,6 +50,9 @@ class AlbumInfo:
 
     def all_done(self) -> bool:
         return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.images) if self.images else False
+
+    def total_size(self) -> int:
+        return sum(ii.expected_size for ii in self.images)
 
     def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
         return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
