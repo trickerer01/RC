@@ -52,7 +52,7 @@ class AlbumInfo:
         return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.images) if self.images else False
 
     def total_size(self) -> int:
-        return sum(ii.expected_size for ii in self.images)
+        return sum(ii.bytes_written for ii in self.images)
 
     def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
         return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
@@ -131,6 +131,7 @@ class ImageInfo:
         self.filename = m_filename or ''
         self.ext = self.filename[self.filename.rfind('.'):]
         self.expected_size = 0
+        self.bytes_written = 0
 
         self._state = ImageInfo.State.NEW
         self._flags = ImageInfo.Flags.NONE

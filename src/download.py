@@ -349,6 +349,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     ii.album.dstart_time = get_elapsed_time_i()
                 async for chunk in r.content.iter_chunked(256 * Mem.KB):
                     await outf.write(chunk)
+                    ii.bytes_written += len(chunk)
             status_checker.reset()
             idwn.remove_from_writes(ii)
 
