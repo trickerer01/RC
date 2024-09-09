@@ -361,7 +361,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             ii.set_state(ImageInfo.State.DONE)
 
             if ii.album.all_done():
-                total_time = get_elapsed_time_i() - ii.album.dstart_time
+                total_time = (get_elapsed_time_i() - ii.album.dstart_time) or 1
                 total_size = ii.album.total_size()
                 Log.info(f'[download] {ii.album.sfsname} ({total_size / Mem.MB:.1f} Mb) completed in {format_time(total_time)} '
                          f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
