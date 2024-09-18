@@ -5404,6 +5404,10 @@ TAG_ALIASES = {
     'soft_vore': 'vore',
 }
 
+TAG_CONFLICTS = {
+    'solo': (['male_on_female', '1boy1girl', '2boys', '2futas', '2girls'], ['solo_female', 'solo_male']),
+}
+
 #
 #
 #########################################

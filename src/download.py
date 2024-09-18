@@ -28,7 +28,7 @@ from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
 from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
-from tagger import filtered_tags, is_filtered_out_by_extra_tags
+from tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
 from util import has_naming_flag, format_time, normalize_path, get_elapsed_time_i
 
 __all__ = ('download', 'at_interrupt')
@@ -118,6 +118,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     if Config.check_uploader and ai.uploader and ai.uploader not in tags_raw:
         tags_raw.append(ai.uploader)
+    solve_tag_conflicts(ai, tags_raw)
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario else ""} extra tags, skipping...')
         return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
