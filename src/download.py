@@ -118,7 +118,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             ai.comments = ('\n' + '\n\n'.join(comments_list) + '\n') if comments_list else ''
     if Config.check_uploader and ai.uploader and ai.uploader not in tags_raw:
         tags_raw.append(ai.uploader)
-    solve_tag_conflicts(ai, tags_raw)
+    if Config.solve_tag_conflicts:
+        solve_tag_conflicts(ai, tags_raw)
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario else ""} extra tags, skipping...')
         return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
