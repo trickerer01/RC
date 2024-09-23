@@ -40,6 +40,7 @@ class AlbumInfo:
         self.description = ''
         self.comments = ''
         self.uploader = ''
+        self.private = False
         self.images: List[ImageInfo] = list()
         self.dstart_time = 0
 
