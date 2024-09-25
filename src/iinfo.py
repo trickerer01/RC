@@ -28,6 +28,10 @@ class AlbumInfo:
         SCANNED = 3
         PROCESSED = 4
 
+    class Flags(IntEnum):
+        NONE = 0x0
+        RETURNED_404 = 0x8
+
     def __init__(self, m_id: int, m_title='', *, preview_link='') -> None:
         self._id = m_id or 0
 
@@ -45,9 +49,16 @@ class AlbumInfo:
         self.dstart_time = 0
 
         self._state = AlbumInfo.State.NEW
+        self._flags = AlbumInfo.Flags.NONE
 
     def set_state(self, state: AlbumInfo.State) -> None:
         self._state = state
+
+    def set_flag(self, flag: ImageInfo.Flags) -> None:
+        self._flags |= flag
+
+    def has_flag(self, flag: Union[int, ImageInfo.Flags]) -> bool:
+        return bool(self._flags & flag)
 
     def all_done(self) -> bool:
         return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.images) if self.images else False

@@ -9,6 +9,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from __future__ import annotations
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import sleep, as_completed
+from contextlib import suppress
 from os import path, remove, makedirs
 from typing import List, Tuple, Coroutine, Any, Callable, Optional, Union, Dict
 
@@ -96,6 +97,8 @@ class AlbumDownloadWorker:
                 newline = '\n'
                 Log.info(f'{ai.sname} scan returned {str(result)} but it was already downloaded:'
                          f'\n - {f"{newline} - ".join(f"{newline} - ".join(ffs) for ffs in founditems)}')
+        if result == DownloadResult.FAIL_NOT_FOUND:
+            ai.set_flag(AlbumInfo.Flags.RETURNED_404)
         self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
         if len(self._seq) + self._queue.qsize() == 0 and not not Config.lookahead:
             self._extend_with_extra()
@@ -234,6 +237,10 @@ class AlbumDownloadWorker:
 
     def get_extra_ids(self) -> List[int]:
         return self._extra_ids
+
+    def find_ainfo(self, id_: int) -> Optional[AlbumInfo]:
+        with suppress(StopIteration):
+            return next(filter(lambda ai: ai.id == id_, self._original_sequence))
 
 
 class ImageDownloadWorker:
