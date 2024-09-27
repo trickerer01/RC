@@ -55,7 +55,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     rating = ai.rating
     score = ''
 
-    predict_gap1 = False  # Config.predict_id_gaps and 3400000 <= vi.id <= 3900000 and vi.id not in scn.get_extra_ids()
+    predict_gap1 = False  # Config.predict_id_gaps and 3400000 <= vi.id <= 3900000
     if predict_gap1:
         ai_prev1 = adwn.find_ainfo(ai.id - 1)
         ai_prev2 = adwn.find_ainfo(ai.id - 2)
