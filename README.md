@@ -1,10 +1,10 @@
 # RC
 
 ### Huh?
-RC is a gallery downloader with a lot of features, most of which are filters for fine tuning your search
+RC is a gallery downloader with a lot of features, most of which are filters for fine-tuning your search
 
 ### How to use
-##### Python 3.7 or greater required
+##### Python 3.9 or greater required
 - RC is a cmdline tool, no GUI
 - It consists of 2 main download modules: `pages.py` for pages scanning, `ids.py` ‒ for gallery (a.k.a album) ids traversal
 - See `requirements.txt` for additional dependencies. Install with:
