@@ -86,7 +86,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             id_dec += 1
             ai_prev_x = adwn.find_ainfo(ai.id - id_dec)
         if ai_prev_x and (id_dec % 3) != 0:
-            Log.error(f'Error: id gap predictor encountered unexpected valid post offset. Disabling prediction!')
+            Log.error('Error: id gap predictor encountered unexpected valid post offset. Disabling prediction!')
             Config.predict_id_gaps = False
 
     if not ai.title:
