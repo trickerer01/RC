@@ -8,7 +8,6 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 from base64 import b64decode
 from json import loads
-from typing import Dict
 
 TAG_NUMS_ENCODED = (
     'eyIwMDAwIjogIjU2NTYsIDIgcG9zdHMiLCAiMDhiYXNlIjogIjY3NDcsIDQgcG9zdHMiLCAiMTAtamlrYW5fc3VpbWluIjogIjEwNzg0LCAyIHBvc3RzIiwgIjEwMV9kYWxtYX'
@@ -5029,9 +5028,9 @@ CAT_NUMS_ENCODED = (
     'RlYWQiOiAiMTM0NiIsICJ6b21iaWVfbGFuZF9zYWdhIjogIjk4NiIsICJ6b290b3BpYSI6ICIxOSJ9'
 )
 
-TAG_NUMS_DECODED: Dict[str, str]
-ART_NUMS_DECODED: Dict[str, str]
-CAT_NUMS_DECODED: Dict[str, str]
+TAG_NUMS_DECODED: dict[str, str]
+ART_NUMS_DECODED: dict[str, str]
+CAT_NUMS_DECODED: dict[str, str]
 TAG_NUMS_DECODED, ART_NUMS_DECODED, CAT_NUMS_DECODED = (
     {k: (v[:v.find(',')] if ',' in v else v) for k, v in loads(b64decode(s)).items()}
     for s in (TAG_NUMS_ENCODED, ART_NUMS_ENCODED, CAT_NUMS_ENCODED)

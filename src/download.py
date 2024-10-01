@@ -6,10 +6,10 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+from __future__ import annotations
 from asyncio import sleep
 from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
-from typing import List, Dict
 from urllib.parse import urlparse
 
 from aiofile import async_open
@@ -34,7 +34,7 @@ from util import has_naming_flag, format_time, normalize_path, get_elapsed_time_
 __all__ = ('download', 'at_interrupt')
 
 
-async def download(sequence: List[AlbumInfo], filtered_count: int, session: ClientSession = None) -> None:
+async def download(sequence: list[AlbumInfo], filtered_count: int, session: ClientSession = None) -> None:
     minid, maxid = get_min_max_ids(sequence)
     eta_min = int(2.0 + (CONNECT_REQUEST_DELAY + 0.3 + 0.05) * len(sequence))
     Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n'
@@ -173,7 +173,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     prefix = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
 
     try:
-        expected_pages_count = int(a_html.find('div', class_='label', string='Pages:').next_sibling.string)
+        expected_pages_count = int(a_html.find('div', class_='label', string='Pages:').next_sibling.text)
     except Exception:
         Log.error(f'Cannot find expected pages count section for {sname}, failed!')
         return DownloadResult.FAIL_RETRIES
@@ -336,7 +336,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                         ii.set_state(ImageInfo.State.DONE)
                 break
 
-            hkwargs: Dict[str, Dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
+            hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
             ckwargs = dict(allow_redirects=not Config.proxy or not Config.download_without_proxy)
             r = await wrap_request(idwn.session, 'GET', ii.link, **ckwargs, **hkwargs)
             while r.status in (301, 302):

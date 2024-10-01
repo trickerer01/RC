@@ -7,9 +7,10 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from __future__ import annotations
+from collections.abc import Iterable
 from enum import IntEnum
 from os import path, listdir, remove, makedirs
-from typing import Dict, Iterable, Union, Tuple, List, Match
+from re import Match
 
 from config import Config
 from defs import PREFIX, UTF8, DEFAULT_EXT
@@ -45,7 +46,7 @@ class AlbumInfo:
         self.comments = ''
         self.uploader = ''
         self.private = False
-        self.images: List[ImageInfo] = list()
+        self.images: list[ImageInfo] = list()
         self.dstart_time = 0
 
         self._state = AlbumInfo.State.NEW
@@ -57,7 +58,7 @@ class AlbumInfo:
     def set_flag(self, flag: ImageInfo.Flags) -> None:
         self._flags |= flag
 
-    def has_flag(self, flag: Union[int, ImageInfo.Flags]) -> bool:
+    def has_flag(self, flag: int | ImageInfo.Flags) -> bool:
         return bool(self._flags & flag)
 
     def all_done(self) -> bool:
@@ -66,7 +67,7 @@ class AlbumInfo:
     def total_size(self) -> int:
         return sum(ii.bytes_written for ii in self.images)
 
-    def __eq__(self, other: Union[AlbumInfo, int]) -> bool:
+    def __eq__(self, other: AlbumInfo | int) -> bool:
         return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
 
     def __str__(self) -> str:
@@ -154,10 +155,10 @@ class ImageInfo:
     def set_flag(self, flag: ImageInfo.Flags) -> None:
         self._flags |= flag
 
-    def has_flag(self, flag: Union[int, ImageInfo.Flags]) -> bool:
+    def has_flag(self, flag: int | ImageInfo.Flags) -> bool:
         return bool(self._flags & flag)
 
-    def __eq__(self, other: Union[ImageInfo, int]) -> bool:
+    def __eq__(self, other: ImageInfo | int) -> bool:
         return self.id == other.id if isinstance(other, type(self)) else self.id == other if isinstance(other, int) else False
 
     def __str__(self) -> str:
@@ -217,25 +218,25 @@ class ImageInfo:
     __repr__ = __str__
 
 
-def get_min_max_ids(seq: Iterable[AlbumInfo]) -> Tuple[int, int]:
+def get_min_max_ids(seq: Iterable[AlbumInfo]) -> tuple[int, int]:
     return min(seq, key=lambda x: x.id).id, max(seq, key=lambda x: x.id).id
 
 
-def try_merge_info_files(info_dict: Dict[int, str], subfolder: str, list_type: str) -> List[str]:
-    parsed_files: List[str] = list()
+def try_merge_info_files(info_dict: dict[int, str], subfolder: str, list_type: str) -> list[str]:
+    parsed_files: list[str] = list()
     if not Config.merge_lists:
         return parsed_files
     dir_fullpath = normalize_path(f'{Config.dest_base}{subfolder}')
     if not path.isdir(dir_fullpath):
         return parsed_files
     # Log.debug(f'\nMerging {Config.dest_base}{subfolder} \'{list_type}\' info lists...')
-    info_lists: List[Match[str]] = sorted(filter(
+    info_lists: list[Match[str]] = sorted(filter(
         lambda x: not not x, [re_infolist_filename.fullmatch(f) for f in listdir(dir_fullpath)
                               if path.isfile(f'{dir_fullpath}{f}') and f.startswith(f'{PREFIX}!{list_type}_')]
     ), key=lambda m: m.string)
     if not info_lists:
         return parsed_files
-    parsed_dict: Dict[int, str] = dict()
+    parsed_dict: dict[int, str] = dict()
     for fmatch in info_lists:
         fmname = fmatch.string
         # Log.debug(f'Parsing {fmname}...')
@@ -275,9 +276,9 @@ def try_merge_info_files(info_dict: Dict[int, str], subfolder: str, list_type: s
 
 def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
     """Saves tags, descriptions and comments for each subfolder in scenario and base dest folder based on album info"""
-    tags_dict: Dict[str, Dict[int, str]] = dict()
-    desc_dict: Dict[str, Dict[int, str]] = dict()
-    comm_dict: Dict[str, Dict[int, str]] = dict()
+    tags_dict: dict[str, dict[int, str]] = dict()
+    desc_dict: dict[str, dict[int, str]] = dict()
+    comm_dict: dict[str, dict[int, str]] = dict()
     for ai in info_list:
         if ai.state == AlbumInfo.State.PROCESSED:
             for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.tags, ai.description, ai.comments)):

@@ -6,8 +6,8 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+from __future__ import annotations
 from argparse import ArgumentParser, ZERO_OR_MORE
-from typing import List, Optional
 
 from defs import (
     UNTAGGED_POLICIES, DOWNLOAD_POLICY_DEFAULT, DOWNLOAD_POLICY_ALWAYS, ACTION_STORE_TRUE,
@@ -26,15 +26,15 @@ UTP_ALWAYS = DOWNLOAD_POLICY_ALWAYS
 
 
 class SubQueryParams(object):
-    def __init__(self, subfolder: str, extra_tags: List[str], minscore: Optional[int], minrating: int,
-                 utp: str, id_sequence: List[int]) -> None:
+    def __init__(self, subfolder: str, extra_tags: list[str], minscore: int | None, minrating: int,
+                 utp: str, id_sequence: list[int]) -> None:
         self.subfolder: str = subfolder or ''
-        self.extra_tags: List[str] = extra_tags or list()
+        self.extra_tags: list[str] = extra_tags or list()
         # self.quality: str = quality or Quality()
         self.minrating: int = minrating or 0
-        self.minscore: Optional[int] = minscore
+        self.minscore: int | None = minscore
         self.untagged_policy: str = utp or ''
-        self.id_sequence: List[int] = id_sequence or []
+        self.id_sequence: list[int] = id_sequence or []
 
     @property
     def utp(self) -> str:
@@ -57,7 +57,7 @@ class DownloadScenario(object):
         assert fmt_str
 
         self.fmt_str = fmt_str
-        self.queries: List[SubQueryParams] = list()
+        self.queries: list[SubQueryParams] = list()
 
         parser = ArgumentParser(add_help=False)
         parser.add_argument('-seq', '--use-id-sequence', action=ACTION_STORE_TRUE)
@@ -110,7 +110,7 @@ class DownloadScenario(object):
     def has_subquery(self, **kwargs) -> bool:
         return any(all(getattr(sq, k, ...) == kwargs[k] for k in kwargs) for sq in self.queries)
 
-    def get_matching_subquery(self, ai: AlbumInfo, tags_raw: List[str], score: str, rating: str) -> Optional[SubQueryParams]:
+    def get_matching_subquery(self, ai: AlbumInfo, tags_raw: list[str], score: str, rating: str) -> SubQueryParams | None:
         for sq in self.queries:
             if not is_filtered_out_by_extra_tags(ai, tags_raw, sq.extra_tags, sq.id_sequence, sq.subfolder):
                 sq_skip = False
@@ -126,7 +126,7 @@ class DownloadScenario(object):
                     return sq
         return None
 
-    def get_utp_always_subquery(self) -> Optional[SubQueryParams]:
+    def get_utp_always_subquery(self) -> SubQueryParams | None:
         return next(filter(lambda sq: sq.utp == UTP_ALWAYS, self.queries), None)
 
 #

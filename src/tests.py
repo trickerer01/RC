@@ -8,8 +8,8 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 from asyncio import run as run_async
 from io import StringIO
-from os import path, remove as remove_file, stat, removedirs
-from tempfile import gettempdir
+from os import path, stat
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -166,7 +166,8 @@ class DownloadTests(TestCase):
         if not RUN_CONN_TESTS:
             return
         set_up_test()
-        tempdir = normalize_path(gettempdir())
+        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
+        tempdir = normalize_path(tdir.name)
         tempdir_id = '33123'
         tempfile_ids = ('951685', '951686')
         tempfile_ext = 'jpg'
@@ -179,17 +180,16 @@ class DownloadTests(TestCase):
         st2 = stat(tempfile_fullpaths[1])
         self.assertEqual(0, st1.st_size)
         self.assertEqual(0, st2.st_size)
-        remove_file(tempfile_fullpaths[0])
-        remove_file(tempfile_fullpaths[1])
         self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
-        removedirs(f'{tempdir}{tempdir_id}')
+        tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
     def test_pages_touch(self):
         if not RUN_CONN_TESTS:
             return
         set_up_test()
-        tempdir = normalize_path(gettempdir())
+        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
+        tempdir = normalize_path(tdir.name)
         tempdir_id = '325'
         tempfile_ids = ('6397', '6398')
         tempfile_ext = 'jpg'
@@ -203,17 +203,16 @@ class DownloadTests(TestCase):
         st2 = stat(tempfile_fullpaths[1])
         self.assertEqual(0, st1.st_size)
         self.assertEqual(0, st2.st_size)
-        remove_file(tempfile_fullpaths[0])
-        remove_file(tempfile_fullpaths[1])
         self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
-        removedirs(f'{tempdir}{tempdir_id}')
+        tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
     def test_ids_full(self):
         if not RUN_CONN_TESTS:
             return
         set_up_test()
-        tempdir = normalize_path(gettempdir())
+        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
+        tempdir = normalize_path(tdir.name)
         tempdir_id = '2151'
         tempfile_ids = ('37758', '37759')
         tempfile_ext = 'jpg'
@@ -226,17 +225,16 @@ class DownloadTests(TestCase):
         st2 = stat(tempfile_fullpaths[1])
         self.assertGreater(st1.st_size, 0)
         self.assertGreater(st2.st_size, 0)
-        remove_file(tempfile_fullpaths[0])
-        remove_file(tempfile_fullpaths[1])
         self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
-        removedirs(f'{tempdir}{tempdir_id}')
+        tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
     def test_pages_full(self):
         if not RUN_CONN_TESTS:
             return
         set_up_test()
-        tempdir = normalize_path(gettempdir())
+        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
+        tempdir = normalize_path(tdir.name)
         tempdir_id = '2545'
         tempfile_ids = ('44712', '44713')
         tempfile_ext = 'jpg'
@@ -250,10 +248,8 @@ class DownloadTests(TestCase):
         st2 = stat(tempfile_fullpaths[1])
         self.assertGreater(st1.st_size, 0)
         self.assertGreater(st2.st_size, 0)
-        remove_file(tempfile_fullpaths[0])
-        remove_file(tempfile_fullpaths[1])
         self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
-        removedirs(f'{tempdir}{tempdir_id}')
+        tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
 #

@@ -7,7 +7,6 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from os import path, listdir, rename, makedirs
-from typing import List, Dict
 
 from config import Config
 from defs import PREFIX, DEFAULT_EXT
@@ -17,8 +16,8 @@ from util import normalize_path
 
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 
-found_foldernames_dict: Dict[str, List[str]] = dict()
-foldername_matches_cache: Dict[str, str] = dict()
+found_foldernames_dict: dict[str, list[str]] = dict()
+foldername_matches_cache: dict[str, str] = dict()
 
 
 def report_duplicates() -> None:
@@ -122,7 +121,7 @@ def folder_already_exists(idi: int, check_folder=True) -> str:
     return ''
 
 
-def folder_exists_in_folder_arr(base_folder: str, idi: int) -> List[str]:
+def folder_exists_in_folder_arr(base_folder: str, idi: int) -> list[str]:
     orig_folder_names = found_foldernames_dict.get(base_folder)
     folder_folders = list()
     if path.isdir(base_folder) and orig_folder_names is not None:
@@ -133,7 +132,7 @@ def folder_exists_in_folder_arr(base_folder: str, idi: int) -> List[str]:
     return folder_folders
 
 
-def folder_already_exists_arr(idi: int) -> List[str]:
+def folder_already_exists_arr(idi: int) -> list[str]:
     found_folders = list()
     for fullpath in found_foldernames_dict:
         found_folders.extend(folder_exists_in_folder_arr(fullpath, idi))
