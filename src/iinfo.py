@@ -36,18 +36,18 @@ class AlbumInfo:
     def __init__(self, m_id: int, m_title='', *, preview_link='') -> None:
         self._id = m_id or 0
 
-        self.title = m_title or ''
-        self.subfolder = ''
-        self.name = ''
-        self.rating = ''
-        self.preview_link = preview_link
-        self.tags = ''
-        self.description = ''
-        self.comments = ''
-        self.uploader = ''
-        self.private = False
+        self.title: str = m_title or ''
+        self.subfolder: str = ''
+        self.name: str = ''
+        self.rating: str = ''
+        self.preview_link: str = preview_link or ''
+        self.tags: str = ''
+        self.description: str = ''
+        self.comments: str = ''
+        self.uploader: str = ''
+        self.private: bool = False
         self.images: list[ImageInfo] = list()
-        self.dstart_time = 0
+        self.dstart_time: int = 0
 
         self._state = AlbumInfo.State.NEW
         self._flags = AlbumInfo.Flags.NONE
@@ -140,11 +140,11 @@ class ImageInfo:
         self._id = m_id or 0
         self._num = num or 1
 
-        self.link = m_link or ''
-        self.filename = m_filename or ''
-        self.ext = self.filename[self.filename.rfind('.'):]
-        self.expected_size = 0
-        self.bytes_written = 0
+        self.link: str = m_link or ''
+        self.filename: str = m_filename or ''
+        self.ext: str = self.filename[self.filename.rfind('.'):]
+        self.expected_size: int = 0
+        self.bytes_written: int = 0
 
         self._state = ImageInfo.State.NEW
         self._flags = ImageInfo.Flags.NONE
