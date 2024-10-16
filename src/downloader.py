@@ -57,6 +57,7 @@ class AlbumDownloadWorker:
         self._queue: AsyncQueue[tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
         self._session = session
         self._orig_count = len(self._seq)
+        self._scan_count = 0
         self._scanned_count = 0
         self._downloaded_count = 0
         self._already_exist_count = 0
@@ -91,6 +92,7 @@ class AlbumDownloadWorker:
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
+        self._scan_count += 1
         if result in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_RETRIES,
                       DownloadResult.FAIL_DELETED, DownloadResult.FAIL_FILTERED_OUTER, DownloadResult.FAIL_SKIPPED):
             founditems = list(filter(None, [folder_already_exists_arr(ai.id)]))
@@ -144,16 +146,19 @@ class AlbumDownloadWorker:
         while self.get_workload_size() > 0:
             await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
-            scan_count = len(self._scans_active)
+            scan_count = self._scan_count
+            extra_count = max(0, scan_count - self._orig_count)
+            active_count = len(self._scans_active)
             queue_last = self._total_queue_size_last
             scanning_last = self._scan_queue_size_last
             elapsed_seconds = get_elapsed_time_i()
             force_check = elapsed_seconds >= force_check_seconds and elapsed_seconds - last_check_seconds >= force_check_seconds
-            if queue_last != queue_size or scanning_last != scan_count or force_check:
-                Log.info(f'[{get_elapsed_time_s()}] queue: {queue_size:d}, active: {scan_count:d}')
+            if queue_last != queue_size or scanning_last != active_count or force_check:
+                scan_msg = f'scanned: {f"{min(scan_count, self._orig_count)}+{extra_count:d}" if Config.lookahead else str(scan_count)}'
+                Log.info(f'[{get_elapsed_time_s()}] {scan_msg}, queue: {queue_size:d}, active: {active_count:d}')
                 last_check_seconds = elapsed_seconds
                 self._total_queue_size_last = queue_size
-                self._scan_queue_size_last = scan_count
+                self._scan_queue_size_last = active_count
 
     async def _continue_file_checker(self) -> None:
         if not Config.store_continue_cmdfile:
