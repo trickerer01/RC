@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from cmdargs import HelpPrintExitException, prepare_arglist
 from config import Config
 from defs import (
-    SITE_AJAX_REQUEST_SEARCH_PAGE, SITE_AJAX_REQUEST_UPLOADER_PAGE,
+    NamingFlags, SITE_AJAX_REQUEST_SEARCH_PAGE, SITE_AJAX_REQUEST_UPLOADER_PAGE,
 
 )
 from download import download, at_interrupt
@@ -22,7 +22,7 @@ from iinfo import AlbumInfo
 from logger import Log
 from path_util import scan_dest_folder
 from rex import re_page_entry, re_paginator
-from util import at_startup
+from util import at_startup, has_naming_flag
 from validators import find_and_resolve_config_conflicts
 from version import APP_NAME
 
@@ -109,8 +109,10 @@ async def main(args: Sequence[str]) -> None:
                     Log.warn(f'Warning: id {cur_id:d} already queued, skipping')
                     continue
                 my_title = aref.parent.find('div', class_='thumb_title').text
+                my_utitle = aref['href'][:-1][aref['href'][:-1].rfind('/') + 1:]
                 my_preview_link = aref.parent.find('img').get('data-original')
-                v_entries.append(AlbumInfo(cur_id, my_title, preview_link=my_preview_link))
+                use_utitle = has_naming_flag(NamingFlags.USE_URL_TITLE)
+                v_entries.append(AlbumInfo(cur_id, my_utitle if use_utitle else my_title, preview_link=my_preview_link))
 
             if pi - 1 > Config.start and lower_count == orig_count > 0 and not Config.scan_all_pages:
                 if maxpage == 0 or pi - 1 < maxpage:
