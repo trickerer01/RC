@@ -54,6 +54,11 @@ SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
     'NfY3JlYXRlZF9hbGJ1bXMmc29ydF9ieT0mZnJvbV9hbGJ1bXM9JWQ=').decode()
 """Params required: **user_id**, **page** - **int**, **int**\n
 Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
+SITE_AJAX_REQUEST_MODEL_PAGE = b64decode(
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hcnRpc3RzLyVzLz9tb2RlPWFzeW5jJmZ1bmN0aW9uPWdldF9ibG9jayZibG9ja19pZD1saXN0X2FsYnVtc19jb21tb25fYWxidW'
+    '1zX2xpc3Qmc29ydF9ieT1wb3N0X2RhdGUmZnJvbTE9JWQ=').decode()
+"""Params required: **artist_name**, **page** - **str**, **int**\n
+Ex. SITE_AJAX_REQUEST_MODEL_PAGE % ('fred-perry', 1)"""
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.7 Firefox/102.0 PaleMoon/33.3.1'
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
@@ -277,7 +282,7 @@ HELP_ARG_THROTTLE = 'Download speed threshold (in KB/s) to assume throttling, dr
 HELP_ARG_THROTTLE_AUTO = 'Enable automatic throttle threshold adjustment when crossed too many times in a row'
 HELP_ARG_FAVORITES = 'User id (integer, filters still apply)'
 HELP_ARG_UPLOADER = 'Uploader user id (integer, filters still apply)'
-# HELP_ARG_MODEL = 'Artist name (download directly from artist\'s page)'
+HELP_ARG_MODEL = 'Artist name (download directly from artist\'s page)'
 HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable search results deduplication (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
