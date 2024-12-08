@@ -20,7 +20,7 @@ re_read_href = re_compile(r'/read/.+?')
 # pages
 re_page_entry = re_compile(r'comics/(\d+)/')
 # re_preview_entry = re_compile(r'/(\d+)_preview[^.]*?\.([^/]+)/')
-re_paginator = re_compile(r'from(?:_(?:albums|videos))?:(\d+)')
+re_paginator = re_compile(r'from(?:_(?:fav_)?(?:albums|videos))?:(\d+)')
 # validators
 re_non_search_symbols = re_compile(r'[^\da-zA-Z._+\-\[\]]')
 re_session_id = re_compile(r'[a-z0-9]{26}')

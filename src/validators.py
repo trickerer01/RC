@@ -87,11 +87,12 @@ def find_and_resolve_config_conflicts() -> bool:
     return delay_for_message
 
 
-def valid_int(val: str, *, lb: int = None, ub: int = None) -> int:
+def valid_int(val: str, *, lb: int = None, ub: int = None, nonzero=False) -> int:
     try:
         val = int(val)
         assert lb is None or val >= lb
         assert ub is None or val <= ub
+        assert nonzero is False or val != 0
         return val
     except Exception:
         raise ArgumentError
@@ -107,6 +108,10 @@ def positive_nonzero_int(val: str) -> int:
 
 def valid_rating(val: str) -> int:
     return valid_int(val, lb=0, ub=100)
+
+
+def valid_lookahead(val: str) -> int:
+    return valid_int(val, lb=-200, ub=200, nonzero=True)
 
 
 def valid_path(pathstr: str) -> str:
