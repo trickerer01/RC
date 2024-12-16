@@ -72,7 +72,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id, session=adwn.session)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
-        return DownloadResult.FAIL_RETRIES
+        return DownloadResult.FAIL_SKIPPED if Config.aborted else DownloadResult.FAIL_RETRIES
 
     if a_html.find('title', string='404 Not Found'):
         Log.error(f'Got error 404 for {sname}, skipping...')
