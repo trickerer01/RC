@@ -304,7 +304,7 @@ def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
             info_folder = f'{Config.dest_base}{subfolder}'
             fullpath = f'{normalize_path(info_folder)}{PREFIX}!{name}_{min_id:d}-{max_id:d}.txt'
             if not path.isdir(info_folder):
-                makedirs(fullpath)
+                makedirs(info_folder)
             with open(fullpath, 'wt', encoding=UTF8) as sfile:
                 sfile.writelines(f'{PREFIX}{idi:d}:{proc_cb(sdct[idi])}' for idi in keys)
             [remove(merged_file) for merged_file in merged_files if merged_file != fullpath]
