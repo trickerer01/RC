@@ -9,6 +9,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from base64 import b64decode
 from datetime import datetime
 from enum import IntEnum
+from os import path
 
 CONNECT_RETRIES_BASE = 50
 CONNECT_TIMEOUT_BASE = 10
@@ -152,6 +153,14 @@ LOGGING_FLAGS_DEFAULT = LoggingFlags.INFO
 """0x004"""
 
 ACTION_STORE_TRUE = 'store_true'
+
+SRC_PATH = path.abspath(path.dirname(__file__)).replace('\\', SLASH)
+FILE_LOC_TAGS = f'{SRC_PATH}/../2tags/rc_tags.json'
+FILE_LOC_CATS = f'{SRC_PATH}/../3categories/rc_cats.json'
+FILE_LOC_ARTS = f'{SRC_PATH}/../4artists/rc_arts.json'
+# FILE_LOC_PLAS = f'{SRC_PATH}/../5playlists/rc_playlists.json'
+FILE_LOC_TAG_ALIASES = f'{SRC_PATH}/../2tags/tag_aliases.json'
+FILE_LOC_TAG_CONFLICTS = f'{SRC_PATH}/../2tags/tag_conflicts.json'
 
 HELP_ARG_VERSION = 'Show program\'s version number and exit'
 HELP_ARG_GET_MAXID = 'Print maximum id and exit'
