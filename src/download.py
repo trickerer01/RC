@@ -6,14 +6,13 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from __future__ import annotations
 from asyncio import sleep
 from os import path, stat, remove, makedirs, listdir
 from random import uniform as frand
 from urllib.parse import urlparse
 
 from aiofile import async_open
-from aiohttp import ClientSession, ClientPayloadError
+from aiohttp import ClientPayloadError
 
 from config import Config
 from defs import (
@@ -22,8 +21,9 @@ from defs import (
     FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
+# from dscanner import VideoScanWorker
 from dthrottler import ThrottleChecker
-from fetch_html import fetch_html, wrap_request, make_session, ensure_conn_closed
+from fetch_html import fetch_html, wrap_request, ensure_conn_closed
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
@@ -34,15 +34,16 @@ from util import has_naming_flag, format_time, normalize_path, get_elapsed_time_
 __all__ = ('download', 'at_interrupt')
 
 
-async def download(sequence: list[AlbumInfo], filtered_count: int, session: ClientSession = None) -> None:
+async def download(sequence: list[AlbumInfo], filtered_count: int) -> None:
     minid, maxid = get_min_max_ids(sequence)
     eta_min = int(2.0 + (CONNECT_REQUEST_DELAY + 0.3 + 0.05) * len(sequence))
-    Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}. Working...\n'
+    # interrupt_msg = f'\nPress \'{SCAN_CANCEL_KEYSTROKE}\' twice to stop' if by_id else ''
+    Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}.'
+             f' Working...\n'
              f'\nThis will take at least {eta_min:d} seconds{f" ({format_time(eta_min)})" if eta_min >= 60 else ""}!\n')
-    async with session or make_session() as session, make_session(True) as session.np:
-        with AlbumDownloadWorker(sequence, process_album, session) as adwn, ImageDownloadWorker(download_image, session) as idwn:
-            await adwn.run()
-            await idwn.run()
+    with AlbumDownloadWorker(sequence, process_album) as adwn, ImageDownloadWorker(download_image) as idwn:
+        await adwn.run()
+        await idwn.run()
     export_album_info(sequence)
 
 
@@ -56,20 +57,23 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     score = ''
 
     predict_gap1 = False  # Config.predict_id_gaps and 3400000 <= vi.id <= 3900000
+    predicted_skip = False
+    predicted_prefix = ''
     if predict_gap1:
+        predicted_prefix = '1'
         ai_prev1 = adwn.find_ainfo(ai.id - 1)
         ai_prev2 = adwn.find_ainfo(ai.id - 2)
         if ai_prev1 and ai_prev2:
             f_404s = [vip.has_flag(AlbumInfo.Flags.RETURNED_404) for vip in (ai_prev1, ai_prev2)]
-            skip = f_404s[0] is not f_404s[1]
+            predicted_skip = f_404s[0] is not f_404s[1]
         else:
-            skip = ai_prev1 and not ai_prev1.has_flag(AlbumInfo.Flags.RETURNED_404)
-        if skip:
-            Log.warn(f'Id gap prediction forces error 404 for {sname}, skipping...')
-            return DownloadResult.FAIL_NOT_FOUND
+            predicted_skip = ai_prev1 and not ai_prev1.has_flag(AlbumInfo.Flags.RETURNED_404)
+    if predicted_skip:
+        Log.warn(f'Id gap prediction {predicted_prefix} forces error 404 for {sname}, skipping...')
+        return DownloadResult.FAIL_NOT_FOUND
 
     ai.set_state(AlbumInfo.State.ACTIVE)
-    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id, session=adwn.session)
+    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
         return DownloadResult.FAIL_SKIPPED if Config.aborted else DownloadResult.FAIL_RETRIES
@@ -194,7 +198,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
         ai.images.append(pii)
 
-    r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/', session=adwn.session)
+    r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/')
     if r_html is None:
         Log.error(f'Error: unable to retreive html for {sname} page 1! Aborted!')
         return DownloadResult.FAIL_RETRIES
@@ -338,12 +342,12 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
 
             hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
             ckwargs = dict(allow_redirects=not Config.proxy or not Config.download_without_proxy)
-            r = await wrap_request(idwn.session, 'GET', ii.link, **ckwargs, **hkwargs)
+            r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
             while r.status in (301, 302):
                 if urlparse(r.headers['Location']).hostname != urlparse(ii.link).hostname:
                     ckwargs.update(noproxy=True, allow_redirects=True)
                 ensure_conn_closed(r)
-                r = await wrap_request(idwn.session, 'GET', r.headers['Location'], **ckwargs, **hkwargs)
+                r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
             content_len = r.content_length or 0
             content_range_s = r.headers.get('Content-Range', '/').split('/', 1)
             content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1

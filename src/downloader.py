@@ -14,8 +14,6 @@ from contextlib import suppress
 from os import path, remove, makedirs
 from typing import Any
 
-from aiohttp import ClientSession
-
 from config import Config
 from defs import (
     DownloadResult, Mem, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
@@ -46,8 +44,7 @@ class AlbumDownloadWorker:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         AlbumDownloadWorker._instance = None
 
-    def __init__(self, sequence: list[AlbumInfo], func: Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]],
-                 session: ClientSession) -> None:
+    def __init__(self, sequence: list[AlbumInfo], func: Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]]) -> None:
         assert AlbumDownloadWorker._instance is None
         AlbumDownloadWorker._instance = self
 
@@ -55,7 +52,6 @@ class AlbumDownloadWorker:
         self._func = func
         self._seq = [ai for ai in sequence]  # form our own container to erase from
         self._queue: AsyncQueue[tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
-        self._session = session
         self._orig_count = len(self._seq)
         self._scan_count = 0
         self._scanned_count = 0
@@ -231,10 +227,6 @@ class AlbumDownloadWorker:
     def albums_left(self) -> int:
         return len(self._downloads_active)
 
-    @property
-    def session(self) -> ClientSession:
-        return self._session
-
     def get_workload_size(self) -> int:
         return len(self._seq) + self._queue.qsize() + len(self._scans_active)
 
@@ -266,12 +258,11 @@ class ImageDownloadWorker:
     def get() -> ImageDownloadWorker | None:
         return ImageDownloadWorker._instance
 
-    def __init__(self, func: Callable[[ImageInfo], Coroutine[Any, Any, DownloadResult]], session: ClientSession) -> None:
+    def __init__(self, func: Callable[[ImageInfo], Coroutine[Any, Any, DownloadResult]]) -> None:
         assert ImageDownloadWorker._instance is None
         ImageDownloadWorker._instance = self
 
         self._func = func
-        self._session = session
         self._seq: list[ImageInfo] = list()
         self._queue: AsyncQueue[tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
         self._orig_count = 0
@@ -415,10 +406,6 @@ class ImageDownloadWorker:
     @property
     def processed_count(self) -> int:
         return self._downloaded_count + self._filtered_count_after + self._skipped_count + len(self._failed_items)
-
-    @property
-    def session(self) -> ClientSession:
-        return self._session
 
     def is_writing(self, iidest: ImageInfo | str) -> bool:
         return (iidest.my_fullpath if isinstance(iidest, ImageInfo) else iidest) in self._writes_active
