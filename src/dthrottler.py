@@ -21,8 +21,8 @@ from logger import Log
 
 
 class ThrottleChecker:
-    def __init__(self, vi: ImageInfo) -> None:
-        self._ii = vi
+    def __init__(self, ii: ImageInfo) -> None:
+        self._ii = ii
         self._init_size = 0
         self._slow_download_amount_threshold = ThrottleChecker._orig_threshold()
         self._interrupted_speeds = deque[float](maxlen=3)

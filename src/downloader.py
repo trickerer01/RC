@@ -410,11 +410,11 @@ class ImageDownloadWorker:
     def is_writing(self, iidest: ImageInfo | str) -> bool:
         return (iidest.my_fullpath if isinstance(iidest, ImageInfo) else iidest) in self._writes_active
 
-    def add_to_writes(self, vi: ImageInfo) -> None:
-        self._writes_active.append(vi.my_fullpath)
+    def add_to_writes(self, ii: ImageInfo) -> None:
+        self._writes_active.append(ii.my_fullpath)
 
-    def remove_from_writes(self, vi: ImageInfo) -> None:
-        self._writes_active.remove(vi.my_fullpath)
+    def remove_from_writes(self, ii: ImageInfo) -> None:
+        self._writes_active.remove(ii.my_fullpath)
 
     def get_workload_size(self) -> int:
         return len(self._seq) + self._queue.qsize() + len(self._downloads_active)
