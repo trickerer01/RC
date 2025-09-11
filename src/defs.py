@@ -11,6 +11,9 @@ from datetime import datetime
 from enum import IntEnum
 from os import path
 
+MIN_PYTHON_VERSION = (3, 10)
+MIN_PYTHON_VERSION_STR = f'{MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}'
+
 CONNECT_RETRIES_BASE = 50
 CONNECT_TIMEOUT_BASE = 10
 CONNECT_REQUEST_DELAY = 0.2

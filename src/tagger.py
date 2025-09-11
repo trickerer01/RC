@@ -358,7 +358,8 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags
             for conf, cn, td in zip(
                 (Config.check_title_neg, Config.check_description_neg),
                 ('TITL', 'DESC'),
-                (ai.title, ai.description)
+                (ai.title, ai.description),
+                strict=True
             ):
                 if conf and td:
                     for tmatch in match_text(extag, td, 'and'):
@@ -379,7 +380,8 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags
                 (Config.check_title_pos, Config.check_title_neg, Config.check_description_pos, Config.check_description_neg),
                 ('TITL', 'TITL', 'DESC', 'DESC'),
                 ('POS', 'NEG', 'POS', 'NEG'),
-                (ai.title, ai.title, ai.description, ai.description)
+                (ai.title, ai.title, ai.description, ai.description),
+                strict=True
             ):
                 if conf and td and ((np == 'NEG') == negative) and not mtag:
                     mtag = match_text(my_extag, td)
