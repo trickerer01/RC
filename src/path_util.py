@@ -6,7 +6,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from os import path, listdir, rename, makedirs
+from os import DirEntry, path, rename, makedirs, scandir
 
 from config import Config
 from defs import PREFIX, DEFAULT_EXT
@@ -21,8 +21,8 @@ foldername_matches_cache: dict[str, str] = dict()
 
 
 def report_duplicates() -> None:
-    found_vs = dict()
-    fvks = list()
+    found_vs = dict[str, list[str]]()
+    fvks = list[str]()
     for k in found_foldernames_dict:
         if not found_foldernames_dict[k]:
             continue
@@ -33,7 +33,7 @@ def report_duplicates() -> None:
             if fm:
                 fid = fm.group(1)
                 if fid not in found_vs:
-                    found_vs[fid] = [''] * 0
+                    found_vs[fid] = list()
                 elif fid not in fvks:
                     fvks.append(fid)
                 found_vs[fid].append(k + fname)
@@ -70,15 +70,16 @@ def scan_dest_folder() -> None:
 
         def scan_folder(base_folder: str, level: int) -> None:
             if path.isdir(base_folder):
-                for cname in listdir(base_folder):
-                    fullpath = f'{base_folder}{cname}'
-                    if path.isdir(fullpath):
+                dentry: DirEntry
+                for dentry in scandir(base_folder):
+                    fullpath = f'{base_folder}{dentry.name}'
+                    if dentry.is_dir():
                         fullpath = normalize_path(fullpath)
                         if level < scan_depth:
                             found_foldernames_dict[fullpath] = list()
                             scan_folder(fullpath, level + 1)
                         pass
-                        found_foldernames_dict[base_folder].append(cname)
+                        found_foldernames_dict[base_folder].append(dentry.name)
 
         found_foldernames_dict[dest_base] = list()
         scan_folder(dest_base, 0)
