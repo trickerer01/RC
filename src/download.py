@@ -7,7 +7,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from asyncio import sleep
-from os import path, stat, remove, makedirs, scandir, DirEntry
+from os import path, stat, remove, makedirs, scandir
 from random import uniform as frand
 from urllib.parse import urlparse
 
@@ -261,7 +261,6 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                         if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
                             Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
         else:
-            de: DirEntry
             existing_files: list[str] = [de.name for de in scandir(existing_folder) if de.is_file()]
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), existing_files))
             ai_filenames = [imi.filename for imi in ai.images]
