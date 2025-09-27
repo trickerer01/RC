@@ -49,12 +49,12 @@ def report_duplicates() -> None:
 def scan_dest_folder() -> None:
     """
     Scans base destination folder plus {Config.folder_scan_depth} levels of subfolders and
-    stores found subfolders in dict (key=folder_name)\n\n
-    |folder1:\n\n
-    |__subfolder1:\n\n
-    |____subfolder2\n\n
-    |____subfolder3\n\n
-    => files{'folder1': ['subfolder1'], 'subfolder1': ['subfolder2','subfolder3']}\n\n
+    stores found subfolders in dict (key=folder_name)\n
+    |folder1:
+    |__subfolder1:
+    |____subfolder2
+    |____subfolder3
+    => files{'folder1': ['subfolder1'], 'subfolder1': ['subfolder2','subfolder3']}\n
     This function may only be called once!
     """
     assert len(found_foldernames_dict.keys()) == 0
