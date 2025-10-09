@@ -341,8 +341,9 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                         ii.set_state(ImageInfo.State.DONE)
                 break
 
-            hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'}} if file_size > 0 else {}
+            hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'} if file_size > 0 else {}}
             ckwargs = dict(allow_redirects=not Config.proxy or not Config.download_without_proxy)
+            # hkwargs['headers'].update({'Referer': SITE_AJAX_REQUEST_ALBUM % ii.id})
             r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
             while r.status in (301, 302):
                 if urlparse(r.headers['Location']).hostname != urlparse(ii.link).hostname:
