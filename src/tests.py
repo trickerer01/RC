@@ -154,12 +154,14 @@ class CmdTests(TestCase):
         parsed5 = prepare_arglist(['-search_tag', '6*,5???*', '-search_rule_tag', 'any',
                                    '-search_art', '*ikan', '-search_rule_art', 'any',
                                    '-search_cat', 'ali??_*', '-search_rule_cat', 'any',
+                                   # '-blacklist', 'a:6*9,c:*z,t:6g*,t:8*',
                                    '-start', '3', '-pages', '2'], True)
         c5 = BaseConfig()
         c5.read(parsed5, True)
         self.assertEqual('10838,11146,11950,2007,3364,4326,4867,9244,9363', c5.search_tags)
         self.assertEqual('1338,4834,5129,5163', c5.search_arts)
         self.assertEqual('315,685,979', c5.search_cats)
+        # self.assertEqual('model:25905,model:34361,cat:1277,cat:315,cat:3315,cat:557,tag:38580,tag:3966', c5.blacklist)
         self.assertEqual('any', c5.search_rule_tag)
         self.assertEqual('any', c5.search_rule_art)
         self.assertEqual('any', c5.search_rule_cat)
