@@ -17,7 +17,7 @@ from typing import Any
 from config import Config
 from defs import (
     DownloadResult, Mem, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
-    START_TIME, UTF8, CONNECT_REQUEST_DELAY,
+    START_TIME, UTF8, CONNECT_REQUEST_DELAY, RESCAN_DELAY_EMPTY,
 )
 from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from logger import Log
@@ -130,6 +130,9 @@ class AlbumDownloadWorker:
                 ai, task = await self._queue.get()
                 await self._at_task_start(ai)
                 result = await task
+                while result in (DownloadResult.FAIL_EMPTY_HTML,):
+                    await sleep(RESCAN_DELAY_EMPTY)
+                    result = await task
                 await self._at_task_finish(ai, result)
                 self._queue.task_done()
             else:
