@@ -6,35 +6,58 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import json
+import os
 from collections.abc import Collection, Iterable, MutableSequence
-from json import load as load_json
-from os import path
 
 from config import Config
 from defs import (
-    TAGS_CONCAT_CHAR, UTF8,
-    FILE_LOC_TAG_ALIASES, FILE_LOC_TAG_CONFLICTS, FILE_LOC_TAGS, FILE_LOC_CATS, FILE_LOC_ARTS,
+    FILE_LOC_ARTS,
+    FILE_LOC_CATS,
+    FILE_LOC_TAG_ALIASES,
+    FILE_LOC_TAG_CONFLICTS,
+    FILE_LOC_TAGS,
+    TAGS_CONCAT_CHAR,
+    UTF8,
 )
 from iinfo import AlbumInfo
 from logger import Log
 from rex import (
-    re_replace_symbols, re_wtag, re_idval, re_uscore_mult, re_not_a_letter, re_numbered_or_counted_tag, re_or_group,
-    re_neg_and_group, re_tags_to_process, re_bracketed_tag, re_tags_exclude_major1, re_tags_exclude_major2, re_tags_to_not_exclude,
     prepare_regex_fullmatch,
+    re_bracketed_tag,
+    re_idval,
+    re_neg_and_group,
+    re_not_a_letter,
+    re_numbered_or_counted_tag,
+    re_or_group,
+    re_replace_symbols,
+    re_tags_exclude_major1,
+    re_tags_exclude_major2,
+    re_tags_to_not_exclude,
+    re_tags_to_process,
+    re_uscore_mult,
+    re_wtag,
 )
-from util import normalize_path, assert_nonempty
+from util import assert_nonempty, normalize_path
 
 __all__ = (
-    'filtered_tags', 'get_matching_tag', 'extract_id_or_group', 'valid_extra_tag', 'is_filtered_out_by_extra_tags', 'solve_tag_conflicts',
-    'valid_tags', 'valid_artists', 'valid_categories',
+    'extract_id_or_group',
+    'filtered_tags',
+    'get_matching_tag',
+    'is_filtered_out_by_extra_tags',
+    'solve_tag_conflicts',
+    'valid_artists',
+    'valid_categories',
+    'valid_extra_tag',
+    'valid_tags',
 )
 
-TAG_NUMS: dict[str, str] = dict()
-CAT_NUMS: dict[str, str] = dict()
-ART_NUMS: dict[str, str] = dict()
-# PLA_NUMS: dict[str, str] = dict()
-TAG_ALIASES: dict[str, str] = dict()
-TAG_CONFLICTS: dict[str, tuple[list[str], list[str]]] = dict()
+TAG_NUMS: dict[str, str] = {}
+CAT_NUMS: dict[str, str] = {}
+ART_NUMS: dict[str, str] = {}
+# PLA_NUMS: dict[str, str] = {}
+TAG_ALIASES: dict[str, str] = {}
+TAG_CONFLICTS: dict[str, tuple[list[str], list[str]]] = {}
 
 
 def valid_extra_tag(tag: str, log=True) -> str:
@@ -112,7 +135,7 @@ def is_utag(tag: str) -> bool:
 
 
 def is_wtag(tag: str) -> bool:
-    return not not re_wtag.fullmatch(tag)
+    return bool(re_wtag.fullmatch(tag))
 
 
 def all_extra_tags_valid(tags: list[str]) -> bool:
@@ -135,7 +158,7 @@ def get_tag_num(tag: str, assert_=False) -> str | None:
 
 
 def is_valid_tag(tag: str) -> bool:
-    return not not get_tag_num(tag)
+    return bool(get_tag_num(tag))
 
 
 def get_artist_num(artist: str, assert_=False) -> str | None:
@@ -145,7 +168,7 @@ def get_artist_num(artist: str, assert_=False) -> str | None:
 
 
 def is_valid_artist(artist: str) -> bool:
-    return not not get_artist_num(artist)
+    return bool(get_artist_num(artist))
 
 
 def get_category_num(category: str, assert_=False) -> str | None:
@@ -155,15 +178,15 @@ def get_category_num(category: str, assert_=False) -> str | None:
 
 
 def is_valid_category(category: str) -> bool:
-    return not not get_category_num(category)
+    return bool(get_category_num(category))
 
 
 def is_valid_neg_and_group(andgr: str) -> bool:
-    return not not re_neg_and_group.fullmatch(andgr)
+    return bool(re_neg_and_group.fullmatch(andgr))
 
 
 def is_valid_or_group(orgr: str) -> bool:
-    return not not re_or_group.fullmatch(orgr)
+    return bool(re_or_group.fullmatch(orgr))
 
 
 def expand_tags(pwtag: str) -> Iterable[str]:
@@ -227,14 +250,14 @@ def normalize_wtag(wtag: str) -> str:
     escape_char = '`'
     escape = escape_char in wtag
     if escape:
-        for fk in wtag_freplacements:
-            wtag = wtag.replace(f'{escape_char}{fk}', wtag_freplacements[fk])
+        for fk, wtag_freplacement in wtag_freplacements.items():
+            wtag = wtag.replace(f'{escape_char}{fk}', wtag_freplacement)
     for c in chars_need_escaping:
         wtag = wtag.replace(c, f'\\{c}')
     wtag = wtag.replace('*', '.*').replace('?', '.').replace(escape_char, '')
     if escape:
-        for bk in wtag_breplacements:
-            wtag = wtag.replace(f'{bk}', wtag_breplacements[bk])
+        for bk, wtag_breplacement in wtag_breplacements.items():
+            wtag = wtag.replace(f'{bk}', wtag_breplacement)
     return wtag
 
 
@@ -257,7 +280,7 @@ def get_or_group_matching_tag(orgr: str, mtags: Iterable[str]) -> str | None:
 
 
 def get_neg_and_group_matches(andgr: str, mtags: Iterable[str]) -> list[str]:
-    matched_tags = list()
+    matched_tags = []
     for wtag in andgr[2:-1].split(','):
         mtag = get_matching_tag(wtag, mtags, force_regex=True)
         if not mtag:
@@ -322,21 +345,21 @@ def trim_undersores(base_str: str) -> str:
 def solve_tag_conflicts(ai: AlbumInfo, tags_raw: list[str]) -> None:
     if not TAG_CONFLICTS:
         load_tag_conflicts()
-    for ctag in TAG_CONFLICTS:
+    for ctag, clistpair in TAG_CONFLICTS.items():
         if ctag in tags_raw:
-            cposlist, cneglist = TAG_CONFLICTS[ctag]
+            cposlist, cneglist = clistpair
             if any(cp in tags_raw for cp in cposlist) and all(cn not in tags_raw for cn in cneglist):
                 Log.info(f'{ai.sname} is tagged with both \'{ctag}\' and \'{"/".join(cposlist)}\'! Removing \'{ctag}\' tag!')
                 tags_raw.remove(ctag)
 
 
 def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags: list[str],
-                                  id_seq: list[int], subfolder: str, id_seq_ex: list[int] = None) -> bool:
+                                  id_seq: list[int], subfolder: str, id_seq_ex: list[int] | None = None) -> bool:
     suc = True
     sname = f'{f"[{subfolder}] " if subfolder else ""}Album {ai.sname}'
     if id_seq and ai.id not in id_seq and not (id_seq_ex and ai.id in id_seq_ex):
         suc = False
-        Log.trace(f'{sname} isn\'t contained in id list \'{str(id_seq)}\'. Skipped!')
+        Log.trace(f'{sname} isn\'t contained in id list \'{id_seq!s}\'. Skipped!')
 
     for extag in extra_tags:
         if extag.startswith('('):
@@ -344,11 +367,11 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags
             or_match_titl = match_text(extag, ai.title, 'or') if Config.check_title_pos and ai.title else None
             or_match_desc = match_text(extag, ai.description, 'or') if Config.check_description_pos and ai.description else None
             if or_match_base:
-                Log.trace(f'{sname} has BASE POS match: \'{str(or_match_base)}\'')
+                Log.trace(f'{sname} has BASE POS match: \'{or_match_base!s}\'')
             if or_match_titl:
-                Log.trace(f'{sname} has TITL POS match: \'{str(or_match_titl)}\'')
+                Log.trace(f'{sname} has TITL POS match: \'{or_match_titl!s}\'')
             if or_match_desc:
-                Log.trace(f'{sname} has DESC POS match: \'{str(or_match_desc)}\'')
+                Log.trace(f'{sname} has DESC POS match: \'{or_match_desc!s}\'')
             if not bool(or_match_base or or_match_titl or or_match_desc):
                 suc = False
                 Log.trace(f'{sname} misses required tag matching \'{extag}\'. Skipped!')
@@ -358,7 +381,7 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags
                 (Config.check_title_neg, Config.check_description_neg),
                 ('TITL', 'DESC'),
                 (ai.title, ai.description),
-                strict=True
+                strict=True,
             ):
                 if conf and td:
                     for tmatch in match_text(extag, td, 'and'):
@@ -380,7 +403,7 @@ def is_filtered_out_by_extra_tags(ai: AlbumInfo, tags_raw: list[str], extra_tags
                 ('TITL', 'TITL', 'DESC', 'DESC'),
                 ('POS', 'NEG', 'POS', 'NEG'),
                 (ai.title, ai.title, ai.description, ai.description),
-                strict=True
+                strict=True,
             ):
                 if conf and td and ((np == 'NEG') == negative) and not mtag:
                     mtag = match_text(my_extag, td)
@@ -404,7 +427,7 @@ def filtered_tags(tags_list: Collection[str]) -> str:
     if not TAG_ALIASES:
         load_tag_aliases()
 
-    tags_list_final: list[str] = list()
+    tags_list_final: list[str] = []
 
     for tag in tags_list:
         tag = re_replace_symbols.sub('_', tag.replace('-', '').replace('\'', '').replace('.', ''))
@@ -416,7 +439,7 @@ def filtered_tags(tags_list: Collection[str]) -> str:
 
         # digital_media_(artwork)
         aser_match = re_bracketed_tag.match(tag)
-        aser_valid = not not aser_match
+        aser_valid = bool(aser_match)
         if aser_match:
             major_skip_match1 = re_tags_exclude_major1.match(aser_match.group(1))
             major_skip_match2 = re_tags_exclude_major2.match(aser_match.group(2))
@@ -467,11 +490,11 @@ def load_actpac_json(src_file: str, dest_dict: dict[str, str] | dict[str, tuple[
         Log.trace(f'Loading {name}...')
         with open(src_file, 'r', encoding=UTF8) as json_file:
             if extract:
-                dest_dict.update({k: (v[:v.find(',')] if ',' in v else v) for k, v in load_json(json_file).items()})
+                dest_dict.update({k: (v[:v.find(',')] if ',' in v else v) for k, v in json.load(json_file).items()})
             else:
-                dest_dict.update(load_json(json_file))
+                dest_dict.update(json.load(json_file))
     except Exception:
-        Log.error(f'Failed to load {name} from {normalize_path(path.abspath(src_file), False)}')
+        Log.error(f'Failed to load {name} from {normalize_path(os.path.abspath(src_file), False)}')
         dest_dict.update({'': ''})
 
 

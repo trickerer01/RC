@@ -6,32 +6,40 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import os
+import random
+import urllib.parse
 from asyncio import sleep
-from os import path, stat, remove, makedirs, scandir
-from random import uniform as frand
-from urllib.parse import urlparse
 
 from aiofile import async_open
 from aiohttp import ClientPayloadError
 
 from config import Config
 from defs import (
-    Mem, NamingFlags, DownloadResult, SITE_AJAX_REQUEST_ALBUM, DOWNLOAD_POLICY_ALWAYS, DOWNLOAD_MODE_TOUCH, PREFIX,
-    DOWNLOAD_MODE_SKIP, TAGS_CONCAT_CHAR,
-    FULLPATH_MAX_BASE_LEN, CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY,
+    CONNECT_REQUEST_DELAY,
+    CONNECT_RETRY_DELAY,
+    DOWNLOAD_MODE_SKIP,
+    DOWNLOAD_MODE_TOUCH,
+    DOWNLOAD_POLICY_ALWAYS,
+    FULLPATH_MAX_BASE_LEN,
+    PREFIX,
+    SITE_AJAX_REQUEST_ALBUM,
+    TAGS_CONCAT_CHAR,
+    DownloadResult,
+    Mem,
+    NamingFlags,
 )
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
-# from dscanner import VideoScanWorker
 from dthrottler import ThrottleChecker
-from fetch_html import fetch_html, wrap_request, ensure_conn_closed
+from fetch_html import ensure_conn_closed, fetch_html, wrap_request
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
-from rex import re_replace_symbols, re_read_href, re_album_foldername, re_media_filename
+from rex import re_album_foldername, re_media_filename, re_read_href, re_replace_symbols
 from tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
-from util import has_naming_flag, format_time, normalize_path, get_elapsed_time_i
+from util import format_time, get_elapsed_time_i, has_naming_flag, normalize_path
 
-__all__ = ('download', 'at_interrupt')
+__all__ = ('at_interrupt', 'download')
 
 
 async def download(sequence: list[AlbumInfo], filtered_count: int) -> None:
@@ -114,12 +122,12 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         my_authors = [str(a.string).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract authors for {sname}.')
-        my_authors = list()
+        my_authors = []
     try:
         my_categories = [str(c.string).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract categories for {sname}.')
-        my_categories = list()
+        my_categories = []
     tdiv = a_html.find('div', string='Tags:')
     if tdiv is None:
         Log.info(f'Warning: album {sname} has no tags!')
@@ -155,7 +163,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     if is_filtered_out_by_extra_tags(ai, tags_raw, Config.extra_tags, Config.id_sequence, ai.subfolder, extra_ids):
         Log.info(f'Info: album {sname} is filtered out by{" outer" if scenario else ""} extra tags, skipping...')
         return DownloadResult.FAIL_FILTERED_OUTER if scenario else DownloadResult.FAIL_SKIPPED
-    for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%')):
+    for vsrs, csri, srn, pc in zip((score, rating), (Config.min_score, Config.min_rating), ('score', 'rating'), ('', '%'), strict=True):
         if len(vsrs) > 0 and csri is not None:
             try:
                 if int(vsrs) < csri:
@@ -218,7 +226,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         ai.images.append(ii)
 
     fname_part2 = ''
-    my_score = (f'{f"+" if score.isnumeric() else ""}{score}' if len(score) > 0
+    my_score = (f'{"+" if score.isnumeric() else ""}{score}' if len(score) > 0
                 else '' if len(rating) > 0 else 'unk')
     my_rating = (f'{", " if len(my_score) > 0 else ""}{rating}{"%" if rating.isnumeric() else ""}' if len(rating) > 0
                  else '' if len(my_score) > 0 else 'unk')
@@ -241,9 +249,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     existing_folder = folder_already_exists(ai.id)
     if existing_folder:
-        curalbum_folder, curalbum_name = path.split(existing_folder.strip('/'))
-        existing_folder_name = path.split(existing_folder)[1]
-        same_loc = path.isdir(ai.my_folder_base) and path.samefile(curalbum_folder, ai.my_folder_base)
+        curalbum_folder, curalbum_name = os.path.split(existing_folder.strip('/'))
+        existing_folder_name = os.path.split(existing_folder)[1]
+        same_loc = os.path.isdir(ai.my_folder_base) and os.path.samefile(curalbum_folder, ai.my_folder_base)
         loc_str = f' ({"same" if same_loc else "different"} location)'
         if Config.continue_mode:
             if existing_folder != ai.my_folder:
@@ -258,14 +266,14 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                         if not try_rename(normalize_path(existing_folder), ai.my_folder):
                             Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
                     else:
-                        new_subfolder = normalize_path(path.relpath(curalbum_folder, Config.dest_base))
+                        new_subfolder = normalize_path(os.path.relpath(curalbum_folder, Config.dest_base))
                         Log.info(f'{ai.sfsname} (or similar) found{loc_str}. Enforcing old path + new name '
                                  f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                         ai.subfolder = new_subfolder
-                        if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
+                        if not try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
                             Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
         else:
-            existing_files: list[str] = [de.name for de in scandir(existing_folder) if de.is_file()]
+            existing_files: list[str] = [de.name for de in os.scandir(existing_folder) if de.is_file()]
             existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), existing_files))
             ai_filenames = [imi.filename for imi in ai.images]
             if len(existing_files) == ai.images_count and all(filename in ai_filenames for filename in existing_files):
@@ -279,13 +287,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 if not try_rename(normalize_path(existing_folder), ai.my_folder):
                     Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
             else:
-                new_subfolder = normalize_path(path.relpath(curalbum_folder, Config.dest_base))
+                new_subfolder = normalize_path(os.path.relpath(curalbum_folder, Config.dest_base))
                 Log.info(f'{ai.sfsname} (or similar) found{loc_str} but its image set differs! Enforcing old path + new name '
                          f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                 ai.subfolder = new_subfolder
-                if not try_rename(existing_folder, normalize_path(path.abspath(ai.my_folder), False)):
+                if not try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
                     Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
-    elif Config.continue_mode is False and path.isdir(ai.my_folder) and all(path.isfile(imi.my_fullpath) for imi in ai.images):
+    elif Config.continue_mode is False and os.path.isdir(ai.my_folder) and all(os.path.isfile(imi.my_fullpath) for imi in ai.images):
         Log.info(f'Album {ai.sfsname} and all its {len(ai.images):d} images already exist. Skipped.')
         ai.images.clear()
         return DownloadResult.FAIL_ALREADY_EXISTS
@@ -311,13 +319,13 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
         ret = DownloadResult.FAIL_SKIPPED
     else:
         ii.set_state(ImageInfo.State.DOWNLOADING)
-        if not path.isdir(ii.my_folder):
+        if not os.path.isdir(ii.my_folder):
             try:
-                makedirs(ii.my_folder)
+                os.makedirs(ii.my_folder)
             except Exception:
-                raise IOError(f'ERROR: Unable to create subfolder \'{ii.my_folder}\'!')
+                raise OSError(f'ERROR: Unable to create subfolder \'{ii.my_folder}\'!')
         else:
-            curfile = path.isfile(ii.my_fullpath)
+            curfile = os.path.isfile(ii.my_fullpath)
             if curfile:
                 ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
                 if Config.continue_mode is False:
@@ -328,10 +336,10 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     while (not skip) and retries <= Config.retries:
         r = None
         try:
-            file_exists = path.isfile(ii.my_fullpath)
+            file_exists = os.path.isfile(ii.my_fullpath)
             if file_exists and retries == 0:
                 ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
-            file_size = stat(ii.my_fullpath).st_size if file_exists else 0
+            file_size = os.stat(ii.my_fullpath).st_size if file_exists else 0
 
             if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
                 if file_exists:
@@ -346,11 +354,11 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 break
 
             hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'} if file_size > 0 else {}}
-            ckwargs = dict(allow_redirects=not Config.proxy or not Config.download_without_proxy)
+            ckwargs = {'allow_redirects': not Config.proxy or not Config.download_without_proxy}
             # hkwargs['headers'].update({'Referer': SITE_AJAX_REQUEST_ALBUM % ii.id})
             r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
             while r.status in (301, 302):
-                if urlparse(r.headers['Location']).hostname != urlparse(ii.link).hostname:
+                if urllib.parse.urlparse(r.headers['Location']).hostname != urllib.parse.urlparse(ii.link).hostname:
                     ckwargs.update(noproxy=True, allow_redirects=True)
                 ensure_conn_closed(r)
                 r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
@@ -389,10 +397,10 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.reset()
             idwn.remove_from_writes(ii)
 
-            file_size = stat(ii.my_fullpath).st_size
+            file_size = os.stat(ii.my_fullpath).st_size
             if ii.expected_size and file_size != ii.expected_size:
                 Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
-                raise IOError(ii.link)
+                raise OSError(ii.link)
 
             ii.set_state(ImageInfo.State.DONE)
 
@@ -416,10 +424,10 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.reset()
             if retries <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
-                await sleep(frand(*CONNECT_RETRY_DELAY))
-            elif Config.keep_unfinished is False and path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
+                await sleep(random.uniform(*CONNECT_RETRY_DELAY))
+            elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
-                remove(ii.my_fullpath)
+                os.remove(ii.my_fullpath)
 
     ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS) else
            DownloadResult.SUCCESS if retries <= Config.retries else

@@ -6,30 +6,48 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import os
 from asyncio import run as run_async
 from io import StringIO
-from os import path, stat
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
 from cmdargs import prepare_arglist
+
 # noinspection PyProtectedMember
 from config import BaseConfig
 from defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
+
 # noinspection PyProtectedMember
-from ids import main as ids_main, main_sync as ids_main_sync
+from ids import main as ids_main
+from ids import main_sync as ids_main_sync
 from logger import Log
+
 # noinspection PyProtectedMember
-from pages import main as pages_main, main_sync as pages_main_sync
+from pages import main as pages_main
+from pages import main_sync as pages_main_sync
+
 # noinspection PyProtectedMember
 from path_util import found_foldernames_dict
 from rex import prepare_regex_fullmatch
+
 # noinspection PyProtectedMember
 from tagger import (
-    extract_id_or_group, normalize_wtag, match_text, load_tag_nums, load_artist_nums, load_category_nums,
-    load_tag_aliases, load_tag_conflicts, TAG_NUMS, ART_NUMS, CAT_NUMS, TAG_ALIASES, TAG_CONFLICTS
+    ART_NUMS,
+    CAT_NUMS,
+    TAG_ALIASES,
+    TAG_CONFLICTS,
+    TAG_NUMS,
+    extract_id_or_group,
+    load_artist_nums,
+    load_category_nums,
+    load_tag_aliases,
+    load_tag_conflicts,
+    load_tag_nums,
+    match_text,
+    normalize_wtag,
 )
 from util import normalize_path
 from version import APP_NAME, APP_VERSION
@@ -215,13 +233,13 @@ class DownloadTests(TestCase):
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
         arglist1 = ['-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace']
         ids_main_sync(arglist1)
-        self.assertTrue(path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(path.isfile(tempfile_fullpaths[1]))
-        st1 = stat(tempfile_fullpaths[0])
-        st2 = stat(tempfile_fullpaths[1])
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
+        st1 = os.stat(tempfile_fullpaths[0])
+        st2 = os.stat(tempfile_fullpaths[1])
         self.assertEqual(0, st1.st_size)
         self.assertEqual(0, st2.st_size)
-        self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
+        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
         tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
@@ -238,13 +256,13 @@ class DownloadTests(TestCase):
         arglist1 = ['-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
                     '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman']
         pages_main_sync(arglist1)
-        self.assertTrue(path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(path.isfile(tempfile_fullpaths[1]))
-        st1 = stat(tempfile_fullpaths[0])
-        st2 = stat(tempfile_fullpaths[1])
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
+        st1 = os.stat(tempfile_fullpaths[0])
+        st2 = os.stat(tempfile_fullpaths[1])
         self.assertEqual(0, st1.st_size)
         self.assertEqual(0, st2.st_size)
-        self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
+        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
         tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
@@ -260,13 +278,13 @@ class DownloadTests(TestCase):
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
         arglist1 = ['-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace']
         ids_main_sync(arglist1)
-        self.assertTrue(path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(path.isfile(tempfile_fullpaths[1]))
-        st1 = stat(tempfile_fullpaths[0])
-        st2 = stat(tempfile_fullpaths[1])
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
+        st1 = os.stat(tempfile_fullpaths[0])
+        st2 = os.stat(tempfile_fullpaths[1])
         self.assertGreater(st1.st_size, 0)
         self.assertGreater(st2.st_size, 0)
-        self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
+        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
         tdir.cleanup()
         print(f'{self._testMethodName} passed')
 
@@ -283,13 +301,13 @@ class DownloadTests(TestCase):
         arglist1 = ['-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
                     '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman']
         pages_main_sync(arglist1)
-        self.assertTrue(path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(path.isfile(tempfile_fullpaths[1]))
-        st1 = stat(tempfile_fullpaths[0])
-        st2 = stat(tempfile_fullpaths[1])
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
+        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
+        st1 = os.stat(tempfile_fullpaths[0])
+        st2 = os.stat(tempfile_fullpaths[1])
         self.assertGreater(st1.st_size, 0)
         self.assertGreater(st2.st_size, 0)
-        self.assertTrue(path.isdir(f'{tempdir}{tempdir_id}'))
+        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
         tdir.cleanup()
         print(f'{self._testMethodName} passed')
 

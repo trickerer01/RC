@@ -6,17 +6,24 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import contextlib
 import sys
-from asyncio import run as run_async, sleep
+from asyncio import run as run_async
+from asyncio import sleep
 from collections.abc import Sequence
 
 from cmdargs import HelpPrintExitException, prepare_arglist
 from config import Config
 from defs import (
-    NamingFlags, SITE_AJAX_REQUEST_SEARCH_PAGE, SITE_AJAX_REQUEST_UPLOADER_PAGE,
-    SITE_AJAX_REQUEST_FAVOURITES_PAGE, SITE_AJAX_REQUEST_MODEL_PAGE, MIN_PYTHON_VERSION, MIN_PYTHON_VERSION_STR,
+    MIN_PYTHON_VERSION,
+    MIN_PYTHON_VERSION_STR,
+    SITE_AJAX_REQUEST_FAVOURITES_PAGE,
+    SITE_AJAX_REQUEST_MODEL_PAGE,
+    SITE_AJAX_REQUEST_SEARCH_PAGE,
+    SITE_AJAX_REQUEST_UPLOADER_PAGE,
+    NamingFlags,
 )
-from download import download, at_interrupt
+from download import at_interrupt, download
 from fetch_html import create_session, fetch_html
 from iinfo import AlbumInfo
 from logger import Log
@@ -52,7 +59,7 @@ async def main(args: Sequence[str]) -> None:
             return -1
         return 0
 
-    v_entries = list()
+    v_entries = []
     maxpage = Config.end if Config.start == Config.end else 0
 
     pi = Config.start
@@ -78,10 +85,8 @@ async def main(args: Sequence[str]) -> None:
 
             if maxpage == 0:
                 for page_ajax in a_html.find_all('a', attrs={'data-action': 'ajax'}):
-                    try:
+                    with contextlib.suppress(Exception):
                         maxpage = max(maxpage, int(re_paginator.search(str(page_ajax.get('data-parameters'))).group(1)))
-                    except Exception:
-                        pass
                 if maxpage == 0:
                     Log.info('Could not extract max page, assuming single page search')
                     maxpage = 1
@@ -125,7 +130,7 @@ async def main(args: Sequence[str]) -> None:
         orig_count = len(v_entries)
 
         if allow_duplicates is False:
-            known_names = dict()
+            known_names = {}
             i: int
             for i in reversed(range(len(v_entries))):
                 title = v_entries[i].title.lower()

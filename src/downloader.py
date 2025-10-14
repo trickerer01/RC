@@ -7,22 +7,31 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 from __future__ import annotations
+
+import os
 from asyncio.queues import Queue as AsyncQueue
-from asyncio.tasks import sleep, as_completed
+from asyncio.tasks import as_completed, sleep
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
-from os import path, remove, makedirs
 from typing import Any
 
 from config import Config
 from defs import (
-    DownloadResult, Mem, MAX_IMAGES_QUEUE_SIZE, DOWNLOAD_QUEUE_STALL_CHECK_TIMER, DOWNLOAD_CONTINUE_FILE_CHECK_TIMER, PREFIX,
-    START_TIME, UTF8, CONNECT_REQUEST_DELAY, RESCAN_DELAY_EMPTY,
+    CONNECT_REQUEST_DELAY,
+    DOWNLOAD_CONTINUE_FILE_CHECK_TIMER,
+    DOWNLOAD_QUEUE_STALL_CHECK_TIMER,
+    MAX_IMAGES_QUEUE_SIZE,
+    PREFIX,
+    RESCAN_DELAY_EMPTY,
+    START_TIME,
+    UTF8,
+    DownloadResult,
+    Mem,
 )
 from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists_arr
-from util import format_time, get_elapsed_time_i, get_elapsed_time_s, calc_sleep_time
+from util import calc_sleep_time, format_time, get_elapsed_time_i, get_elapsed_time_s
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
 
@@ -50,7 +59,7 @@ class AlbumDownloadWorker:
 
         self._original_sequence = sequence
         self._func = func
-        self._seq = [ai for ai in sequence]  # form our own container to erase from
+        self._seq = list(sequence)  # form our own container to erase from
         self._queue: AsyncQueue[tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
         self._orig_count = len(self._seq)
         self._scan_count = 0
@@ -62,11 +71,11 @@ class AlbumDownloadWorker:
         self._minmax_id = get_min_max_ids(self._seq)
 
         self._404_counter = 0
-        self._extra_ids: list[int] = list()
+        self._extra_ids: list[int] = []
 
-        self._downloads_active: dict[int, AlbumInfo] = dict()
-        self._scans_active: list[AlbumInfo] = list()
-        self._failed_items: list[int] = list()
+        self._downloads_active: dict[int, AlbumInfo] = {}
+        self._scans_active: list[AlbumInfo] = []
+        self._failed_items: list[int] = []
 
         self._total_queue_size_last = 0
         self._scan_queue_size_last = 0
@@ -94,12 +103,12 @@ class AlbumDownloadWorker:
             founditems = list(filter(None, [folder_already_exists_arr(ai.id)]))
             if any(ffs for ffs in founditems):
                 newline = '\n'
-                Log.info(f'{ai.sname} scan returned {str(result)} but it was already downloaded:'
+                Log.info(f'{ai.sname} scan returned {result!s} but it was already downloaded:'
                          f'\n - {f"{newline} - ".join(f"{newline} - ".join(ffs) for ffs in founditems)}')
         if result == DownloadResult.FAIL_NOT_FOUND:
             ai.set_flag(AlbumInfo.Flags.RETURNED_404)
         self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
-        if len(self._seq) + self._queue.qsize() == 0 and not not Config.lookahead:
+        if len(self._seq) + self._queue.qsize() == 0 and Config.lookahead:
             self._extend_with_extra()
         self._scans_active.remove(ai)
         Log.trace(f'[queue] {ai.sname} removed from active')
@@ -159,7 +168,7 @@ class AlbumDownloadWorker:
                 self._total_queue_size_last = queue_size
                 self._scan_queue_size_last = active_count
 
-    async def _continue_file_checker(self) -> None:
+    async def continue_file_checker(self) -> None:
         if not Config.store_continue_cmdfile:
             return
         minmax_id = self._minmax_id
@@ -179,16 +188,16 @@ class AlbumDownloadWorker:
                     arglist.extend(arglist_base)
                     try:
                         Log.trace(f'Storing continue file to \'{continue_file_name}\'...')
-                        if not path.isdir(Config.dest_base):
-                            makedirs(Config.dest_base)
+                        if not os.path.isdir(Config.dest_base):
+                            os.makedirs(Config.dest_base)
                         with open(continue_file_fullpath, 'wt', encoding=UTF8, buffering=1) as cfile:
                             cfile.write('\n'.join(str(e) for e in arglist))
-                    except (OSError, IOError):
+                    except OSError:
                         Log.error(f'Unable to save continue file to \'{continue_file_name}\'!')
             await sleep(base_sleep_time)
-        if not Config.aborted and path.isfile(continue_file_fullpath):
+        if not Config.aborted and os.path.isfile(continue_file_fullpath):
             Log.trace(f'All files downloaded. Removing continue file \'{continue_file_name}\'...')
-            remove(continue_file_fullpath)
+            os.remove(continue_file_fullpath)
 
     async def _after_download(self) -> None:
         newline = '\n'
@@ -266,7 +275,7 @@ class ImageDownloadWorker:
         ImageDownloadWorker._instance = self
 
         self._func = func
-        self._seq: list[ImageInfo] = list()
+        self._seq: list[ImageInfo] = []
         self._queue: AsyncQueue[tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
         self._orig_count = 0
         self._downloaded_count = 0
@@ -274,9 +283,9 @@ class ImageDownloadWorker:
         self._filtered_count_after = 0
         self._skipped_count = 0
 
-        self._downloads_active: list[ImageInfo] = list()
-        self._writes_active: list[str] = list()
-        self._failed_items: list[str] = list()
+        self._downloads_active: list[ImageInfo] = []
+        self._writes_active: list[str] = []
+        self._failed_items: list[str] = []
 
         self._my_start_time = 0
         self._total_queue_size_last = 0
@@ -359,7 +368,7 @@ class ImageDownloadWorker:
     @staticmethod
     async def _continue_file_checker() -> None:
         adwn = AlbumDownloadWorker.get()
-        return await getattr(adwn, '_continue_file_checker')()
+        return await adwn.continue_file_checker()
 
     async def _after_download(self) -> None:
         adwn = AlbumDownloadWorker.get()
@@ -392,7 +401,7 @@ class ImageDownloadWorker:
 
     def at_interrupt(self) -> None:
         if len(self._downloads_active) > 0:
-            active_items = sorted([ii for ii in self._downloads_active if path.isfile(ii.my_fullpath)
+            active_items = sorted([ii for ii in self._downloads_active if os.path.isfile(ii.my_fullpath)
                                    and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED)], key=lambda ii: ii.id)
             if Config.keep_unfinished:
                 unfinished_str = '\n '.join(f'{i + 1:d}) {ii.my_fullpath}' for i, ii in enumerate(active_items))
@@ -400,7 +409,7 @@ class ImageDownloadWorker:
                 return
             for ii in active_items:
                 Log.debug(f'at_interrupt: trying to remove \'{ii.my_fullpath}\'...')
-                remove(ii.my_fullpath)
+                os.remove(ii.my_fullpath)
 
     def store_image_info(self, ii: ImageInfo) -> None:
         self._orig_count += 1

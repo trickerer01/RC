@@ -6,10 +6,10 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from base64 import b64decode
-from datetime import datetime
+import base64
+import datetime
+import os
 from enum import IntEnum
-from os import path
 
 MIN_PYTHON_VERSION = (3, 10)
 MIN_PYTHON_VERSION_STR = f'{MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}'
@@ -41,33 +41,33 @@ UTF8 = 'utf-8'
 TAGS_CONCAT_CHAR = ','
 DEFAULT_EXT = 'jpg'
 EXTENSIONS_I = (DEFAULT_EXT, 'jpeg')
-START_TIME = datetime.now()
+START_TIME = datetime.datetime.now()
 
-SITE = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
-SITE_AJAX_REQUEST_SEARCH_PAGE = b64decode(
+SITE = base64.b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
+SITE_AJAX_REQUEST_SEARCH_PAGE = base64.b64decode(
     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2FsYnVtc19saXN0X3NlYX'
-    'JjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1zPSVk'
+    'JjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1zPSVk',
 ).decode()
-"""Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
-Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)"""
-SITE_AJAX_REQUEST_ALBUM = b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pY3MvJWQvYS8=').decode()
-"""Params required: **album_id** - **int**\n
-Ex. SITE_AJAX_REQUEST_ALBUM % 11111"""
-SITE_AJAX_REQUEST_FAVOURITES_PAGE = b64decode(
+'''Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
+Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)'''
+SITE_AJAX_REQUEST_ALBUM = base64.b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pY3MvJWQvYS8=').decode()
+'''Params required: **album_id** - **int**\n
+Ex. SITE_AJAX_REQUEST_ALBUM % 11111'''
+SITE_AJAX_REQUEST_FAVOURITES_PAGE = base64.b64decode(
     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21tdW5pdHkvJWQvdW5rL2Zhdm9yaXRlcy8/bW9kZT1hc3luYyZmdW5jdGlvbj1nZXRfYmxvY2smYmxvY2tfaWQ9bGlzdF9hbG'
     'J1bXNfZmF2b3VyaXRlX2FsYnVtcyZmYXZfdHlwZT0wJnNvcnRfYnk9JmZyb21fZmF2X2FsYnVtcz0lZA==').decode()
-"""Params required: **user_id**, **page** - **int**, **int**\n
-Ex. SITE_AJAX_REQUEST_FAVOURITES_PAGE % (2083334, 1)"""
-SITE_AJAX_REQUEST_UPLOADER_PAGE = b64decode(
+'''Params required: **user_id**, **page** - **int**, **int**\n
+Ex. SITE_AJAX_REQUEST_FAVOURITES_PAGE % (2083334, 1)'''
+SITE_AJAX_REQUEST_UPLOADER_PAGE = base64.b64decode(
     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21tdW5pdHkvJWQvdW5rL2NvbWljcy8/bW9kZT1hc3luYyZmdW5jdGlvbj1nZXRfYmxvY2smYmxvY2tfaWQ9bGlzdF9hbGJ1bX'
     'NfY3JlYXRlZF9hbGJ1bXMmc29ydF9ieT0mZnJvbV9hbGJ1bXM9JWQ=').decode()
-"""Params required: **user_id**, **page** - **int**, **int**\n
-Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)"""
-SITE_AJAX_REQUEST_MODEL_PAGE = b64decode(
+'''Params required: **user_id**, **page** - **int**, **int**\n
+Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)'''
+SITE_AJAX_REQUEST_MODEL_PAGE = base64.b64decode(
     'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hcnRpc3RzLyVzLz9tb2RlPWFzeW5jJmZ1bmN0aW9uPWdldF9ibG9jayZibG9ja19pZD1saXN0X2FsYnVtc19jb21tb25fYWxidW'
     '1zX2xpc3Qmc29ydF9ieT1wb3N0X2RhdGUmZnJvbTE9JWQ=').decode()
-"""Params required: **artist_name**, **page** - **str**, **int**\n
-Ex. SITE_AJAX_REQUEST_MODEL_PAGE % ('fred-perry', 1)"""
+'''Params required: **artist_name**, **page** - **str**, **int**\n
+Ex. SITE_AJAX_REQUEST_MODEL_PAGE % ('fred-perry', 1)'''
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Goanna/6.7 Firefox/102.0 PaleMoon/33.3.1'
 DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
@@ -76,7 +76,7 @@ DEFAULT_HEADERS = {'User-Agent': USER_AGENT}
 DOWNLOAD_POLICY_NOFILTERS = 'nofilters'
 DOWNLOAD_POLICY_ALWAYS = 'always'
 UNTAGGED_POLICIES = (DOWNLOAD_POLICY_NOFILTERS, DOWNLOAD_POLICY_ALWAYS)
-"""('nofilters','always')"""
+'''('nofilters','always')'''
 DOWNLOAD_POLICY_DEFAULT = DOWNLOAD_POLICY_NOFILTERS
 """'nofilters'"""
 
@@ -85,7 +85,7 @@ DOWNLOAD_MODE_FULL = 'full'
 DOWNLOAD_MODE_TOUCH = 'touch'
 DOWNLOAD_MODE_SKIP = 'skip'
 DOWNLOAD_MODES = (DOWNLOAD_MODE_FULL, DOWNLOAD_MODE_TOUCH, DOWNLOAD_MODE_SKIP)
-"""('full','touch','skip')"""
+'''('full','touch','skip')'''
 DOWNLOAD_MODE_DEFAULT = DOWNLOAD_MODE_FULL
 """'full'"""
 
@@ -93,7 +93,7 @@ DOWNLOAD_MODE_DEFAULT = DOWNLOAD_MODE_FULL
 SEARCH_RULE_ALL = 'all'
 SEARCH_RULE_ANY = 'any'
 SEARCH_RULES = (SEARCH_RULE_ALL, SEARCH_RULE_ANY)
-"""('all','any')"""
+'''('all','any')'''
 SEARCH_RULE_DEFAULT = SEARCH_RULE_ALL
 """'all'"""
 
@@ -108,11 +108,11 @@ class NamingFlags:
     # extra
     USE_URL_TITLE = 0x10
     ALL_DEFAULT = PREFIX | SCORE | TITLE | TAGS
-    """0x0F"""
+    '''0x0F'''
     ALL_EXTRA = USE_URL_TITLE
-    """0x10"""
+    '''0x10'''
     ALL = ALL_DEFAULT | ALL_EXTRA
-    """0x1F"""
+    '''0x1F'''
 
 
 NAMING_FLAGS = {
@@ -125,12 +125,12 @@ NAMING_FLAGS = {
     'full': f'0x{NamingFlags.ALL_DEFAULT:02X}',
     'urltitle': f'0x{NamingFlags.USE_URL_TITLE:02X}',
 }
-"""
+'''
 {\n\n'none': '0x00',\n\n'prefix': '0x01',\n\n'score': '0x02',\n\n'title': '0x04',\n\n'tags': '0x08',
 \n\n'full': '0x0F\n\n'urltitle': '0x10'\n\n}
-"""
+'''
 NAMING_FLAGS_DEFAULT = NamingFlags.ALL_DEFAULT
-"""0x0F"""
+'''0x0F'''
 
 
 class LoggingFlags(IntEnum):
@@ -143,7 +143,7 @@ class LoggingFlags(IntEnum):
     FATAL = 0x800
     # unused
     ALL = FATAL | ERROR | WARN | INFO | DEBUG | TRACE
-    """0x81F"""
+    '''0x81F'''
 
     def __str__(self) -> str:
         return f'{self.name} (0x{self.value:03X})'
@@ -156,13 +156,13 @@ LOGGING_FLAGS = {
     'debug': f'0x{LoggingFlags.DEBUG.value:03X}',
     'trace': f'0x{LoggingFlags.TRACE.value:03X}',
 }
-"""{\n\n'error': '0x010',\n\n'warn': '0x008',\n\n'info': '0x004',\n\n'debug': '0x002',\n\n'trace': '0x001'\n\n}"""
+'''{\n\n'error': '0x010',\n\n'warn': '0x008',\n\n'info': '0x004',\n\n'debug': '0x002',\n\n'trace': '0x001'\n\n}'''
 LOGGING_FLAGS_DEFAULT = LoggingFlags.INFO
-"""0x004"""
+'''0x004'''
 
 ACTION_STORE_TRUE = 'store_true'
 
-SRC_PATH = path.abspath(path.dirname(__file__)).replace('\\', SLASH)
+SRC_PATH = os.path.abspath(os.path.dirname(__file__)).replace('\\', SLASH)
 FILE_LOC_TAGS = f'{SRC_PATH}/../2tags/rc_tags.json'
 FILE_LOC_CATS = f'{SRC_PATH}/../3categories/rc_cats.json'
 FILE_LOC_ARTS = f'{SRC_PATH}/../4artists/rc_arts.json'

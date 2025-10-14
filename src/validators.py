@@ -6,12 +6,12 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import os
 from argparse import ArgumentError
 from ipaddress import IPv4Address
-from os import path
 
 from config import Config
-from defs import NamingFlags, LoggingFlags, SLASH, NAMING_FLAGS, LOGGING_FLAGS, DOWNLOAD_POLICY_DEFAULT, SEARCH_RULE_ALL
+from defs import DOWNLOAD_POLICY_DEFAULT, LOGGING_FLAGS, NAMING_FLAGS, SEARCH_RULE_ALL, SLASH, LoggingFlags, NamingFlags
 from logger import Log
 from rex import re_non_search_symbols, re_session_id
 from util import normalize_path
@@ -76,7 +76,7 @@ def find_and_resolve_config_conflicts() -> bool:
             Config.utp = DOWNLOAD_POLICY_DEFAULT
             delay_for_message = True
         if len(Config.extra_tags) > 0:
-            Log.info(f'Info: running download script: outer extra tags: {str(Config.extra_tags)}')
+            Log.info(f'Info: running download script: outer extra tags: {Config.extra_tags!s}')
             delay_for_message = True
         if Config.min_score is not None:
             Log.info(f'Info: running download script: outer minimum score: {Config.min_score:d}')
@@ -87,7 +87,7 @@ def find_and_resolve_config_conflicts() -> bool:
     return delay_for_message
 
 
-def valid_int(val: str, *, lb: int = None, ub: int = None, nonzero=False) -> int:
+def valid_int(val: str, *, lb: int | None = None, ub: int | None = None, nonzero=False) -> int:
     try:
         val = int(val)
         assert lb is None or val >= lb
@@ -116,8 +116,8 @@ def valid_lookahead(val: str) -> int:
 
 def valid_path(pathstr: str) -> str:
     try:
-        newpath = normalize_path(path.expanduser(pathstr.strip('\'"')))
-        assert path.isdir(newpath[:(newpath.find(SLASH) + 1)])
+        newpath = normalize_path(os.path.expanduser(pathstr.strip('\'"')))
+        assert os.path.isdir(newpath[:(newpath.find(SLASH) + 1)])
         return newpath
     except Exception:
         raise ArgumentError
@@ -125,8 +125,8 @@ def valid_path(pathstr: str) -> str:
 
 def valid_filepath_abs(pathstr: str) -> str:
     try:
-        newpath = normalize_path(path.expanduser(pathstr.strip('\'"')), False)
-        assert path.isfile(newpath) and path.isabs(newpath)
+        newpath = normalize_path(os.path.expanduser(pathstr.strip('\'"')), False)
+        assert os.path.isfile(newpath) and os.path.isabs(newpath)
         return newpath
     except Exception:
         raise ArgumentError
@@ -141,7 +141,7 @@ def valid_search_string(search_str: str) -> str:
 
 
 def valid_proxy(prox: str) -> str:
-    from ctypes import sizeof, c_uint16
+    from ctypes import c_uint16, sizeof
     try:
         try:
             pt, pv = tuple(prox.split('://', 1))
@@ -174,7 +174,7 @@ def valid_proxy(prox: str) -> str:
         except (ValueError, AssertionError):
             Log.error(f'Invalid proxy port value \'{pp}\'!')
             raise
-        return f'{pt}://{pup}{str(pva)}:{ppi:d}'
+        return f'{pt}://{pup}{pva!s}:{ppi:d}'
     except Exception:
         raise ArgumentError
 
