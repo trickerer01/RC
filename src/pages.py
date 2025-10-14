@@ -6,7 +6,6 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-import contextlib
 import sys
 from asyncio import run as run_async
 from asyncio import sleep
@@ -85,8 +84,10 @@ async def main(args: Sequence[str]) -> None:
 
             if maxpage == 0:
                 for page_ajax in a_html.find_all('a', attrs={'data-action': 'ajax'}):
-                    with contextlib.suppress(Exception):
+                    try:
                         maxpage = max(maxpage, int(re_paginator.search(str(page_ajax.get('data-parameters'))).group(1)))
+                    except Exception:
+                        pass
                 if maxpage == 0:
                     Log.info('Could not extract max page, assuming single page search')
                     maxpage = 1
