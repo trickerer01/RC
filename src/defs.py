@@ -10,6 +10,7 @@ import base64
 import datetime
 import os
 from enum import IntEnum
+from typing import NamedTuple
 
 MIN_PYTHON_VERSION = (3, 10)
 MIN_PYTHON_VERSION_STR = f'{MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}'
@@ -97,6 +98,15 @@ SEARCH_RULES = (SEARCH_RULE_ALL, SEARCH_RULE_ANY)
 '''('all','any')'''
 SEARCH_RULE_DEFAULT = SEARCH_RULE_ALL
 """'all'"""
+
+# id gap prediction mode
+IDGAP_PREDICTION_OFF = '0'
+IDGAP_PREDICTION_ON = '1'
+IDGAP_PREDICTION_AUTO = 'auto'
+IDGAP_PREDICTION_MODES = (IDGAP_PREDICTION_OFF, IDGAP_PREDICTION_ON, IDGAP_PREDICTION_AUTO)
+'''('0','1','auto')'''
+IDGAP_PREDICTION_DEFAULT = IDGAP_PREDICTION_OFF
+"""'0'"""
 
 
 class NamingFlags:
@@ -328,6 +338,21 @@ class Mem:
     KB = 1024
     MB = KB * 1024
     GB = MB * 1024
+
+
+class IntPair(NamedTuple):
+    first: int
+    second: int
+
+
+class StrPair(NamedTuple):
+    first: str
+    second: str
+
+
+class Duration(NamedTuple):
+    first: int
+    second: int
 
 #
 #

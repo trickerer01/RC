@@ -248,9 +248,13 @@ class AlbumDownloadWorker:
     def get_extra_ids(self) -> list[int]:
         return self._extra_ids
 
-    def find_ainfo(self, id_: int) -> AlbumInfo | None:
+    def find_ainfo_pred(self, id_: int) -> AlbumInfo | None:
         with suppress(StopIteration):
             return next(filter(lambda ai: ai.id == id_, self._original_sequence))
+
+    def find_ainfo_last(self, id_: int) -> AlbumInfo | None:
+        with suppress(StopIteration):
+            return next(reversed(list(filter(lambda vi: vi.id == id_, self._original_sequence))))
 
 
 class ImageDownloadWorker:

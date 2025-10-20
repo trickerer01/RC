@@ -32,6 +32,7 @@ from defs import (
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
 from dthrottler import ThrottleChecker
 from fetch_html import ensure_conn_closed, fetch_html, wrap_request
+from idgaps import IdGapsPredictor
 from iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from logger import Log
 from path_util import folder_already_exists, try_rename
@@ -57,6 +58,7 @@ async def download(sequence: list[AlbumInfo], filtered_count: int) -> None:
 
 async def process_album(ai: AlbumInfo) -> DownloadResult:
     adwn, idwn = AlbumDownloadWorker.get(), ImageDownloadWorker.get()
+    gpred = IdGapsPredictor.get()
     scenario = Config.scenario
     sname = ai.sname
     extra_ids = adwn.get_extra_ids()
@@ -64,20 +66,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     rating = ai.rating
     score = ''
 
-    predict_gap1 = False  # Config.predict_id_gaps and 3400000 <= vi.id <= 3900000
-    predicted_skip = False
-    predicted_prefix = ''
-    if predict_gap1:
-        predicted_prefix = '1'
-        ai_prev1 = adwn.find_ainfo(ai.id - 1)
-        ai_prev2 = adwn.find_ainfo(ai.id - 2)
-        if ai_prev1 and ai_prev2:
-            f_404s = [vip.has_flag(AlbumInfo.Flags.RETURNED_404) for vip in (ai_prev1, ai_prev2)]
-            predicted_skip = f_404s[0] is not f_404s[1]
-        else:
-            predicted_skip = ai_prev1 and not ai_prev1.has_flag(AlbumInfo.Flags.RETURNED_404)
-    if predicted_skip:
+    if predicted_prefix := gpred.need_skip(ai):
         Log.warn(f'Id gap prediction {predicted_prefix} forces error 404 for {sname}, skipping...')
+        gpred.count_nonexisting()
         return DownloadResult.FAIL_NOT_FOUND
 
     ai.set_state(AlbumInfo.State.ACTIVE)
@@ -92,18 +83,10 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
     if a_html.find('title', string='404 Not Found'):
         Log.error(f'Got error 404 for {sname}, skipping...')
+        gpred.count_nonexisting()
         return DownloadResult.FAIL_NOT_FOUND
 
-    if predict_gap1:
-        # find previous valid id and check the offset
-        id_dec = 3
-        ai_prev_x = adwn.find_ainfo(ai.id - id_dec)
-        while ai_prev_x and ai_prev_x.has_flag(AlbumInfo.Flags.RETURNED_404):
-            id_dec += 1
-            ai_prev_x = adwn.find_ainfo(ai.id - id_dec)
-        if ai_prev_x and (id_dec % 3) != 0:
-            Log.error('Error: id gap predictor encountered unexpected valid post offset. Disabling prediction!')
-            Config.predict_id_gaps = False
+    gpred.count_existing(ai)
 
     if not ai.title:
         titleh1 = a_html.find('h1', class_='title_video')  # not a mistake

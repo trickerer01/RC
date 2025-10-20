@@ -15,6 +15,7 @@ from defs import (
     CONNECT_TIMEOUT_BASE,
     DOWNLOAD_MODE_DEFAULT,
     DOWNLOAD_POLICY_DEFAULT,
+    IDGAP_PREDICTION_DEFAULT,
     LOGGING_FLAGS,
     MAX_DEST_SCAN_SUB_DEPTH_DEFAULT,
     MAX_DEST_SCAN_UPLEVELS_DEFAULT,
@@ -83,7 +84,7 @@ class BaseConfig:
         self.use_id_sequence: bool | None = None
         self.use_link_sequence: bool | None = None
         self.lookahead: int | None = None
-        self.predict_id_gaps: bool | None = None
+        self.predict_id_gaps: str | None = None
         self.search: str | None = None
         self.search_tags: str | None = None
         self.search_arts: str | None = None
@@ -177,7 +178,7 @@ class BaseConfig:
             '-log', next(filter(lambda x: int(LOGGING_FLAGS[x], 16) == self.logging_flags, LOGGING_FLAGS.keys())),
             # *(('-quality', self.quality) if self.quality != DEFAULT_QUALITY and not self.scenario else ()),
             # *(('-duration', str(self.duration)) if self.duration and not self.scenario else ()),
-            *(('--predict-id-gaps',) if self.predict_id_gaps else ()),
+            *(('--predict-id-gaps', str(self.predict_id_gaps)) if self.predict_id_gaps != IDGAP_PREDICTION_DEFAULT else ()),
             *(('--solve-tag-conflicts',) if self.solve_tag_conflicts else ()),
             *(('--report-duplicates',) if self.report_duplicates else ()),
             *(('--check-title-pos',) if self.check_title_pos else ()),
