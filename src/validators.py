@@ -11,7 +11,16 @@ from argparse import ArgumentError
 from ipaddress import IPv4Address
 
 from config import Config
-from defs import DOWNLOAD_POLICY_DEFAULT,IDGAP_PREDICTION_OFF, LOGGING_FLAGS, NAMING_FLAGS, SEARCH_RULE_ALL, SLASH, LoggingFlags, NamingFlags
+from defs import (
+    DOWNLOAD_POLICY_DEFAULT,
+    IDGAP_PREDICTION_OFF,
+    LOGGING_FLAGS,
+    NAMING_FLAGS,
+    SEARCH_RULE_ALL,
+    SLASH,
+    LoggingFlags,
+    NamingFlags,
+)
 from logger import Log
 from rex import re_non_search_symbols, re_session_id
 from util import normalize_path
