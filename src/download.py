@@ -394,8 +394,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                          f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
             break
         except Exception as e:
-            import sys
-            print(sys.exc_info()[0], sys.exc_info()[1])
+            import traceback
+            Log.error(f'{ii.sname}: {traceback.format_exc()}')
             if (r is None or r.status != 403) and isinstance(e, ClientPayloadError) is False:
                 retries += 1
                 Log.error(f'{sfilename}: error #{retries:d}...')
