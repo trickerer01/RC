@@ -8,6 +8,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import os
 import random
+import sys
 import urllib.parse
 from asyncio import sleep
 
@@ -394,8 +395,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                          f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
             break
         except Exception as e:
-            import traceback
-            Log.error(f'{ii.sname}: {traceback.format_exc()}')
+            Log.error(f'{ii.sname}: {sys.exc_info()[0]}: {sys.exc_info()[1]}')
             if (r is None or r.status != 403) and isinstance(e, ClientPayloadError) is False:
                 retries += 1
                 Log.error(f'{sfilename}: error #{retries:d}...')
