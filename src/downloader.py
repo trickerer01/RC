@@ -9,11 +9,12 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from __future__ import annotations
 
 import os
+from asyncio import Lock as AsyncLock
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import as_completed, sleep
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
-from typing import Any
+from typing import Any, TypeAlias
 
 from config import Config
 from defs import (
@@ -21,6 +22,7 @@ from defs import (
     DOWNLOAD_CONTINUE_FILE_CHECK_TIMER,
     DOWNLOAD_QUEUE_STALL_CHECK_TIMER,
     MAX_IMAGES_QUEUE_SIZE,
+    MAX_SCAN_QUEUE_SIZE,
     PREFIX,
     RESCAN_DELAY_EMPTY,
     START_TIME,
@@ -34,6 +36,9 @@ from path_util import folder_already_exists_arr
 from util import calc_sleep_time, format_time, get_elapsed_time_i, get_elapsed_time_s
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
+
+FuncA_T: TypeAlias = Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]]
+FuncI_T: TypeAlias = Callable[[ImageInfo], Coroutine[Any, Any, DownloadResult]]
 
 
 class AlbumDownloadWorker:
@@ -53,32 +58,37 @@ class AlbumDownloadWorker:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         AlbumDownloadWorker._instance = None
 
-    def __init__(self, sequence: list[AlbumInfo], func: Callable[[AlbumInfo], Coroutine[Any, Any, DownloadResult]]) -> None:
+    def __init__(self, sequence: list[AlbumInfo], func: FuncA_T) -> None:
         assert AlbumDownloadWorker._instance is None
         AlbumDownloadWorker._instance = self
 
-        self._original_sequence = sequence
-        self._func = func
-        self._seq = list(sequence)  # form our own container to erase from
+        self._original_sequence: list[AlbumInfo] = sequence
+        self._func: FuncA_T = func
+        self._seq: list[AlbumInfo] = []
         self._queue: AsyncQueue[tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
-        self._orig_count = len(self._seq)
-        self._scan_count = 0
-        self._scanned_count = 0
-        self._downloaded_count = 0
-        self._already_exist_count = 0
-        self._skipped_count = 0
-        self._404_count = 0
-        self._minmax_id = get_min_max_ids(self._seq)
+        self._orig_count: int = len(sequence)
+        self._scan_count: int = 0
+        self._scanned_count: int = 0
+        self._downloaded_count: int = 0
+        self._already_exist_count: int = 0
+        self._skipped_count: int = 0
+        self._404_count: int = 0
+        self._minmax_id: tuple[int, int] = get_min_max_ids(sequence)
 
-        self._404_counter = 0
+        self._404_counter: int = 0
         self._extra_ids: list[int] = []
 
         self._downloads_active: dict[int, AlbumInfo] = {}
         self._scans_active: list[AlbumInfo] = []
         self._failed_items: list[int] = []
 
-        self._total_queue_size_last = 0
-        self._scan_queue_size_last = 0
+        self._total_queue_size_last: int = 0
+        self._scan_queue_size_last: int = 0
+
+        self._sequence_lock: AsyncLock = AsyncLock()
+        self._active_downloads_lock: AsyncLock = AsyncLock()
+
+        self._seq.extend(sequence)  # form our own container to erase from
 
     def _extend_with_extra(self) -> None:
         extra_cur = Config.lookahead - self._404_counter
@@ -93,7 +103,8 @@ class AlbumDownloadWorker:
             self._extra_ids.extend(extra_idseq)
 
     async def _at_task_start(self, ai: AlbumInfo) -> None:
-        self._scans_active.append(ai)
+        async with self._active_downloads_lock:
+            self._scans_active.append(ai)
         Log.trace(f'[queue] {ai.sname} added to active')
 
     async def _at_task_finish(self, ai: AlbumInfo, result: DownloadResult) -> None:
@@ -110,7 +121,9 @@ class AlbumDownloadWorker:
         self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
         if len(self._seq) + self._queue.qsize() == 0 and Config.lookahead:
             self._extend_with_extra()
-        self._scans_active.remove(ai)
+        if ai in self._scans_active:
+            async with self._active_downloads_lock:
+                self._scans_active.remove(ai)
         Log.trace(f'[queue] {ai.sname} removed from active')
         if result == DownloadResult.FAIL_ALREADY_EXISTS:
             self._already_exist_count += 1
@@ -125,8 +138,13 @@ class AlbumDownloadWorker:
             self._downloads_active[ai.id] = ai
 
     async def _prod(self) -> None:
-        while self.get_workload_size() > 0:
-            if self._queue.full() is False and self._seq:
+        while True:
+            async with self._sequence_lock:
+                if self.get_workload_size() == 0:
+                    break
+                qfull = self._queue.full()
+                sempty = not bool(self._seq)
+            if qfull is False and sempty is False:
                 self._seq[0].set_state(AlbumInfo.State.QUEUED)
                 await self._queue.put((self._seq[0], self._func(self._seq[0])))
                 del self._seq[0]
@@ -134,8 +152,15 @@ class AlbumDownloadWorker:
                 await sleep(0.1)
 
     async def _cons(self) -> None:
-        while len(self._seq) + self._queue.qsize() > 0:
-            if self._queue.empty() is False and len(self._scans_active) < 1:
+        while True:
+            async with self._sequence_lock:
+                qsize = self._queue.qsize()
+                ssize = len(self._seq)
+            if ssize + qsize == 0:
+                break
+            async with self._active_downloads_lock:
+                dsize = len(self._scans_active)
+            if qsize > 0 and dsize < MAX_SCAN_QUEUE_SIZE:
                 ai, task = await self._queue.get()
                 await self._at_task_start(ai)
                 result = await task
@@ -231,9 +256,10 @@ class AlbumDownloadWorker:
             del self._downloads_active[ai.id]
 
     async def run(self) -> None:
-        for cv in as_completed([self._prod(), self._state_reporter(), *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
+        for cv in as_completed([self._prod(), self._state_reporter(), *(self._cons() for _ in range(MAX_SCAN_QUEUE_SIZE))]):
             await cv
         await self._after_download()
+        await self._queue.join()
 
     @property
     def albums_left(self) -> int:
@@ -274,34 +300,41 @@ class ImageDownloadWorker:
     def get() -> ImageDownloadWorker | None:
         return ImageDownloadWorker._instance
 
-    def __init__(self, func: Callable[[ImageInfo], Coroutine[Any, Any, DownloadResult]]) -> None:
+    def __init__(self, func: FuncI_T) -> None:
         assert ImageDownloadWorker._instance is None
         ImageDownloadWorker._instance = self
 
-        self._func = func
+        self._func: FuncI_T = func
         self._seq: list[ImageInfo] = []
         self._queue: AsyncQueue[tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
-        self._orig_count = 0
-        self._downloaded_count = 0
-        self._downloaded_amount = 0
-        self._filtered_count_after = 0
-        self._skipped_count = 0
+        self._orig_count: int = 0
+        self._downloaded_count: int = 0
+        self._downloaded_amount: int = 0
+        self._filtered_count_after: int = 0
+        self._skipped_count: int = 0
 
         self._downloads_active: list[ImageInfo] = []
-        self._writes_active: list[str] = []
+        self._writes_active: list[ImageInfo] = []
         self._failed_items: list[str] = []
 
-        self._my_start_time = 0
-        self._total_queue_size_last = 0
-        self._download_queue_size_last = 0
-        self._write_queue_size_last = 0
+        self._my_start_time: int = 0
+        self._total_queue_size_last: int = 0
+        self._download_queue_size_last: int = 0
+        self._write_queue_size_last: int = 0
+
+        self._sequence_lock: AsyncLock = AsyncLock()
+        self._active_downloads_lock: AsyncLock = AsyncLock()
+        self._active_writes_lock: AsyncLock = AsyncLock()
 
     async def _at_task_start(self, ii: ImageInfo) -> None:
-        self._downloads_active.append(ii)
+        async with self._active_downloads_lock:
+            self._downloads_active.append(ii)
         # Log.trace(f'[queue] {ii.sname} added to active')
 
     async def _at_task_finish(self, ii: ImageInfo, result: DownloadResult) -> None:
-        self._downloads_active.remove(ii)
+        if ii in self._downloads_active:
+            async with self._active_downloads_lock:
+                self._downloads_active.remove(ii)
         # Log.trace(f'[queue] {ii.sname} removed from active')
         if ii.album.all_done():
             AlbumDownloadWorker.get().at_album_completed(ii.album)
@@ -316,8 +349,13 @@ class ImageDownloadWorker:
             self._downloaded_amount += ii.expected_size
 
     async def _prod(self) -> None:
-        while len(self._seq) > 0:
-            if self._queue.full() is False:
+        while True:
+            async with self._sequence_lock:
+                qfull = self._queue.full()
+                sempty = not bool(self._seq)
+            if sempty:
+                break
+            if qfull is False:
                 self._seq[0].set_state(ImageInfo.State.QUEUED)
                 await self._queue.put((self._seq[0], self._func(self._seq[0])))
                 del self._seq[0]
@@ -325,8 +363,15 @@ class ImageDownloadWorker:
                 await sleep(0.1)
 
     async def _cons(self) -> None:
-        while len(self._seq) + self._queue.qsize() > 0:
-            if self._queue.empty() is False and len(self._downloads_active) < MAX_IMAGES_QUEUE_SIZE:
+        while True:
+            async with self._sequence_lock:
+                qsize = self._queue.qsize()
+                ssize = len(self._seq)
+            if ssize + qsize == 0:
+                break
+            async with self._active_downloads_lock:
+                dsize = len(self._downloads_active)
+            if qsize > 0 and dsize < MAX_IMAGES_QUEUE_SIZE:
                 ii, task = await self._queue.get()
                 await self._at_task_start(ii)
                 result = await task
@@ -402,6 +447,7 @@ class ImageDownloadWorker:
                                *(self._cons() for _ in range(MAX_IMAGES_QUEUE_SIZE))]):
             await cv
         await self._after_download()
+        await self._queue.join()
 
     def at_interrupt(self) -> None:
         if len(self._downloads_active) > 0:
@@ -423,14 +469,18 @@ class ImageDownloadWorker:
     def processed_count(self) -> int:
         return self._downloaded_count + self._filtered_count_after + self._skipped_count + len(self._failed_items)
 
-    def is_writing(self, iidest: ImageInfo | str) -> bool:
-        return (iidest.my_fullpath if isinstance(iidest, ImageInfo) else iidest) in self._writes_active
+    async def is_writing(self, ii: ImageInfo) -> bool:
+        async with self._active_writes_lock:
+            return ii in self._writes_active
 
-    def add_to_writes(self, ii: ImageInfo) -> None:
-        self._writes_active.append(ii.my_fullpath)
+    async def add_to_writes(self, ii: ImageInfo) -> None:
+        async with self._active_writes_lock:
+            self._writes_active.append(ii)
 
-    def remove_from_writes(self, ii: ImageInfo) -> None:
-        self._writes_active.remove(ii.my_fullpath)
+    async def remove_from_writes(self, ii: ImageInfo, safe=False) -> None:
+        async with self._active_writes_lock:
+            if safe is False or ii in self._writes_active:
+                self._writes_active.remove(ii)
 
     def get_workload_size(self) -> int:
         return len(self._seq) + self._queue.qsize() + len(self._downloads_active)

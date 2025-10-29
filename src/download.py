@@ -368,7 +368,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
             Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
 
-            idwn.add_to_writes(ii)
+            await idwn.add_to_writes(ii)
             ii.set_state(ImageInfo.State.WRITING)
             status_checker.run()
             async with async_open(ii.my_fullpath, 'ab') as outf:
@@ -379,7 +379,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     await outf.write(chunk)
                     ii.bytes_written += len(chunk)
             status_checker.reset()
-            idwn.remove_from_writes(ii)
+            await idwn.remove_from_writes(ii)
 
             file_size = os.stat(ii.my_fullpath).st_size
             if ii.expected_size and file_size != ii.expected_size:
@@ -402,8 +402,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if r is not None and r.closed is False:
                 r.close()
             # Network error may be thrown before item is added to active downloads
-            if idwn.is_writing(ii):
-                idwn.remove_from_writes(ii)
+            await idwn.remove_from_writes(ii, True)
             status_checker.reset()
             if retries <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)

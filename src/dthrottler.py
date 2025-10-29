@@ -70,7 +70,7 @@ class ThrottleChecker:
         try:
             while True:
                 await sleep(float(DOWNLOAD_STATUS_CHECK_TIMER))
-                if not dwn.is_writing(dest):  # finished already
+                if not await dwn.is_writing(self._ii):  # finished already
                     Log.error(f'[throttler] {self._ii.my_shortname} checker is still running for finished download!')
                     break
                 if self._response is None:
