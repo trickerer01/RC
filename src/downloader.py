@@ -12,6 +12,7 @@ import os
 from asyncio import Lock as AsyncLock
 from asyncio.queues import Queue as AsyncQueue
 from asyncio.tasks import as_completed, sleep
+from collections import deque
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
 from typing import Any, TypeAlias
@@ -64,7 +65,7 @@ class AlbumDownloadWorker:
 
         self._original_sequence: list[AlbumInfo] = sequence
         self._func: FuncA_T = func
-        self._seq: list[AlbumInfo] = []
+        self._seq: deque[AlbumInfo] = deque()
         self._queue: AsyncQueue[tuple[AlbumInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(1)
         self._orig_count: int = len(sequence)
         self._scan_count: int = 0
@@ -145,9 +146,9 @@ class AlbumDownloadWorker:
                 qfull = self._queue.full()
                 sempty = not bool(self._seq)
             if qfull is False and sempty is False:
-                self._seq[0].set_state(AlbumInfo.State.QUEUED)
-                await self._queue.put((self._seq[0], self._func(self._seq[0])))
-                del self._seq[0]
+                ii = self._seq.popleft()
+                ii.set_state(AlbumInfo.State.QUEUED)
+                await self._queue.put((ii, self._func(ii)))
             else:
                 await sleep(0.1)
 
@@ -305,7 +306,7 @@ class ImageDownloadWorker:
         ImageDownloadWorker._instance = self
 
         self._func: FuncI_T = func
-        self._seq: list[ImageInfo] = []
+        self._seq: deque[ImageInfo] = deque()
         self._queue: AsyncQueue[tuple[ImageInfo, Coroutine[Any, Any, DownloadResult]]] = AsyncQueue(MAX_IMAGES_QUEUE_SIZE)
         self._orig_count: int = 0
         self._downloaded_count: int = 0
@@ -352,13 +353,13 @@ class ImageDownloadWorker:
         while True:
             async with self._sequence_lock:
                 qfull = self._queue.full()
-                sempty = not bool(self._seq)
+                sempty = not self._seq
             if sempty:
                 break
             if qfull is False:
-                self._seq[0].set_state(ImageInfo.State.QUEUED)
-                await self._queue.put((self._seq[0], self._func(self._seq[0])))
-                del self._seq[0]
+                ii = self._seq.popleft()
+                ii.set_state(ImageInfo.State.QUEUED)
+                await self._queue.put((ii, self._func(ii)))
             else:
                 await sleep(0.1)
 
@@ -438,7 +439,9 @@ class ImageDownloadWorker:
         self._my_start_time = get_elapsed_time_i()
         if not self._seq:
             return
-        self._seq.sort(key=lambda ii: ii.album.id)
+        # seq_sorted = sorted(self._seq, key=lambda ii: ii.album.id)
+        # self._seq.clear()
+        # self._seq.extend(seq_sorted)
         eta_min = int(2.0 + (CONNECT_REQUEST_DELAY * 1.5 + 0.02) * len(self._seq))
         minid, maxid = min(self._seq, key=lambda x: x.id).id, max(self._seq, key=lambda x: x.id).id
         Log.info(f'\n[Images] {len(self._seq):d} ids across {adwn.albums_left:d} album(s), bound {minid:d} to {maxid:d}. Working...\n'
