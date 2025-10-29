@@ -17,7 +17,6 @@ from aiohttp import ClientPayloadError
 
 from config import Config
 from defs import (
-    CONNECT_REQUEST_DELAY,
     CONNECT_RETRY_DELAY,
     DOWNLOAD_MODE_SKIP,
     DOWNLOAD_MODE_TOUCH,
@@ -39,14 +38,14 @@ from logger import Log
 from path_util import folder_already_exists, try_rename
 from rex import re_album_foldername, re_media_filename, re_read_href, re_replace_symbols
 from tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
-from util import format_time, get_elapsed_time_i, has_naming_flag, normalize_path
+from util import calculate_eta, format_time, get_elapsed_time_i, has_naming_flag, normalize_path
 
 __all__ = ('at_interrupt', 'download')
 
 
 async def download(sequence: list[AlbumInfo], filtered_count: int) -> None:
     minid, maxid = get_min_max_ids(sequence)
-    eta_min = int(2.0 + (CONNECT_REQUEST_DELAY + 0.3 + 0.05) * len(sequence))
+    eta_min = calculate_eta(sequence)
     # interrupt_msg = f'\nPress \'{SCAN_CANCEL_KEYSTROKE}\' twice to stop' if by_id else ''
     Log.info(f'\nOk! {len(sequence):d} ids (+{filtered_count:d} filtered out), bound {minid:d} to {maxid:d}.'
              f' Working...\n'
