@@ -174,11 +174,10 @@ class AlbumDownloadWorker:
                 await sleep(0.07)
 
     async def _state_reporter(self) -> None:
-        base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while self.get_workload_size() > 0:
-            await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
+            await sleep(calc_sleep_time(3.0) if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             scan_count = self._scan_count
             extra_count = max(0, scan_count - self._orig_count)
@@ -201,7 +200,6 @@ class AlbumDownloadWorker:
         continue_file_name = f'{PREFIX}{START_TIME.strftime("%Y-%m-%d_%H_%M_%S")}_{minmax_id[0]:d}-{minmax_id[1]:d}.continue.conf'
         continue_file_fullpath = f'{Config.dest_base}{continue_file_name}'
         arglist_base = Config.make_continue_arguments()
-        base_sleep_time = calc_sleep_time(3.0)
         write_delay = DOWNLOAD_CONTINUE_FILE_CHECK_TIMER
         last_check_seconds = 0
         while self.get_workload_size() + len(self._downloads_active) > 0:
@@ -220,7 +218,7 @@ class AlbumDownloadWorker:
                             cfile.write('\n'.join(str(e) for e in arglist))
                     except OSError:
                         Log.error(f'Unable to save continue file to \'{continue_file_name}\'!')
-            await sleep(base_sleep_time)
+            await sleep(calc_sleep_time(3.0))
         if not Config.aborted and os.path.isfile(continue_file_fullpath):
             Log.trace(f'All files downloaded. Removing continue file \'{continue_file_name}\'...')
             os.remove(continue_file_fullpath)
@@ -265,6 +263,9 @@ class AlbumDownloadWorker:
     @property
     def albums_left(self) -> int:
         return len(self._downloads_active)
+
+    def has_found_any(self) -> bool:
+        return self._scan_count > self._404_counter
 
     def get_workload_size(self) -> int:
         return len(self._seq) + self._queue.qsize() + len(self._scans_active)
@@ -383,11 +384,10 @@ class ImageDownloadWorker:
 
     async def _state_reporter(self) -> None:
         adwn = AlbumDownloadWorker.get()
-        base_sleep_time = calc_sleep_time(3.0)
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while self.get_workload_size() > 0:
-            await sleep(base_sleep_time if len(self._seq) + self._queue.qsize() > 0 else 1.0)
+            await sleep(calc_sleep_time(3.0) if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             download_count = len(self._downloads_active)
             write_count = len(self._writes_active)

@@ -105,12 +105,12 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         my_authors = [str(a.string).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract authors for {sname}.')
-        my_authors = []
+        my_authors: list[str] = []
     try:
         my_categories = [str(c.string).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract categories for {sname}.')
-        my_categories = []
+        my_categories: list[str] = []
     tdiv = a_html.find('div', string='Tags:')
     if tdiv is None:
         Log.info(f'Warning: album {sname} has no tags!')
@@ -155,11 +155,9 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             except Exception:
                 pass
     if scenario:
-        matching_sq = scenario.get_matching_subquery(ai, tags_raw, score, rating)
-        utpalways_sq = scenario.get_utp_always_subquery() if tdiv is None else None
-        if matching_sq:
+        if matching_sq := scenario.get_matching_subquery(ai, tags_raw, score, rating):
             ai.subfolder = matching_sq.subfolder
-        elif utpalways_sq:
+        elif utpalways_sq := scenario.get_utp_always_subquery() if tdiv is None else None:
             ai.subfolder = utpalways_sq.subfolder
         else:
             Log.info(f'Info: unable to find matching or utp scenario subquery for {sname}, skipping...')
@@ -294,7 +292,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
     retries = 0
     ret = DownloadResult.SUCCESS
-    skip = Config.dm == DOWNLOAD_MODE_SKIP and not ii.is_preview
+    skip = Config.download_mode == DOWNLOAD_MODE_SKIP and not ii.is_preview
     status_checker = ThrottleChecker(ii)
 
     if skip is True:
@@ -324,7 +322,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
             file_size = os.stat(ii.my_fullpath).st_size if file_exists else 0
 
-            if Config.dm == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
+            if Config.download_mode == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
                 if file_exists:
                     Log.info(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
                     ii.set_state(ImageInfo.State.DONE)
@@ -345,8 +343,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     ckwargs.update(noproxy=True, allow_redirects=True)
                 ensure_conn_closed(r)
                 r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
-            content_len = r.content_length or 0
-            content_range_s = r.headers.get('Content-Range', '/').split('/', 1)
+            content_len: int = r.content_length or 0
+            content_range_s = str(r.headers.get('Content-Range', '/')).split('/', 1)
             content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
             if (content_len == 0 or r.status == 416) and file_size >= content_range:
                 Log.warn(f'{sname} is already completed, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')

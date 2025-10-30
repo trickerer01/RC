@@ -429,7 +429,7 @@ def solve_tag_conflicts(ai: AlbumInfo, tags_raw: list[str]) -> None:
     for ctag, clistpair in TAG_CONFLICTS.items():
         if ctag in tags_raw:
             cposlist, cneglist = clistpair
-            if any(cp in tags_raw for cp in cposlist) and all(cn not in tags_raw for cn in cneglist):
+            if any(cp in tags_raw for cp in cposlist) and not any(cn in tags_raw for cn in cneglist):
                 Log.info(f'{ai.sname} is tagged with both \'{ctag}\' and \'{"/".join(cposlist)}\'! Removing \'{ctag}\' tag!')
                 tags_raw.remove(ctag)
 
