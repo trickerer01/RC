@@ -63,10 +63,11 @@ class IdGapsPredictor:
         return 0
 
     def count_nonexisting(self) -> None:
-        self._streak += 1
+        if AlbumDownloadWorker.get().has_found_any():
+            self._streak += 1
 
     def count_existing(self, ai: AlbumInfo) -> None:
-        if self._streak and AlbumDownloadWorker.get().has_found_any():
+        if self._streak:
             skip_num = self._get_skip_num(ai)
             streak_is_complimentary = skip_num > 0 and (self._streak + 1) % skip_num == 0
             self._streak = 0
