@@ -37,13 +37,10 @@ __all__ = ('main_sync',)
 
 async def main(args: Sequence[str]) -> None:
     try:
-        arglist = prepare_arglist(args, True)
+        prepare_arglist(args, True)
     except HelpPrintExitException:
         return
 
-    Config.read(arglist, True)
-
-    allow_duplicates: bool = arglist.allow_duplicate_names
     album_ref_class = 'th'
 
     if find_and_resolve_config_conflicts() is True:
@@ -126,7 +123,7 @@ async def main(args: Sequence[str]) -> None:
                 use_utitle = has_naming_flag(NamingFlags.USE_URL_TITLE)
                 v_entries.append(AlbumInfo(cur_id, my_utitle if use_utitle else my_title, preview_link=my_preview_link))
 
-            if pi - 1 > Config.start and lower_count == orig_count > 0 and not Config.scan_all_pages:
+            if pi - 1 > Config.start and 0 < lower_count == orig_count and not Config.scan_all_pages:
                 if not (0 < maxpage <= pi - 1):
                     Log.info(f'Page {pi - 1:d} has all post ids below lower bound. Pages scan stopped!')
                 break
@@ -134,7 +131,7 @@ async def main(args: Sequence[str]) -> None:
         v_entries.reverse()
         orig_count = len(v_entries)
 
-        if allow_duplicates is False:
+        if Config.allow_duplicate_names is False:
             known_names = {}
             i: int
             for i in reversed(range(len(v_entries))):
