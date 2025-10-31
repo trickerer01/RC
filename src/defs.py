@@ -34,6 +34,7 @@ DOWNLOAD_CONTINUE_FILE_CHECK_TIMER = 30
 # LOOKAHEAD_WATCH_RESCAN_DELAY_MAX = 1800
 RESCAN_DELAY_EMPTY = 1
 
+DURATION_MAX = 36000  # 10 hours (in seconds)
 # SCREENSHOTS_COUNT = 10
 FULLPATH_MAX_BASE_LEN = 240 - len('rc_9999999.jpg')
 
@@ -240,7 +241,10 @@ HELP_ARG_BLACKLIST = (
     ' or a tag starting with \'1boy\''
 )
 HELP_ARG_QUALITY = 'Video quality. Default is \'36000\'. If not found, best quality found is used (up to 4K)'
-HELP_ARG_DURATION = 'Video duration filter (in seconds). Example: \'5-180\' will only allow videos from 5 seconds to 3 minutes'
+HELP_ARG_DURATION = (
+    f'Video duration filter (in seconds). Limits (min-max): 0-{DURATION_MAX:d}.'
+    f' Example: \'5-180\' will only allow videos from 5 seconds to 3 minutes'
+)
 HELP_ARG_PROXY = 'Proxy to use, supports basic auth. Example: http://user:pass@127.0.0.1:222'
 HELP_ARG_PROXYNODOWN = 'Don\'t use proxy to connect to file servers if they differ from the main host'
 HELP_ARG_UTPOLICY = (
@@ -365,8 +369,8 @@ class StrPair(NamedTuple):
 
 
 class Duration(NamedTuple):
-    first: int
-    second: int
+    min: int
+    max: int
 
     def __bool__(self) -> bool:
         return any(bool(getattr(self, _)) for _ in self._fields)
