@@ -94,7 +94,7 @@ class AlbumDownloadWorker:
     def _extend_with_extra(self) -> None:
         extra_cur = Config.lookahead - self._404_counter
         if extra_cur > 0:
-            last_id = Config.end_id + len(self._extra_ids)
+            last_id = Config.end + len(self._extra_ids)
             extra_idseq = [(last_id + i + 1) for i in range(extra_cur)]
             extra_vis = [AlbumInfo(idi) for idi in extra_idseq]
             minid, maxid = get_min_max_ids(extra_vis)
