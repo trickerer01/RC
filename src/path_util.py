@@ -70,16 +70,16 @@ def scan_dest_folder() -> None:
 
         def scan_folder(base_folder: str, level: int) -> None:
             if os.path.isdir(base_folder):
-                dentry: os.DirEntry
-                for dentry in os.scandir(base_folder):
-                    fullpath = f'{base_folder}{dentry.name}'
-                    if dentry.is_dir():
-                        fullpath = normalize_path(fullpath)
-                        if level < scan_depth:
-                            found_foldernames_dict[fullpath] = []
-                            scan_folder(fullpath, level + 1)
-                        pass
-                        found_foldernames_dict[base_folder].append(dentry.name)
+                with os.scandir(base_folder) as listing:
+                    for dentry in listing:
+                        fullpath = f'{base_folder}{dentry.name}'
+                        if dentry.is_dir():
+                            fullpath = normalize_path(fullpath)
+                            if level < scan_depth:
+                                found_foldernames_dict[fullpath] = []
+                                scan_folder(fullpath, level + 1)
+                            pass
+                            found_foldernames_dict[base_folder].append(dentry.name)
 
         found_foldernames_dict[dest_base] = []
         scan_folder(dest_base, 0)
