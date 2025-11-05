@@ -72,8 +72,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         return DownloadResult.FAIL_NOT_FOUND
 
     ai.set_state(AlbumInfo.State.ACTIVE)
-    hkwargs = {'noproxy': not Config.proxy or Config.html_without_proxy}
-    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id, **hkwargs)
+    a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
         return DownloadResult.FAIL_SKIPPED if Config.aborted else DownloadResult.FAIL_RETRIES
@@ -115,8 +114,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     tdiv = a_html.find('div', string='Tags:')
     if tdiv is None:
         Log.info(f'Warning: album {sname} has no tags!')
-    tags = [str(elem.string) for elem in tdiv.parent.find_all('a')] if tdiv else ['']
-    tags_raw = [tag.replace(' ', '_').lower() for tag in tags if tag]
+    tags: list[str] = [str(elem.string) for elem in tdiv.parent.find_all('a')] if tdiv else []
+    tags_raw = [tag.replace(' ', '_').lower() for tag in tags]
     for calist in (my_categories, my_authors):
         for add_tag in [ca.replace(' ', '_') for ca in calist if ca]:
             if add_tag not in tags_raw:
@@ -189,7 +188,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         return DownloadResult.FAIL_DELETED
 
     if Config.include_previews:
-        pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}', **hkwargs)
+        pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
         ai.images.append(pii)
 
     r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/')
@@ -336,13 +335,13 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 break
 
             hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'} if file_size > 0 else {}}
-            ckwargs = {'allow_redirects': bool(not Config.proxy or not Config.download_without_proxy)}
-            ckwargs.update(noproxy=bool(Config.html_without_proxy and not ckwargs['allow_redirects']))
+            ckwargs = {'allow_redirects': not (Config.proxy and (Config.download_without_proxy or Config.html_without_proxy))}
+            ckwargs.update({'noproxy': bool(Config.proxy and Config.html_without_proxy)})
             # hkwargs['headers'].update({'Referer': SITE_AJAX_REQUEST_ALBUM % ii.id})
             r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
             while r.status in (301, 302):
                 if urllib.parse.urlparse(r.headers['Location']).hostname != urllib.parse.urlparse(ii.link).hostname:
-                    ckwargs.update(noproxy=True, allow_redirects=True)
+                    ckwargs.update({'noproxy': Config.download_without_proxy, 'allow_redirects': True})
                 ensure_conn_closed(r)
                 r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
             content_len: int = r.content_length or 0
