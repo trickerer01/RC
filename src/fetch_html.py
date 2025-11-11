@@ -14,7 +14,7 @@ from asyncio import AbstractEventLoop, Lock, get_running_loop, sleep
 from collections import deque
 from contextlib import AsyncExitStack
 
-from aiohttp import ClientResponse, ClientResponseError, ClientSession, TCPConnector
+from aiohttp import ClientConnectorError, ClientResponse, ClientResponseError, ClientSession, TCPConnector
 from aiohttp_socks import ProxyConnector
 from bs4 import BeautifulSoup
 from fake_useragent import FakeUserAgent
@@ -189,7 +189,7 @@ async def fetch_html(url: str, *, tries=0, **kwargs) -> BeautifulSoup | None:
             else:
                 Log.error(f'[{retries + 1}] fetch_html exception status {f"{r.status:d}" if r is not None else "???"}: '
                           f'\'{e.message if isinstance(e, ClientResponseError) else str(e)}\'')
-            if r is None or r.status != 403:
+            if (r is None or r.status != 403) and not isinstance(e, ClientConnectorError):
                 retries += 1
             elif r is not None and r.status == 403:
                 retries_403_local += 1
