@@ -256,7 +256,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                             Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
         else:
             existing_files: list[str] = [de.name for de in os.scandir(existing_folder) if de.is_file()]
-            existing_files = list(filter(lambda x: re_media_filename.fullmatch(x), existing_files))
+            existing_files = list(filter(re_media_filename.fullmatch, existing_files))
             ai_filenames = [imi.filename for imi in ai.images]
             if len(existing_files) == ai.images_count and all(filename in ai_filenames for filename in existing_files):
                 Log.info(f'Album {ai.sfsname} (or similar) found{loc_str} and all its {len(ai.images):d} images already exist. Skipped.'
