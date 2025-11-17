@@ -70,7 +70,7 @@ class DownloadScenario:
         parser.add_argument('-utp', '--untagged-policy', default=UTP_DEFAULT, choices=UNTAGGED_POLICIES)
         parser.add_argument(dest='extra_tags', nargs=ZERO_OR_MORE)
 
-        errors_to_print = []
+        errors_to_print: list[str] = []
         for query_raw in fmt_str.split('; '):
             try:
                 subfolder, args = query_raw.split(': ')
@@ -91,7 +91,7 @@ class DownloadScenario:
                                           f'No valid ID \'or\' group found in \'{parsed.extra_tags!s}\'!')
                         errors_to_print.append(error_to_print)
                 else:
-                    id_sequence = []
+                    id_sequence: list[int] = []
                 if parsed.untagged_policy == UTP_ALWAYS and self.has_subquery(utp=UTP_ALWAYS):
                     errors_to_print.append(f'Scenario can only have one subquery with untagged album policy \'{UTP_ALWAYS}\'!')
                 self._add_subquery(SubQueryParams(
