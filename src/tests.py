@@ -19,6 +19,7 @@ from cmdargs import prepare_arglist
 from config import Config
 from defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
 from downloader import AlbumDownloadWorker, ImageDownloadWorker
+from fetch_html import RequestQueue
 from ids import main as ids_main
 from ids import main_sync as ids_main_sync
 from logger import Log
@@ -58,6 +59,7 @@ def test_prepare(log=False) -> Callable[[], Callable[[], None]]:
                 found_foldernames_dict.clear()
                 Log._disabled = not log
                 Config._reset()
+                RequestQueue._reset()
             set_up_test()
             test_func(*args, **kwargs)
         return invoke_test
