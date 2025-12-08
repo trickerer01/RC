@@ -1,5 +1,5 @@
 [build-system]
-requires= ['setuptools', 'setuptools-scm']
+requires= ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
@@ -59,8 +59,10 @@ Documentation = 'https://github.com/trickerer01/RC#readme'
 Tracker = 'https://github.com/trickerer01/RC/issues'
 
 [project.scripts]
-ids = 'ids:main_sync'
-pages = 'pages:main_sync'
+rc = 'rc:main'
+
+[tool.setuptools]
+py-modules = ['rc']
 
 [tool.ruff]
 line-length = 140

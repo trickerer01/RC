@@ -9,16 +9,16 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 from argparse import ZERO_OR_MORE, ArgumentParser
 from collections.abc import Sequence
 
-from defs import (
+from .defs import (
     ACTION_STORE_TRUE,
     DOWNLOAD_POLICY_ALWAYS,
     DOWNLOAD_POLICY_DEFAULT,
     UNTAGGED_POLICIES,
 )
-from iinfo import AlbumInfo
-from logger import Log
-from tagger import extract_id_or_group, is_filtered_out_by_extra_tags, valid_extra_tag
-from validators import valid_int, valid_rating
+from .iinfo import AlbumInfo
+from .logger import Log
+from .tagger import extract_id_or_group, is_filtered_out_by_extra_tags, valid_extra_tag
+from .validators import valid_int, valid_rating
 
 __all__ = ('DownloadScenario',)
 

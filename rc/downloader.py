@@ -17,8 +17,8 @@ from collections.abc import Callable, Coroutine
 from contextlib import suppress
 from typing import Any, TypeAlias
 
-from config import Config
-from defs import (
+from .config import Config
+from .defs import (
     CONNECT_REQUEST_DELAY,
     DOWNLOAD_CONTINUE_FILE_CHECK_TIMER,
     DOWNLOAD_QUEUE_STALL_CHECK_TIMER,
@@ -31,10 +31,10 @@ from defs import (
     DownloadResult,
     Mem,
 )
-from iinfo import AlbumInfo, ImageInfo, get_min_max_ids
-from logger import Log
-from path_util import folder_already_exists_arr
-from util import calc_sleep_time, format_time, get_elapsed_time_i, get_elapsed_time_s
+from .iinfo import AlbumInfo, ImageInfo, get_min_max_ids
+from .logger import Log
+from .path_util import folder_already_exists_arr
+from .util import calc_sleep_time, format_time, get_elapsed_time_i, get_elapsed_time_s
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
 

@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import itertools
 
-from config import Config
-from defs import IDGAP_PREDICTION_AUTO, IDGAP_PREDICTION_OFF, PREDICTION_REENABLE_THRESHOLD, IntPair
-from downloader import AlbumDownloadWorker
-from iinfo import AlbumInfo
-from logger import Log
+from .config import Config
+from .defs import IDGAP_PREDICTION_AUTO, IDGAP_PREDICTION_OFF, PREDICTION_REENABLE_THRESHOLD, IntPair
+from .downloader import AlbumDownloadWorker
+from .iinfo import AlbumInfo
+from .logger import Log
 
 __all__ = ('IdGapsPredictor',)
 

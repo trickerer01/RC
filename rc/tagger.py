@@ -10,8 +10,8 @@ import json
 import os
 from collections.abc import Callable, Collection, Iterable, MutableSequence
 
-from config import Config
-from defs import (
+from .config import Config
+from .defs import (
     FILE_LOC_ARTS,
     FILE_LOC_CATS,
     FILE_LOC_TAG_ALIASES,
@@ -22,9 +22,9 @@ from defs import (
     TAGS_CONCAT_CHAR,
     UTF8,
 )
-from iinfo import AlbumInfo
-from logger import Log
-from rex import (
+from .iinfo import AlbumInfo
+from .logger import Log
+from .rex import (
     prepare_regex_fullmatch,
     re_bracketed_tag,
     re_idval,
@@ -40,7 +40,7 @@ from rex import (
     re_uscore_mult,
     re_wtag,
 )
-from util import assert_nonempty, normalize_path
+from .util import assert_nonempty, normalize_path
 
 __all__ = (
     'extract_id_or_group',

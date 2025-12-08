@@ -15,19 +15,19 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from cmdargs import prepare_arglist
-from config import Config
-from defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
-from downloader import AlbumDownloadWorker, ImageDownloadWorker
-from fetch_html import RequestQueue
-from ids import main as ids_main
-from ids import main_sync as ids_main_sync
-from logger import Log
-from pages import main as pages_main
-from pages import main_sync as pages_main_sync
-from path_util import found_foldernames_dict
-from rex import prepare_regex_fullmatch
-from tagger import (
+from rc.cmdargs import prepare_arglist
+from rc.config import Config
+from rc.defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
+from rc.downloader import AlbumDownloadWorker, ImageDownloadWorker
+from rc.fetch_html import RequestQueue
+from rc.logger import Log
+from rc.main import main as ids_main
+from rc.main import main as pages_main
+from rc.main import main_sync as ids_main_sync
+from rc.main import main_sync as pages_main_sync
+from rc.path_util import found_foldernames_dict
+from rc.rex import prepare_regex_fullmatch
+from rc.tagger import (
     ART_NUMS,
     CAT_NUMS,
     TAG_ALIASES,
@@ -43,8 +43,8 @@ from tagger import (
     match_text,
     normalize_wtag,
 )
-from util import normalize_path
-from version import APP_NAME, APP_VERSION
+from rc.util import normalize_path
+from rc.version import APP_NAME, APP_VERSION
 
 RUN_CONN_TESTS = 0
 
@@ -136,7 +136,7 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_pages01(self):
-        prepare_arglist(['cmd', '-get_maxid'], True)
+        prepare_arglist(['pages', '-get_maxid'])
         self.assertTrue(Config.get_maxid)
         # self.assertEqual(0, Config.playlist_id)
         # self.assertEqual('', Config.playlist_name)
@@ -144,8 +144,8 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_pages02(self):
-        prepare_arglist(['-start', '2', '-pages', '1', '-uploader', '1234', '(2d~3d)', '--skip-empty-lists', '-script',
-                         'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', 'prefix|score', '-log', 'warn'], True)
+        prepare_arglist(['pages', '-start', '2', '-pages', '1', '-uploader', '1234', '(2d~3d)', '--skip-empty-lists', '-script',
+                         'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', 'prefix|score', '-log', 'warn'])
         self.assertEqual(3, Config.naming_flags)
         self.assertEqual(8, Config.logging_flags)
         self.assertEqual(1, len(Config.extra_tags))
@@ -159,8 +159,8 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_pages03(self):
-        prepare_arglist(['-start', '3', '-pages', '2', '-dnoempty',
-                         '-minscore', '12', '-continue', '-unfinish', '-tdump', '-cdump'], True)
+        prepare_arglist(['pages', '-start', '3', '-pages', '2', '-dnoempty',
+                         '-minscore', '12', '-continue', '-unfinish', '-tdump', '-cdump'])
         # self.assertEqual('commodified', Config.playlist_name)
         self.assertEqual(3, Config.start)
         self.assertEqual(4, Config.end)
@@ -179,11 +179,12 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_pages04(self):
-        prepare_arglist(['-search_tag', '6*,5???*', '-search_rule_tag', 'any',
+        prepare_arglist(['pages',
+                         '-search_tag', '6*,5???*', '-search_rule_tag', 'any',
                          '-search_art', '*ikan', '-search_rule_art', 'any',
                          '-search_cat', 'ali??_*', '-search_rule_cat', 'any',
                          # '-blacklist', 'a:6*9,c:*z,t:6g*,t:8*',
-                         '-start', '3', '-pages', '2'], True)
+                         '-start', '3', '-pages', '2'])
         self.assertEqual('10838,11146,11950,2007,3364,4326,4867,9244,9363', Config.search_tags)
         self.assertEqual('1338,4834,5129,5163', Config.search_arts)
         self.assertEqual('315,685,979', Config.search_cats)
@@ -199,7 +200,7 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_ids01(self):
-        prepare_arglist(['cmd', '-seq', '(id=23~id=982)'], False)
+        prepare_arglist(['ids', '-seq', '(id=23~id=982)'])
         self.assertEqual(1, len(Config.extra_tags))
         Config.id_sequence = extract_id_or_group(Config.extra_tags)
         self.assertTrue(Config.use_id_sequence)
@@ -209,9 +210,9 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_ids02(self):
-        prepare_arglist(['-start', '1000', '-end', '999', '(69~9s)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
+        prepare_arglist(['ids', '-start', '1000', '-end', '999', '(69~9s)', '(2d~3d)', '-dmode', 'touch', '--store-continue-cmdfile',
                          '-lookahead', '100', '-proxynodown', '-proxy', 'socks4://u1:p2@9.123.15.67:3128',
-                         '-script', 'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', '0x8', '-log', 'trace'], False)
+                         '-script', 'a: 2d; b: 3d; c: a2 -2d; d: * -utp always', '-naming', '0x8', '-log', 'trace'])
         self.assertEqual(8, Config.naming_flags)
         self.assertEqual(1, Config.logging_flags)
         self.assertEqual(2, len(Config.extra_tags))
@@ -227,7 +228,7 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_ids03(self):
-        prepare_arglist(['-links', f'{SITE}comics/1230567/wtf', '-u:araraw'], False)
+        prepare_arglist(['ids', '-links', f'{SITE}comics/1230567/wtf', '-u:araraw'])
         self.assertTrue(Config.use_link_sequence)
         self.assertEqual(2, len(Config.extra_tags))
         Config.id_sequence = extract_ids_from_links(Config.extra_tags)
@@ -238,24 +239,24 @@ class CmdTests(TestCase):
 
     @test_prepare()
     def test_cmd_wtags01(self):
-        prepare_arglist(['-start', '1', '-pages', '5',
+        prepare_arglist(['pages', '-start', '1', '-pages', '5',
                          '-*[1`-5]`+`(finger{1`,3}|girl`)s`?`.`*',
-                         '-*`[1`-5`]`+`(finger`{1`,3`}`|`girl`)s`?`.`*``'], True)
+                         '-*`[1`-5`]`+`(finger`{1`,3`}`|`girl`)s`?`.`*``'])
         self.assertEqual(r'^\-.*[1-5]+(?:finger{1,3}|girl)s?.*$', prepare_regex_fullmatch(normalize_wtag(Config.extra_tags[0])).pattern)
         self.assertEqual(r'^\-.*[1-5]+(?:finger{1,3}|girl)s?.*$', prepare_regex_fullmatch(normalize_wtag(Config.extra_tags[1])).pattern)
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_cmd_wtags02(self):
-        prepare_arglist(['-start', '1', '-pages', '5', 'trigger`(s|ed|ing`)*'], True)
+        prepare_arglist(['pages', '-start', '1', '-pages', '5', 'trigger`(s|ed|ing`)*'])
         self.assertIsNotNone(match_text(Config.extra_tags[0], 'a triggered bluff'))
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_cmd_extra_h_c01(self):
-        prepare_arglist(['-start', '10', '-pages', '11',
+        prepare_arglist(['pages', '-start', '10', '-pages', '11',
                          '-header', 'shm_user=user812',
-                         '-cookie', 'cf_clearance=clear120825'], True)
+                         '-cookie', 'cf_clearance=clear120825'])
         self.assertListEqual([('shm_user', 'user812')], Config.extra_headers)
         self.assertListEqual([('cf_clearance', 'clear120825')], Config.extra_cookies)
         print(f'{self._testMethodName} passed')
@@ -272,7 +273,9 @@ class DownloadTests(TestCase):
         tempfile_ids = ('951685', '951686')
         tempfile_ext = 'jpg'
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = ['-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace']
+        arglist1 = [
+            'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
+        ]
         ids_main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
@@ -294,8 +297,10 @@ class DownloadTests(TestCase):
         tempfile_ids = ('6397', '6398')
         tempfile_ext = 'jpg'
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = ['-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
-                    '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman']
+        arglist1 = [
+            'pages', '-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
+            '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman',
+        ]
         pages_main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
@@ -317,7 +322,9 @@ class DownloadTests(TestCase):
         tempfile_ids = ('37758', '37759')
         tempfile_ext = 'jpg'
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = ['-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace']
+        arglist1 = [
+            'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace',
+        ]
         ids_main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
@@ -339,8 +346,10 @@ class DownloadTests(TestCase):
         tempfile_ids = ('44712', '44713')
         tempfile_ext = 'jpg'
         tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = ['-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
-                    '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman']
+        arglist1 = [
+            'pages', '-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
+            '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman',
+        ]
         pages_main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))

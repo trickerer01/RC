@@ -6,7 +6,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
-from defs import (
+from .defs import (
     CONNECT_RETRIES_BASE,
     DOWNLOAD_MODE_DEFAULT,
     DOWNLOAD_POLICY_DEFAULT,
@@ -49,6 +49,8 @@ class BaseConfig:
     }
 
     def __init__(self) -> None:
+        # arguments
+        self.subcommand_1 = ''
         # states
         self.is_pages: bool = False
         self.aborted: bool = False
@@ -187,6 +189,10 @@ class BaseConfig:
     @property
     def watcher_mode(self) -> bool:
         return self.lookahead and self.lookahead < 0
+
+    def get_action_string(self) -> str:
+        action_name = ' '.join(getattr(self, _) for _ in vars(self) if _.startswith('subcommand')).strip()
+        return action_name
 
 
 Config: BaseConfig = BaseConfig()

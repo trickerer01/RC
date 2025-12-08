@@ -19,9 +19,9 @@ from aiohttp_socks import ProxyConnector
 from bs4 import BeautifulSoup
 from fake_useragent import FakeUserAgent
 
-from config import Config
-from defs import CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY, MAX_IMAGES_QUEUE_SIZE, UTF8, Mem
-from logger import Log
+from .config import Config
+from .defs import CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY, MAX_IMAGES_QUEUE_SIZE, UTF8, Mem
+from .logger import Log
 
 __all__ = ('create_session', 'ensure_conn_closed', 'fetch_html', 'wrap_request')
 

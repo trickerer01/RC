@@ -8,7 +8,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import re
 
-from defs import PREFIX
+from .defs import PREFIX
 
 # common
 re_media_filename = re.compile(fr'^(?:{PREFIX})?(\d+)\.jpe?g$')

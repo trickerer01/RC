@@ -8,11 +8,11 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import os
 
-from config import Config
-from defs import DEFAULT_EXT, PREFIX
-from logger import Log
-from rex import re_album_foldername
-from util import normalize_path
+from .config import Config
+from .defs import DEFAULT_EXT, PREFIX
+from .logger import Log
+from .rex import re_album_foldername
+from .util import normalize_path
 
 __all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
 

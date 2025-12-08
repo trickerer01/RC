@@ -176,6 +176,7 @@ LOGGING_FLAGS_DEFAULT = LoggingFlags.INFO
 
 ACTION_STORE_TRUE = 'store_true'
 ACTION_APPEND = 'append'
+ACTION_EXTEND = 'extend'
 
 SRC_PATH = os.path.abspath(os.path.dirname(__file__)).replace('\\', SLASH)
 FILE_LOC_TAGS = f'{SRC_PATH}/../2tags/rc_tags.json'
@@ -235,18 +236,18 @@ HELP_ARG_SEARCH_STR = (
     'Native search using string query (matching any word in exact manner, check README for more info).'
     ' Spaces must be replced with \'-\'. Ex. \'after-hours\''
 )
-HELP_ARG_BLACKLIST = (
-    'Native search temporary blacklist filter. Separate values by comma, all values must be valid tag, category or artist names.'
-    ' Prefix indicates filter type: [a]rtist, [c]ategory or [t]ag. Unprefixed values match all types (if more than one exists).'
-    ' Supports wildcards.'
-    ' Example: \'-blacklist c:2d,a:wiz220,t:1boy*\' will exclude all results having either category \'2d\', artist \'wiz220\''
-    ' or a tag starting with \'1boy\''
-)
-HELP_ARG_QUALITY = 'Video quality. Default is \'36000\'. If not found, best quality found is used (up to 4K)'
-HELP_ARG_DURATION = (
-    f'Video duration filter (in seconds). Limits (min-max): 0-{DURATION_MAX:d}.'
-    f' Example: \'5-180\' will only allow videos from 5 seconds to 3 minutes'
-)
+# HELP_ARG_BLACKLIST = (
+#     'Native search temporary blacklist filter. Separate values by comma, all values must be valid tag, category or artist names.'
+#     ' Prefix indicates filter type: [a]rtist, [c]ategory or [t]ag. Unprefixed values match all types (if more than one exists).'
+#     ' Supports wildcards.'
+#     ' Example: \'-blacklist c:2d,a:wiz220,t:1boy*\' will exclude all results having either category \'2d\', artist \'wiz220\''
+#     ' or a tag starting with \'1boy\''
+# )
+# HELP_ARG_QUALITY = 'Video quality. Default is \'36000\'. If not found, best quality found is used (up to 4K)'
+# HELP_ARG_DURATION = (
+#     f'Video duration filter (in seconds). Limits (min-max): 0-{DURATION_MAX:d}.'
+#     f' Example: \'5-180\' will only allow videos from 5 seconds to 3 minutes'
+# )
 HELP_ARG_PROXY = 'Proxy to use, supports basic auth. Example: http://user:pass@127.0.0.1:222'
 HELP_ARG_PROXYNODOWN = 'Don\'t use proxy to connect to file servers if they differ from the main host'
 HELP_ARG_PROXYNOHTML = 'Don\'t use proxy to connect to the main host'
