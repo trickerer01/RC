@@ -8,26 +8,22 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import functools
 import os
-from asyncio import run as run_async
 from collections.abc import Callable
 from io import StringIO
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from rc.cmdargs import prepare_arglist
-from rc.config import Config
-from rc.defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
-from rc.downloader import AlbumDownloadWorker, ImageDownloadWorker
-from rc.fetch_html import RequestQueue
-from rc.logger import Log
-from rc.main import main as ids_main
-from rc.main import main as pages_main
-from rc.main import main_sync as ids_main_sync
-from rc.main import main_sync as pages_main_sync
-from rc.path_util import found_foldernames_dict
-from rc.rex import prepare_regex_fullmatch
-from rc.tagger import (
+from .cmdargs import prepare_arglist
+from .config import Config
+from .defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
+from .downloader import AlbumDownloadWorker, ImageDownloadWorker
+from .fetch_html import RequestQueue
+from .logger import Log
+from .main import main_sync
+from .path_util import found_foldernames_dict
+from .rex import prepare_regex_fullmatch
+from .tagger import (
     ART_NUMS,
     CAT_NUMS,
     TAG_ALIASES,
@@ -43,8 +39,8 @@ from rc.tagger import (
     match_text,
     normalize_wtag,
 )
-from rc.util import normalize_path
-from rc.version import APP_NAME, APP_VERSION
+from .util import normalize_path
+from .version import APP_NAME, APP_VERSION
 
 RUN_CONN_TESTS = 0
 
@@ -113,14 +109,14 @@ class CmdTests(TestCase):
     @test_prepare()
     def test_output_version_pages(self):
         with patch('sys.stdout', new_callable=StringIO) as stdout:
-            run_async(pages_main(['--version']))
+            main_sync(['--version'])
             self.assertEqual(f'{APP_NAME} {APP_VERSION}', stdout.getvalue().strip('\n'))
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_output_version_ids(self):
         with patch('sys.stdout', new_callable=StringIO) as stdout:
-            run_async(ids_main(['--version']))
+            main_sync(['--version'])
             self.assertEqual(f'{APP_NAME} {APP_VERSION}', stdout.getvalue().strip('\n'))
         print(f'{self._testMethodName} passed')
 
@@ -276,7 +272,7 @@ class DownloadTests(TestCase):
         arglist1 = [
             'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
         ]
-        ids_main_sync(arglist1)
+        main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
         st1 = os.stat(tempfile_fullpaths[0])
@@ -301,7 +297,7 @@ class DownloadTests(TestCase):
             'pages', '-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
             '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman',
         ]
-        pages_main_sync(arglist1)
+        main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
         st1 = os.stat(tempfile_fullpaths[0])
@@ -325,7 +321,7 @@ class DownloadTests(TestCase):
         arglist1 = [
             'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace',
         ]
-        ids_main_sync(arglist1)
+        main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
         st1 = os.stat(tempfile_fullpaths[0])
@@ -350,7 +346,7 @@ class DownloadTests(TestCase):
             'pages', '-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
             '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman',
         ]
-        pages_main_sync(arglist1)
+        main_sync(arglist1)
         self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
         self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
         st1 = os.stat(tempfile_fullpaths[0])
