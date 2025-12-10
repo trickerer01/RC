@@ -64,6 +64,9 @@ rc = 'rc:main'
 [tool.setuptools]
 py-modules = ['rc']
 
+[tool.setuptools.packages]
+find = {include = ['rc']}
+
 [tool.ruff]
 line-length = 140
 
