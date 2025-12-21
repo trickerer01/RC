@@ -70,7 +70,6 @@ class AlbumDownloadWorker:
         self._orig_count: int = len(sequence)
         self._scan_count: int = 0
         self._scanned_count: int = 0
-        self._downloaded_count: int = 0
         self._already_exist_count: int = 0
         self._skipped_count: int = 0
         self._404_count: int = 0
@@ -79,9 +78,10 @@ class AlbumDownloadWorker:
         self._404_counter: int = 0
         self._extra_ids: list[int] = []
 
+        self._completed_items: list[AlbumInfo] = []
         self._downloads_active: dict[int, AlbumInfo] = {}
         self._scans_active: list[AlbumInfo] = []
-        self._failed_items: list[int] = []
+        self._failed_items: list[AlbumInfo] = []
 
         self._total_queue_size_last: int = 0
         self._scan_queue_size_last: int = 0
@@ -133,7 +133,7 @@ class AlbumDownloadWorker:
         elif result in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_DELETED):
             self._404_count += 1
         elif result == DownloadResult.FAIL_RETRIES:
-            self._failed_items.append(ai.id)
+            self._failed_items.append(ai)
         elif result == DownloadResult.SUCCESS:
             self._scanned_count += 1
             self._downloads_active[ai.id] = ai
@@ -224,7 +224,6 @@ class AlbumDownloadWorker:
             os.remove(continue_file_fullpath)
 
     async def _after_download(self) -> None:
-        newline = '\n'
         Log.info(f'\n[Albums] Scan finished, {self._scanned_count:d} / {self._orig_count:d}'
                  f'{f"+{self.get_extra_count():d}" if Config.lookahead else ""} album(s) enqueued for download, '
                  f'{self._already_exist_count:d} already existed, '
@@ -232,23 +231,26 @@ class AlbumDownloadWorker:
         if len(self._seq) > 0:
             Log.fatal(f'total queue is still at {len(self._seq):d} != 0!')
         if len(self._failed_items) > 0:
-            Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
+            for fmsg in ('\nFailed items:', *(ai.my_sfolder_full for ai in self._failed_items)):
+                Log.fatal(fmsg)
             self._failed_items.clear()
 
     def after_download_all(self) -> None:
-        newline = '\n'
-        Log.info(f'[Albums] Done. {self._downloaded_count:d} / {self._scanned_count:d} album(s) downloaded')
+        for smsg in ('', *(ai.my_sfolder_full for ai in self._completed_items)):
+            Log.info(smsg)
+        Log.info(f'[Albums] Done. {len(self._completed_items):d} / {self._scanned_count:d} album(s) downloaded')
         if len(self._downloads_active) > 0:
             Log.fatal(f'active album downloads queue is still at {len(self._downloads_active):d} != 0!')
         if len(self._failed_items) > 0:
-            Log.fatal(f'failed items:\n{newline.join(str(fi) for fi in sorted(self._failed_items))}')
+            for fmsg in ('\nFailed items:', *(ai.my_sfolder_full for ai in self._failed_items)):
+                Log.fatal(fmsg)
 
     def at_album_completed(self, ai: AlbumInfo) -> None:
         Log.info(f'Album {ai.sname}: all images processed')
         if all(ii.state == ImageInfo.State.DONE for ii in ai.images):
-            self._downloaded_count += 1
+            self._completed_items.append(ai)
         else:
-            self._failed_items.append(ai.id)
+            self._failed_items.append(ai)
         ai.images.clear()
         ai.set_state(AlbumInfo.State.PROCESSED)
         if ai.id in self._downloads_active:
