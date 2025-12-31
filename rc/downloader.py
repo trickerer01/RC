@@ -236,7 +236,7 @@ class AlbumDownloadWorker:
             self._failed_items.clear()
 
     def after_download_all(self) -> None:
-        for smsg in ('', *(ai.my_sfolder_full for ai in self._completed_items)):
+        for smsg in ('', *(ai.my_sfolder_full for ai in sorted(self._completed_items, key=lambda a: a.my_sfolder_full))):
             Log.info(smsg)
         Log.info(f'[Albums] Done. {len(self._completed_items):d} / {self._scanned_count:d} album(s) downloaded')
         if len(self._downloads_active) > 0:
