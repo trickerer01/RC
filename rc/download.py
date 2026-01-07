@@ -288,13 +288,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
 
 
 async def download_image(ii: ImageInfo) -> DownloadResult:
-    idwn = ImageDownloadWorker.get()
-    sname = f'{ii.album.sname}/{ii.sname} {ii.my_num_fmt}'
-    sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
-    retries = 0
     ret = DownloadResult.SUCCESS
     skip = Config.download_mode == DOWNLOAD_MODE_SKIP and not ii.is_preview
-    status_checker = ThrottleChecker(ii)
 
     if skip is True:
         ii.set_state(ImageInfo.State.DONE)
@@ -315,11 +310,16 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     ii.set_state(ImageInfo.State.DONE)
                     return DownloadResult.FAIL_ALREADY_EXISTS
 
-    while (not skip) and retries <= Config.retries:
+    sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
+    sname = f'{ii.album.sname}/{ii.sname} {ii.my_num_fmt}'
+    idwn = ImageDownloadWorker.get()
+    status_checker = ThrottleChecker(ii)
+    try_num = 0
+    while (not skip) and try_num <= Config.retries:
         r = None
         try:
             file_exists = os.path.isfile(ii.my_fullpath)
-            if file_exists and retries == 0:
+            if file_exists and try_num == 0:
                 ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
             file_size = os.stat(ii.my_fullpath).st_size if file_exists else 0
 
@@ -355,7 +355,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 break
             if r.status == 404:
                 Log.error(f'Got 404 for {sname}...!')
-                retries = Config.retries
+                try_num = Config.retries
                 ret = DownloadResult.FAIL_NOT_FOUND
             r.raise_for_status()
             if r.content_type and 'text' in r.content_type:
@@ -372,11 +372,14 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.run()
             async with async_open(ii.my_fullpath, 'ab') as outf:
                 ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
-                if ii.album.dstart_time == 0:
-                    ii.album.dstart_time = get_elapsed_time_i()
-                async for chunk in r.content.iter_chunked(256 * Mem.KB):
+                ii.album.dstart_time = get_elapsed_time_i()
+                bytes_written_this_try = 0
+                async for chunk in r.content.iter_chunked(128 * Mem.KB):
                     await outf.write(chunk)
                     ii.bytes_written += len(chunk)
+                    bytes_written_this_try += len(chunk)
+                    if try_num > 0 and bytes_written_this_try >= 256 * Mem.KB:
+                        try_num = 0
             status_checker.reset()
             await idwn.remove_from_writes(ii)
 
@@ -396,14 +399,14 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
         except Exception as e:
             Log.error(f'{ii.sname}: {sys.exc_info()[0]}: {sys.exc_info()[1]}')
             if (r is None or r.status != 403) and isinstance(e, ClientPayloadError) is False:
-                retries += 1
-                Log.error(f'{sfilename}: error #{retries:d}...')
+                try_num += 1
+                Log.error(f'{sfilename}: error #{try_num:d}...')
             if r is not None and r.closed is False:
                 r.close()
             # Network error may be thrown before item is added to active downloads
             await idwn.remove_from_writes(ii, True)
             status_checker.reset()
-            if retries <= Config.retries:
+            if try_num <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
                 await sleep(random.uniform(*CONNECT_RETRY_DELAY))
             elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
@@ -411,7 +414,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                 os.remove(ii.my_fullpath)
 
     ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS) else
-           DownloadResult.SUCCESS if retries <= Config.retries else
+           DownloadResult.SUCCESS if try_num <= Config.retries else
            DownloadResult.FAIL_RETRIES)
 
     if ret not in (DownloadResult.SUCCESS, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS):
