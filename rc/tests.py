@@ -7,7 +7,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 import functools
-import os
+import pathlib
 from collections.abc import Callable
 from io import StringIO
 from tempfile import TemporaryDirectory
@@ -39,7 +39,6 @@ from .tagger import (
     match_text,
     normalize_wtag,
 )
-from .util import normalize_path
 from .version import APP_NAME, APP_VERSION
 
 RUN_CONN_TESTS = 0
@@ -263,98 +262,78 @@ class DownloadTests(TestCase):
     def test_ids_touch(self):
         if not RUN_CONN_TESTS:
             return
-        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
-        tempdir = normalize_path(tdir.name)
-        tempdir_id = '33123'
-        tempfile_ids = ('951685', '951686')
-        tempfile_ext = 'jpg'
-        tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = [
-            'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
-        ]
-        main_sync(arglist1)
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
-        st1 = os.stat(tempfile_fullpaths[0])
-        st2 = os.stat(tempfile_fullpaths[1])
-        self.assertEqual(0, st1.st_size)
-        self.assertEqual(0, st2.st_size)
-        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
-        tdir.cleanup()
+        with TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_') as tempdir:
+            tempdir_id = '33123'
+            tempfile_ids = ('951685', '951686')
+            tempfile_ext = '.jpg'
+            tempfile_fullpaths = [pathlib.Path(tempdir).joinpath(tempdir_id).joinpath(_).with_suffix(tempfile_ext) for _ in tempfile_ids]
+            arglist1 = [
+                'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
+            ]
+            main_sync(arglist1)
+            self.assertTrue(tempfile_fullpaths[0].is_file())
+            self.assertTrue(tempfile_fullpaths[1].is_file())
+            self.assertEqual(0, tempfile_fullpaths[0].stat().st_size)
+            self.assertEqual(0, tempfile_fullpaths[1].stat().st_size)
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_pages_touch(self):
         if not RUN_CONN_TESTS:
             return
-        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
-        tempdir = normalize_path(tdir.name)
-        tempdir_id = '325'
-        tempfile_ids = ('6397', '6398')
-        tempfile_ext = 'jpg'
-        tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = [
-            'pages', '-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
-            '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman',
-        ]
-        main_sync(arglist1)
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
-        st1 = os.stat(tempfile_fullpaths[0])
-        st2 = os.stat(tempfile_fullpaths[1])
-        self.assertEqual(0, st1.st_size)
-        self.assertEqual(0, st2.st_size)
-        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
-        tdir.cleanup()
+        with TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_') as tempdir:
+            tempdir_id = '325'
+            tempfile_ids = ('6397', '6398')
+            tempfile_ext = '.jpg'
+            tempfile_fullpaths = [pathlib.Path(tempdir).joinpath(tempdir_id).joinpath(_).with_suffix(tempfile_ext) for _ in tempfile_ids]
+            arglist1 = [
+                'pages', '-path', tempdir, '-pages', '999', '-dmode', 'touch', '-naming', 'none', '-log', 'trace',
+                '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'blood,piercing', '-search_art', 'shadman',
+            ]
+            main_sync(arglist1)
+            self.assertTrue(tempfile_fullpaths[0].is_file())
+            self.assertTrue(tempfile_fullpaths[1].is_file())
+            self.assertEqual(0, tempfile_fullpaths[0].stat().st_size)
+            self.assertEqual(0, tempfile_fullpaths[1].stat().st_size)
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_ids_full(self):
         if not RUN_CONN_TESTS:
             return
-        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
-        tempdir = normalize_path(tdir.name)
-        tempdir_id = '2151'
-        tempfile_ids = ('37758', '37759')
-        tempfile_ext = 'jpg'
-        tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = [
-            'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace',
-        ]
-        main_sync(arglist1)
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
-        st1 = os.stat(tempfile_fullpaths[0])
-        st2 = os.stat(tempfile_fullpaths[1])
-        self.assertGreater(st1.st_size, 0)
-        self.assertGreater(st2.st_size, 0)
-        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
-        tdir.cleanup()
+        with TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_') as tempdir:
+            tempdir_id = '2151'
+            tempfile_ids = ('37758', '37759')
+            tempfile_ext = '.jpg'
+            tempfile_fullpaths = [pathlib.Path(tempdir).joinpath(tempdir_id).joinpath(_).with_suffix(tempfile_ext) for _ in tempfile_ids]
+            arglist1 = [
+                'ids', '-path', tempdir, '-start', tempdir_id, '-dmode', 'full', '-naming', 'none', '-log', 'trace',
+            ]
+            main_sync(arglist1)
+            self.assertTrue(tempfile_fullpaths[0].is_file())
+            self.assertTrue(tempfile_fullpaths[1].is_file())
+            self.assertGreater(tempfile_fullpaths[0].stat().st_size, 0)
+            self.assertGreater(tempfile_fullpaths[1].stat().st_size, 0)
         print(f'{self._testMethodName} passed')
 
     @test_prepare()
     def test_pages_full(self):
         if not RUN_CONN_TESTS:
             return
-        tdir = TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_')
-        tempdir = normalize_path(tdir.name)
-        tempdir_id = '2545'
-        tempfile_ids = ('44712', '44713')
-        tempfile_ext = 'jpg'
-        tempfile_fullpaths = [f'{tempdir}{tempdir_id}/{tfid}.{tempfile_ext}' for tfid in tempfile_ids]
-        arglist1 = [
-            'pages', '-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
-            '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman',
-        ]
-        main_sync(arglist1)
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[0]))
-        self.assertTrue(os.path.isfile(tempfile_fullpaths[1]))
-        st1 = os.stat(tempfile_fullpaths[0])
-        st2 = os.stat(tempfile_fullpaths[1])
-        self.assertGreater(st1.st_size, 0)
-        self.assertGreater(st2.st_size, 0)
-        self.assertTrue(os.path.isdir(f'{tempdir}{tempdir_id}'))
-        tdir.cleanup()
+        with TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_') as tempdir:
+            tempdir_id = '2545'
+            tempfile_ids = ('44712', '44713')
+            tempfile_ext = '.jpg'
+            tempfile_fullpaths = [pathlib.Path(tempdir).joinpath(tempdir_id).joinpath(_).with_suffix(tempfile_ext) for _ in tempfile_ids]
+            arglist1 = [
+                'pages', '-path', tempdir, '-pages', '999', '-dmode', 'full', '-naming', 'none', '-log', 'trace',
+                '-begin_id', tempdir_id, '-stop_id', tempdir_id, '-search_tag', 'desiree', '-search_art', 'darkyamatoman',
+            ]
+            main_sync(arglist1)
+            self.assertTrue(tempfile_fullpaths[0].is_file())
+            self.assertTrue(tempfile_fullpaths[1].is_file())
+            self.assertGreater(tempfile_fullpaths[0].stat().st_size, 0)
+            self.assertGreater(tempfile_fullpaths[1].stat().st_size, 0)
         print(f'{self._testMethodName} passed')
 
 #
