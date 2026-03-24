@@ -7,6 +7,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 
 import os
+import pathlib
 import random
 import sys
 import urllib.parse
@@ -246,14 +247,16 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                     if Config.no_rename_move is False or same_loc:
                         Log.info(f'{ai.sfsname} (or similar) found{loc_str}. Enforcing new name (was \'{existing_folder}\').')
                         if not try_rename(normalize_path(existing_folder), ai.my_folder):
-                            Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
+                            Log.warn(f'Warning: unable to rename folder to {ai.my_folder} (already exists?). Old name will be preserved!')
+                            ai.name = pathlib.Path(normalize_path(existing_folder)).name
                     else:
                         new_subfolder = normalize_path(os.path.relpath(curalbum_folder, Config.dest_base))
                         Log.info(f'{ai.sfsname} (or similar) found{loc_str}. Enforcing old path + new name '
                                  f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                         ai.subfolder = new_subfolder
                         if not try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
-                            Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
+                            Log.warn(f'Warning: unable to rename folder to {ai.my_folder} (already exists?). Old name will be preserved!')
+                            ai.name = pathlib.Path(normalize_path(existing_folder)).name
         else:
             existing_files: list[str] = [de.name for de in os.scandir(existing_folder) if de.is_file()]
             existing_files = list(filter(re_media_filename.fullmatch, existing_files))
