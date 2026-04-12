@@ -250,7 +250,7 @@ def create_parsers() -> dict[str, ArgumentParser]:
 
 def add_common_args(par: ArgumentParser) -> None:
     co = par.add_argument_group(title='connection options')
-    co.add_argument('-proxy', metavar='#type://[u:p@]a.d.d.r:port', default='http://52.188.28.218:3128', help=HELP_ARG_PROXY, type=valid_proxy)
+    co.add_argument('-proxy', metavar='#type://[u:p@]a.d.d.r:port', default='', help=HELP_ARG_PROXY, type=valid_proxy)
     co.add_argument('-proxynodown', '--download-without-proxy', action=ACTION_STORE_TRUE, help=HELP_ARG_PROXYNODOWN)
     co.add_argument('-proxynohtml', '--html-without-proxy', action=ACTION_STORE_TRUE, help=HELP_ARG_PROXYNOHTML)
     co.add_argument('-timeout', metavar='#seconds', default=valid_timeout(''), help=HELP_ARG_TIMEOUT, type=valid_timeout)
