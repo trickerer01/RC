@@ -10,6 +10,7 @@ from asyncio import sleep
 
 from .config import Config
 from .defs import (
+    SITE,
     SITE_AJAX_REQUEST_FAVOURITES_PAGE,
     SITE_AJAX_REQUEST_MODEL_PAGE,
     SITE_AJAX_REQUEST_SEARCH_PAGE,
@@ -21,7 +22,7 @@ from .fetch_html import create_session, fetch_html
 from .iinfo import AlbumInfo
 from .logger import Log
 from .path_util import scan_dest_folder
-from .rex import re_page_entry, re_paginator
+from .rex import re_page_entry
 from .util import has_naming_flag
 from .validators import find_and_resolve_config_conflicts
 from .version import APP_NAME
@@ -30,7 +31,7 @@ __all__ = ('process_pages',)
 
 
 async def process_pages() -> int:
-    album_ref_class = 'th'
+    album_ref_class = 'cards__item'
 
     if find_and_resolve_config_conflicts() is True:
         await sleep(3.0)
@@ -60,7 +61,7 @@ async def process_pages() -> int:
                 (SITE_AJAX_REQUEST_UPLOADER_PAGE % (Config.uploader, pi)) if Config.uploader else
                 (SITE_AJAX_REQUEST_MODEL_PAGE % (Config.model, pi)) if Config.model else
                 (SITE_AJAX_REQUEST_SEARCH_PAGE % (Config.search_tags, Config.search_arts, Config.search_cats, Config.search,
-                                                  pi))
+                                                  Config.blacklist_tags, Config.blacklist_arts, Config.blacklist_cats, pi))
             )
             a_html = await fetch_html(page_addr)
             if not a_html:
@@ -71,12 +72,16 @@ async def process_pages() -> int:
                 Log.error(f'Error: got empty HTML for page {pi}! Retrying...')
                 continue
 
+            if (page_title := a_html.find('title')) and page_title.string.lower().strip() == 'page not found':
+                Log.error(f'Fatal: got \'Page not Found\' error when requesting \'{page_addr}\'')
+                return -2
+
             pi += 1
 
             if maxpage == 0:
-                for page_ajax in a_html.find_all('a', attrs={'data-action': 'ajax'}):
+                for page_ajax in a_html.find_all('span', class_='pagination__text'):
                     try:
-                        maxpage = max(maxpage, int(re_paginator.search(str(page_ajax.get('data-parameters'))).group(1)))
+                        maxpage = max(maxpage, int(page_ajax.string))
                     except Exception:
                         pass
                 if maxpage == 0:
@@ -86,18 +91,18 @@ async def process_pages() -> int:
                     Log.debug(f'Extracted max page: {maxpage:d}')
 
             if Config.get_maxid:
-                mirefs = a_html.find_all('a', class_=album_ref_class)
-                max_id = max(int(re_page_entry.search(_.get('href')).group(1)) for _ in mirefs)
+                mirefs = a_html.find_all('div', class_=album_ref_class)
+                max_id = max(int(_['data-item-id']) for _ in mirefs if _['data-item-id'].isnumeric())
                 Log.fatal(f'{APP_NAME}: {max_id:d}')
                 return 0
 
             Log.info(f'page {pi - 1:d}...{" (this is the last page!)" if (0 < maxpage == pi - 1) else ""}')
 
-            arefs = a_html.find_all('a', class_=album_ref_class)
+            arefs = [a for a in (_.find('a') for _ in a_html.find_all('div', class_=album_ref_class)) if SITE in a['href']]
             lower_count = 0
             orig_count = len(arefs)
             for aref in arefs:
-                href = str(aref.get('href'))
+                href = str(aref['href'])
                 cur_id = int(re_page_entry.search(href).group(1))
                 if bound_res := check_id_bounds(cur_id):
                     if bound_res < 0:
@@ -106,7 +111,7 @@ async def process_pages() -> int:
                 elif cur_id in v_entries:
                     Log.warn(f'Warning: id {cur_id:d} already queued, skipping')
                     continue
-                my_title = aref.parent.find('div', class_='thumb_title').text
+                my_title = aref.parent.find('span', class_='card__title').text.strip()
                 my_utitle = aref['href'][:-1][aref['href'][:-1].rfind('/') + 1:]
                 my_preview_link = aref.parent.find('img').get('data-original')
                 use_utitle = has_naming_flag(NamingFlags.USE_URL_TITLE)

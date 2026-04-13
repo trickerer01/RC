@@ -42,6 +42,9 @@ class BaseConfig:
         'search_tag': 'search_tags',
         'search_art': 'search_arts',
         'search_cat': 'search_cats',
+        'blacklist_tag': 'blacklist_tags',
+        'blacklist_art': 'blacklist_arts',
+        'blacklist_cat': 'blacklist_cats',
         'stop_id': 'start_id',
         'begin_id': 'end_id',
         'header': 'extra_headers',
@@ -115,6 +118,9 @@ class BaseConfig:
         self.search_rule_art: str | None = None
         self.search_rule_cat: str | None = None
         # self.blacklist: str | None = None
+        self.blacklist_tags: str | None = ''
+        self.blacklist_arts: str | None = ''
+        self.blacklist_cats: str | None = ''
         # self.playlist_id: int | None = None
         # self.playlist_name: str | None = None
         self.favourites: int | None = None

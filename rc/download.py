@@ -104,12 +104,12 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     except Exception:
         Log.warn(f'Warning: cannot extract score for {sname}.')
     try:
-        my_authors = [str(a.string).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
+        my_authors = [str(a.get_text(strip=True)).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract authors for {sname}.')
         my_authors: list[str] = []
     try:
-        my_categories = [str(c.string).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
+        my_categories = [str(c.get_text(strip=True)).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract categories for {sname}.')
         my_categories: list[str] = []
@@ -172,16 +172,12 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     prefix = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
 
     try:
-        expected_pages_count = int(a_html.find('div', class_='label', string='Pages:').next_sibling.text)
+        pages_div = a_html.find('div', class_='album-info-label', string='Pages:')
+        expected_pages_count = int(pages_div.parent.find('div', class_='album-info-value').text)
     except Exception:
         Log.error(f'Cannot find expected pages count section for {sname}, failed!')
         return DownloadResult.FAIL_RETRIES
     album_th = a_html.find('a', class_='th', href=re_read_href)
-    try:
-        read_href_1 = str(album_th.get('href'))[:-1]
-    except Exception:
-        Log.error(f'Error: cannot find download section for {sname}! Aborted!')
-        return DownloadResult.FAIL_DELETED
     try:
         preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
         ai.preview_link = preview_href_1
@@ -193,18 +189,16 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
         ai.images.append(pii)
 
-    r_html = await fetch_html(f'{read_href_1[:read_href_1.rfind("/")]}/0/')
-    if r_html is None:
-        Log.error(f'Error: unable to retreive html for {sname} page 1! Aborted!')
-        return DownloadResult.FAIL_RETRIES
+    arefs = a_html.find_all('a', class_='item')
+    file_links = [str(_.get('data-src', _.get('data-full-src'))) for _ in arefs]
 
-    file_links = [str(elem.get('data-src') or elem.get('data-original')) for elem in r_html.find_all('img', class_=['hidden', 'visible'])]
     if len(file_links) != expected_pages_count:
         Log.error(f'Error: {ai.sfsname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
         return DownloadResult.FAIL_RETRIES
 
     for iidx, ilink in enumerate(file_links):
-        iid, iext = tuple(ilink[:-1][ilink[:-1].rfind('/') + 1:].split('.', 1))
+        slink = ilink[:ilink.rfind('/')]
+        iid, iext = tuple(slink[slink[:-1].rfind('/') + 1:].split('.', 1))
         ii = ImageInfo(ai, int(iid), ilink, f'{prefix}{iid}.{iext}', num=iidx + 1)
         ai.images.append(ii)
 

@@ -184,9 +184,7 @@ async def fetch_html(url: str, *, tries=0, **kwargs) -> BeautifulSoup | None:
     while retries <= tries:
         r = None
         try:
-            async with await wrap_request(
-                    'GET', url,
-                    headers={'Connection': 'keep-alive', 'X-fancyBox': 'true', 'X-Requested-With': 'XMLHttpRequest'}, **kwargs) as r:
+            async with await wrap_request('GET', url, headers={'Connection': 'keep-alive'}, **kwargs) as r:
                 if r.status != 404:
                     r.raise_for_status()
                 content = await r.read()

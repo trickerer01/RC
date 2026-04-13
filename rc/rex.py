@@ -18,7 +18,7 @@ re_replace_symbols = re.compile(r'[^0-9a-zA-Z.,_+%!\-()\[\] ]+')
 re_ext = re.compile(r'(\.[^&]{3,5})&')
 re_read_href = re.compile(r'/read/.+?')
 # pages
-re_page_entry = re.compile(r'comics/(\d+)/')
+re_page_entry = re.compile(r'comics?/(\d+)/')
 # re_preview_entry = re_compile(r'/(\d+)_preview[^.]*?\.([^/]+)/')
 re_paginator = re.compile(r'from(?:_(?:fav_)?(?:albums|videos)|1)?:(\d+)')
 # validators

@@ -50,27 +50,28 @@ START_TIME = datetime.datetime.now()
 
 SITE = base64.b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eQ==').decode()
 SITE_AJAX_REQUEST_SEARCH_PAGE = base64.b64decode(
-    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2FsYnVtc19saXN0X3NlYX'
-    'JjaF9yZXN1bHQmZmxhZzE9JnNvcnRfYnk9cG9zdF9kYXRlJnRhZ19pZHM9JXMmbW9kZWxfaWRzPSVzJmNhdGVnb3J5X2lkcz0lcyZxPSVzJmZyb21fYWxidW1zPSVk',
-).decode()
-'''Params required: **tags**, **artists**, **categories**, **search**, **page** - **str**, **str**, **str**, **str**, **int**\n
-Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', 1)'''
-SITE_AJAX_REQUEST_ALBUM = base64.b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pY3MvJWQvYS8=').decode()
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9zZWFyY2gvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2NvbW1vbl9hbGJ1bXNfbG'
+    'lzdCZzb3J0X2J5PXBvc3RfZGF0ZSZ0YWdfaWRzPSVzJm1vZGVsX2lkcz0lcyZjYXRlZ29yeV9pZHM9JXMmcT0lcyZza2lwX3RhZ3NfY3VzdG9tPSVzJnNraXBfYXJ0aXN0c19j'
+    'dXN0b209JXMmc2tpcF9jYXRlZ29yaWVzX2N1c3RvbT0lcyZmcm9tPSVk').decode()
+'''Params required: **tags**, **artists**, **categories**, **search**, **skip_tags**, **skip_arts**, **skip_cats**, **page** -
+**str**, **str**, **str**, **str**, **str**, **str**, **str**, **int**\n
+Ex. SITE_AJAX_REQUEST_SEARCH_PAGE % ('1,2', '3,4,5', '6', 'sfw', '7,8', '9', '10,11,12', 1)'''
+SITE_AJAX_REQUEST_ALBUM = base64.b64decode('aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21pYy8lZC9hLw==').decode()
 '''Params required: **album_id** - **int**\n
 Ex. SITE_AJAX_REQUEST_ALBUM % 11111'''
 SITE_AJAX_REQUEST_FAVOURITES_PAGE = base64.b64decode(
-    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21tdW5pdHkvJWQvdW5rL2Zhdm9yaXRlcy8/bW9kZT1hc3luYyZmdW5jdGlvbj1nZXRfYmxvY2smYmxvY2tfaWQ9bGlzdF9hbG'
-    'J1bXNfZmF2b3VyaXRlX2FsYnVtcyZmYXZfdHlwZT0wJnNvcnRfYnk9JmZyb21fZmF2X2FsYnVtcz0lZA==').decode()
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9tZW1iZXJzLyVkLyVkLz9tb2RlPWFzeW5jJmZ1bmN0aW9uPWdldF9ibG9jayZibG9ja19pZD1saXN0X2FsYnVtc19tZW1iZXJfZm'
+    'F2b3VyaXRlX2FsYnVtcw==').decode()
 '''Params required: **user_id**, **page** - **int**, **int**\n
 Ex. SITE_AJAX_REQUEST_FAVOURITES_PAGE % (2083334, 1)'''
 SITE_AJAX_REQUEST_UPLOADER_PAGE = base64.b64decode(
-    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9jb21tdW5pdHkvJWQvdW5rL2NvbWljcy8/bW9kZT1hc3luYyZmdW5jdGlvbj1nZXRfYmxvY2smYmxvY2tfaWQ9bGlzdF9hbGJ1bX'
-    'NfY3JlYXRlZF9hbGJ1bXMmc29ydF9ieT0mZnJvbV9hbGJ1bXM9JWQ=').decode()
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9tZW1iZXJzLyVkLyVkLz9tb2RlPWFzeW5jJmZ1bmN0aW9uPWdldF9ibG9jayZibG9ja19pZD1saXN0X2FsYnVtc19tZW1iZXJfY3'
+    'JlYXRlZF9hbGJ1bXM=').decode()
 '''Params required: **user_id**, **page** - **int**, **int**\n
 Ex. SITE_AJAX_REQUEST_UPLOADER_PAGE % (158018, 1)'''
 SITE_AJAX_REQUEST_MODEL_PAGE = base64.b64decode(
-    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9hcnRpc3RzLyVzLz9tb2RlPWFzeW5jJmZ1bmN0aW9uPWdldF9ibG9jayZibG9ja19pZD1saXN0X2FsYnVtc19jb21tb25fYWxidW'
-    '1zX2xpc3Qmc29ydF9ieT1wb3N0X2RhdGUmZnJvbTE9JWQ=').decode()
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS9tb2RlbHMvJXMvJWQvP21vZGU9YXN5bmMmZnVuY3Rpb249Z2V0X2Jsb2NrJmJsb2NrX2lkPWxpc3RfYWxidW1zX2NvbW1vbl9hbG'
+    'J1bXNfbGlzdA==').decode()
 '''Params required: **artist_name**, **page** - **str**, **int**\n
 Ex. SITE_AJAX_REQUEST_MODEL_PAGE % ('fred-perry', 1)'''
 
@@ -236,13 +237,9 @@ HELP_ARG_SEARCH_STR = (
     'Native search using string query (matching any word in exact manner, check README for more info).'
     ' Spaces must be replced with \'-\'. Ex. \'after-hours\''
 )
-# HELP_ARG_BLACKLIST = (
-#     'Native search temporary blacklist filter. Separate values by comma, all values must be valid tag, category or artist names.'
-#     ' Prefix indicates filter type: [a]rtist, [c]ategory or [t]ag. Unprefixed values match all types (if more than one exists).'
-#     ' Supports wildcards.'
-#     ' Example: \'-blacklist c:2d,a:wiz220,t:1boy*\' will exclude all results having either category \'2d\', artist \'wiz220\''
-#     ' or a tag starting with \'1boy\''
-# )
+HELP_ARG_BLACKLIST = (
+    'Native search temporary blacklist filter. Values must be valid tag, category or artist names.'
+)
 # HELP_ARG_QUALITY = 'Video quality. Default is \'36000\'. If not found, best quality found is used (up to 4K)'
 # HELP_ARG_DURATION = (
 #     f'Video duration filter (in seconds). Limits (min-max): 0-{DURATION_MAX:d}.'
