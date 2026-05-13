@@ -104,22 +104,22 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     except Exception:
         Log.warn(f'Warning: cannot extract score for {sname}.')
     try:
-        my_authors = [str(a.get_text(strip=True)).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
+        arts = [str(a.get_text(strip=True)).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract authors for {sname}.')
-        my_authors: list[str] = []
+        arts: list[str] = []
     try:
-        my_categories = [str(c.get_text(strip=True)).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
+        cats = [str(c.get_text(strip=True)).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
     except Exception:
         Log.warn(f'Warning: cannot extract categories for {sname}.')
-        my_categories: list[str] = []
+        cats: list[str] = []
     tdiv = a_html.find('div', string='Tags:')
     if tdiv is None:
         Log.info(f'Warning: album {sname} has no tags!')
     tags: list[str] = [str(elem.string) for elem in tdiv.parent.find_all('a')] if tdiv else []
-    tags_raw = [tag.replace(' ', '_').lower() for tag in tags]
-    for calist in (my_categories, my_authors):
-        for add_tag in [ca.replace(' ', '_') for ca in calist if ca]:
+    arts_raw, cats_raw, tags_raw = tuple([_.replace(' ', '_').lower() for _ in actlist] for actlist in (arts, cats, tags))
+    for calist in (cats_raw, arts_raw):
+        for add_tag in [ca for ca in calist if ca]:
             if add_tag not in tags_raw:
                 tags_raw.append(add_tag)
     if Config.save_tags:

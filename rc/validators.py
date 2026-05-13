@@ -92,6 +92,11 @@ def find_and_resolve_config_conflicts() -> bool:
         Log.info('Info: \'--scan-all-pages\' flag was set but post id lower bound was not provided, ignored')
         delay_for_message = True
 
+    # if Config.check_votes is True and not len(Config.extra_tags):
+    #     Log.info('Info: \'--check-votes\' flag was set but no extra tags were provided, ignored')
+    #     Config.check_votes = False
+    #     delay_for_message = True
+
     if Config.save_comments is True and Config.session_id is None:
         Log.info('Info: Comments cannot be accessed without `-session_id`, saving comments is impossible. Disabled!')
         Config.save_comments = False
