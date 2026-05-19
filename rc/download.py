@@ -192,6 +192,10 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     arefs = a_html.find_all('a', class_='item')
     file_links = [str(_.get('data-src', _.get('data-full-src'))) for _ in arefs]
 
+    if len(file_links) == 0:
+        Log.error(f'Error: {ai.sfsname} pages count is 0 (raw: {expected_pages_count:d})! Aborted!')
+        return DownloadResult.FAIL_RETRIES
+
     if len(file_links) != expected_pages_count:
         Log.error(f'Error: {ai.sfsname} expected {expected_pages_count:d} pages but found {len(file_links):d} links! Aborted!')
         return DownloadResult.FAIL_RETRIES
