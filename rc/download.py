@@ -373,7 +373,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.run()
             async with async_open(ii.my_fullpath, 'ab') as outf:
                 ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
-                ii.album.dstart_time = get_elapsed_time_i()
+                ii.album.dstart_time = ii.album.dstart_time or get_elapsed_time_i()
                 bytes_written_this_try = 0
                 async for chunk in r.content.iter_chunked(128 * Mem.KB):
                     await outf.write(chunk)
