@@ -207,8 +207,8 @@ class AlbumDownloadWorker:
                 elapsed_seconds = get_elapsed_time_i()
                 if elapsed_seconds >= write_delay and elapsed_seconds - last_check_seconds >= write_delay:
                     last_check_seconds = elapsed_seconds
-                    a_ids = sorted(self._downloads_active)
-                    arglist = ['-seq', f'({"~".join(f"id={idi:d}" for idi in a_ids)})'] if len(a_ids) > 1 else ['-start', str(a_ids[0])]
+                    aids = sorted(self._downloads_active)
+                    arglist = ['ids', '-seq', f'({"~".join(f"id={idi:d}" for idi in aids)})'] if len(aids) > 1 else ['-start', str(aids[0])]
                     arglist.extend(arglist_base)
                     try:
                         Log.trace(f'Storing continue file to \'{continue_file_name}\'...')
