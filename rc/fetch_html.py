@@ -20,8 +20,9 @@ from bs4 import BeautifulSoup
 from fake_useragent import FakeUserAgent
 
 from .config import Config
-from .defs import CONNECT_REQUEST_DELAY, CONNECT_RETRY_DELAY, MAX_IMAGES_QUEUE_SIZE, UTF8, Mem
+from .defs import CONNECT_REQUEST_DELAY, MAX_IMAGES_QUEUE_SIZE, UTF8, Mem
 from .logger import Log
+from .util import calc_sleep_time_retry
 
 __all__ = ('create_session', 'ensure_conn_closed', 'fetch_html', 'fetch_html_raw', 'wrap_request')
 
@@ -205,7 +206,7 @@ async def fetch_html_raw(url: str, *, tries=0, **kwargs) -> bytes | None:
             if Config.aborted:
                 break
             if retries <= tries:
-                await sleep(random.uniform(*CONNECT_RETRY_DELAY))
+                await sleep(calc_sleep_time_retry(r))
             continue
 
     if retries > tries:

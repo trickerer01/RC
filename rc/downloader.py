@@ -34,7 +34,7 @@ from .defs import (
 from .iinfo import AlbumInfo, ImageInfo, get_min_max_ids
 from .logger import Log
 from .path_util import folder_already_exists_arr
-from .util import calc_sleep_time, format_time, get_elapsed_time_i, get_elapsed_time_s
+from .util import calc_sleep_time_downloader, format_time, get_elapsed_time_i, get_elapsed_time_s
 
 __all__ = ('AlbumDownloadWorker', 'ImageDownloadWorker')
 
@@ -177,7 +177,7 @@ class AlbumDownloadWorker:
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while self.get_workload_size() > 0:
-            await sleep(calc_sleep_time(3.0) if len(self._seq) + self._queue.qsize() > 0 else 1.0)
+            await sleep(calc_sleep_time_downloader() if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             scan_count = self._scan_count
             extra_count = max(0, scan_count - self._orig_count)
@@ -218,7 +218,7 @@ class AlbumDownloadWorker:
                             cfile.write('\n'.join(str(e) for e in arglist))
                     except OSError:
                         Log.error(f'Unable to save continue file to \'{continue_file_name}\'!')
-            await sleep(calc_sleep_time(3.0))
+            await sleep(calc_sleep_time_downloader())
         if not Config.aborted and os.path.isfile(continue_file_fullpath):
             Log.trace(f'All files downloaded. Removing continue file \'{continue_file_name}\'...')
             os.remove(continue_file_fullpath)
@@ -389,7 +389,7 @@ class ImageDownloadWorker:
         force_check_seconds = DOWNLOAD_QUEUE_STALL_CHECK_TIMER
         last_check_seconds = 0
         while self.get_workload_size() > 0:
-            await sleep(calc_sleep_time(3.0) if len(self._seq) + self._queue.qsize() > 0 else 1.0)
+            await sleep(calc_sleep_time_downloader() if len(self._seq) + self._queue.qsize() > 0 else 1.0)
             queue_size = len(self._seq) + self._queue.qsize()
             download_count = len(self._downloads_active)
             write_count = len(self._writes_active)

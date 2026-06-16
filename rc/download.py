@@ -8,7 +8,6 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 
 import os
 import pathlib
-import random
 import sys
 import urllib.parse
 from asyncio import sleep
@@ -18,7 +17,6 @@ from aiohttp import ClientConnectorError, ClientPayloadError
 
 from .config import Config
 from .defs import (
-    CONNECT_RETRY_DELAY,
     DOWNLOAD_MODE_SKIP,
     DOWNLOAD_MODE_TOUCH,
     DOWNLOAD_POLICY_ALWAYS,
@@ -39,7 +37,14 @@ from .logger import Log
 from .path_util import folder_already_exists, try_rename
 from .rex import re_album_foldername, re_media_filename, re_read_href, re_replace_symbols
 from .tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
-from .util import calculate_eta, format_time, get_elapsed_time_i, has_naming_flag, normalize_path
+from .util import (
+    calc_sleep_time_retry,
+    calculate_eta,
+    format_time,
+    get_elapsed_time_i,
+    has_naming_flag,
+    normalize_path,
+)
 
 __all__ = ('at_interrupt', 'download')
 
@@ -409,7 +414,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             status_checker.reset()
             if try_num <= Config.retries:
                 ii.set_state(ImageInfo.State.DOWNLOADING)
-                await sleep(random.uniform(*CONNECT_RETRY_DELAY))
+                await sleep(calc_sleep_time_retry(r))
             elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 os.remove(ii.my_fullpath)
