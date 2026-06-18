@@ -98,7 +98,7 @@ async def process_pages() -> int:
 
             Log.info(f'page {pi - 1:d}...{" (this is the last page!)" if (0 < maxpage == pi - 1) else ""}')
 
-            arefs = [a for a in (_.find('a') for _ in a_html.find_all('div', class_=album_ref_class)) if SITE in a['href']]
+            arefs = [a for a in (_.find('a') for _ in a_html.find_all('div', class_=album_ref_class)) if a and SITE in a['href']]
             lower_count = 0
             orig_count = len(arefs)
             for aref in arefs:
