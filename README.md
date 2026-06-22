@@ -43,6 +43,21 @@ RC is a gallery downloader with a lot of features, most of which are filters for
 - How raw string search really works: when trying to match word(s) in the search string server performs no additional steps. A single word search may match title, tags, categories or author while multi-word search may only match title but it's compared against every word in the search string, this can be used to search for multiple title patterns in one go. Matching is **exact** so word 'all' **will not** match 'tall', 'calling' or anything besides this exact word.
 
 #### Filters
+##### Native filters
+- In addition to multiple search parameters it is also possible to filter out unwanted results natively. Syntax:
+  - `-blacklist [type1:]name1[,[type2:]name2,...]`, where `<typeN>` is either `a` (artist), `c` (category) or `t` (tag), and `<nameN>` is (non-)wildcarded value string
+  - `<nameN>` must be a valid value of type `<typeN>` (see below for possible values)
+  - Each `type` can be used multiple times
+  - If `type` is omitted then `name` is matched against all possible `types` and must match at least one of them
+  - Examples:
+  - Filter out tag `2d`
+    - `-blacklist t:2d`
+  - Filter out all tags starting with `fur` or `scal` and all categories starting with `rob`
+    - `-blacklist t:fur*,t:scal*,c:rob*`
+  - Filter out any tags, categories and artists with name containing `zombie`:
+    - `-blacklist *zombie*`
+
+##### Post-search filters
 - Initial search results / ids list can be then filtered further using `extra tags` (see below)
 
 #### Tags. Categories. Artists. Extra tags

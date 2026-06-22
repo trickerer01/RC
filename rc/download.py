@@ -35,7 +35,7 @@ from .idgaps import IdGapsPredictor
 from .iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
 from .logger import Log
 from .path_util import folder_already_exists, try_rename
-from .rex import re_album_foldername, re_media_filename, re_read_href, re_replace_symbols
+from .rex import re_album_foldername, re_media_filename, re_replace_symbols
 from .tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
 from .util import (
     calc_sleep_time_retry,
@@ -96,32 +96,29 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     gpred.count_existing(ai)
 
     if not ai.title:
-        titleh1 = a_html.find('h1', class_='title_video')  # not a mistake
+        titleh1 = a_html.find('h1', class_=lambda x: x.endswith('title'))
         ai.title = titleh1.text if titleh1 else ''
 
     Log.info(f'Scanning {sname}: \'{ai.title}\'')
 
     try:
-        votes_int = int(a_html.find('span', class_='set-votes').text[1:-1].replace(' likes', '').replace(' like', ''))
-        rating_float = float(a_html.find('span', class_='set-rating').text[:-1])
-        rating = str(int(rating_float) or '')
-        score = f'{round((votes_int * rating_float) / 100.0):d}'
+        score = str(int(a_html.find('span', class_='voters count').text))
     except Exception:
         Log.warn(f'Warning: cannot extract score for {sname}.')
     try:
-        arts = [str(a.get_text(strip=True)).lower() for a in a_html.find('div', string='Artists:').parent.find_all('span')]
+        arts = [' '.join(str(a.text).lower().split(' ')[:-1]) for a in a_html.find('div', string='Artists:').parent.find_all('a')]
     except Exception:
         Log.warn(f'Warning: cannot extract authors for {sname}.')
         arts: list[str] = []
     try:
-        cats = [str(c.get_text(strip=True)).lower() for c in a_html.find('div', string='Categories:').parent.find_all('span')]
+        cats = [' '.join(str(c.text).lower().split(' ')[:-1]) for c in a_html.find('div', string='Categories:').parent.find_all('a')]
     except Exception:
         Log.warn(f'Warning: cannot extract categories for {sname}.')
         cats: list[str] = []
     tdiv = a_html.find('div', string='Tags:')
     if tdiv is None:
         Log.info(f'Warning: album {sname} has no tags!')
-    tags: list[str] = [str(elem.string) for elem in tdiv.parent.find_all('a')] if tdiv else []
+    tags: list[str] = [' '.join(str(t.text).lower().split(' ')[:-1]) for t in tdiv.parent.find_all('a')] if tdiv else []
     arts_raw, cats_raw, tags_raw = tuple([_.replace(' ', '_').lower() for _ in actlist] for actlist in (arts, cats, tags))
     for calist in (cats_raw, arts_raw):
         for add_tag in [ca for ca in calist if ca]:
@@ -177,15 +174,13 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     prefix = PREFIX if has_naming_flag(NamingFlags.PREFIX) else ''
 
     try:
-        pages_div = a_html.find('div', class_='album-info-label', string='Pages:')
-        expected_pages_count = int(pages_div.parent.find('div', class_='album-info-value').text)
+        pages_div = a_html.find('div', string='Pages:')
+        expected_pages_count = int(pages_div.parent.find('span').text)
     except Exception:
         Log.error(f'Cannot find expected pages count section for {sname}, failed!')
         return DownloadResult.FAIL_RETRIES
-    album_th = a_html.find('a', class_='th', href=re_read_href)
     try:
-        preview_href_1 = str(album_th.parent.find('img').get('data-original', ''))
-        ai.preview_link = preview_href_1
+        ai.preview_link = a_html.find('img', src=lambda x: f'/{ai.id}/preview.' in x)['src']
     except Exception:
         Log.error(f'Error: cannot find preview section for {sname}! Aborted!')
         return DownloadResult.FAIL_DELETED
@@ -194,8 +189,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         pii = ImageInfo(ai, ai.id, ai.preview_link, f'{prefix}!{ai.id}_{ai.preview_link[ai.preview_link.rfind("/") + 1:]}')
         ai.images.append(pii)
 
-    arefs = a_html.find_all('a', class_='item')
-    file_links = [str(_.get('data-src', _.get('data-full-src'))) for _ in arefs]
+    file_links = [str(_['href']) for _ in a_html.find_all('a', class_='item')]
 
     if len(file_links) == 0:
         Log.error(f'Error: {ai.sfsname} pages count is 0 (raw: {expected_pages_count:d})! Aborted!')

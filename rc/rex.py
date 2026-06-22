@@ -16,7 +16,7 @@ re_album_foldername = re.compile(fr'^(?:{PREFIX})?(\d+)[^\[]+(?:\[(\d+)\])?.*?$'
 re_infolist_filename = re.compile(fr'{PREFIX}!(?:tag|description|comment)s_\d+-\d+\.txt')
 re_replace_symbols = re.compile(r'[^0-9a-zA-Z.,_+%!\-()\[\] ]+')
 re_ext = re.compile(r'(\.[^&]{3,5})&')
-re_read_href = re.compile(r'/read/.+?')
+# re_read_href = re.compile(r'/read/.+?')
 # pages
 re_page_entry = re.compile(r'comics?/(\d+)/')
 # re_preview_entry = re_compile(r'/(\d+)_preview[^.]*?\.([^/]+)/')

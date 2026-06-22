@@ -62,7 +62,7 @@ def test_prepare(log=False) -> Callable[[], Callable[[], None]]:
 
 
 class FileCheckTests(TestCase):
-    @test_prepare(log=False)
+    @test_prepare()
     def test_filecheck01_tags(self) -> None:
         load_tag_nums()
         self.assertIsNone(TAG_NUMS.get(''))
@@ -178,12 +178,12 @@ class CmdTests(TestCase):
                          '-search_tag', '6*,5???*', '-search_rule_tag', 'any',
                          '-search_art', '*man1*', '-search_rule_art', 'any',
                          '-search_cat', 'ali??_*', '-search_rule_cat', 'any',
-                         # '-blacklist', 'a:6*9,c:*z,t:6g*,t:8*',
+                         '-blacklist', 'a:6*6,c:*dz,t:65*,t:.*',
                          '-start', '3', '-pages', '2'])
         self.assertEqual('10838,11146,11950,2007,3364,4326,4867,9244,9363', Config.search_tags)
         self.assertEqual('6864,6893', Config.search_arts)
         self.assertEqual('1897,315,685,979', Config.search_cats)
-        # self.assertEqual('model:25905,model:34361,cat:1277,cat:315,cat:3315,cat:557,tag:38580,tag:3966', Config.blacklist)
+        self.assertEqual('model:11919,model:9633,cat:211,tag:11146,tag:11619,tag:12827', Config.blacklist)
         self.assertEqual('any', Config.search_rule_tag)
         self.assertEqual('any', Config.search_rule_art)
         self.assertEqual('any', Config.search_rule_cat)
