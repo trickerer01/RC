@@ -38,6 +38,7 @@ DOWNLOAD_CONTINUE_FILE_CHECK_TIMER = 30
 # LOOKAHEAD_WATCH_RESCAN_DELAY_MAX = 1800
 RESCAN_DELAY_EMPTY = 1
 PREDICTION_REENABLE_THRESHOLD = 3
+VOTE_TO_REMOVAL_THRESHOLD = -9
 
 DURATION_MAX = 36000  # 10 hours (in seconds)
 # SCREENSHOTS_COUNT = 10
@@ -78,11 +79,11 @@ SITE_AJAX_REQUEST_MODEL_PAGE = base64.b64decode(
     'J1bXNfbGlzdA==').decode()
 '''Params required: **artist_name**, **page** - **str**, **int**\n
 Ex. SITE_AJAX_REQUEST_MODEL_PAGE % ('fred-perry', 1)'''
-# SITE_AJAX_REQUEST_VIDEO_VOTING = (
-#     'https://rule34video.com/tag_vote_state_public.php?video_id=%d&tag_ids=%s&category_ids=%s&model_ids=%s'
-# )
-# '''Params required: **video_id**, **tags**, **categories**, **artists** - **int**, **str**, **str**, **str**\n
-# Ex. SITE_AJAX_REQUEST_VIDEO_VOTING % (1071113, '1,2', '3,4,5', '6')'''
+SITE_AJAX_REQUEST_VIDEO_VOTING = base64.b64decode(
+    'aHR0cHM6Ly9ydWxlMzRjb21pYy5wYXJ0eS90YWdfdm90ZV9zdGF0ZV9wdWJsaWMucGhwP3ZpZGVvX2lkPSVkJnRhZ19pZHM9JXMmY2F0ZWdvcnlfaWRzPSVzJm1vZGVsX2lkcz'
+    '0lcw==').decode()
+'''Params required: **video_id**, **tags**, **categories**, **artists** - **int**, **str**, **str**, **str**\n
+Ex. SITE_AJAX_REQUEST_VIDEO_VOTING % (1071113, '1,2', '3,4,5', '6')'''
 
 # untagged albums download policy
 DOWNLOAD_POLICY_NOFILTERS = 'nofilters'
@@ -345,7 +346,7 @@ HELP_ARG_ALLOW_DUPLICATE_NAMES = (
     'Disable search results deduplication (by name).'
     ' By default exact matches will be dropped except the latest one (highest album id)'
 )
-# HELP_ARG_CHECK_VOTES = 'Query website voting system for downvoted tags/categories/artists to ignore during filtering'
+HELP_ARG_CHECK_VOTES = 'Query website voting system for downvoted tags/categories/artists to ignore during filtering'
 
 
 class DownloadResult(IntEnum):

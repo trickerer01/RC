@@ -45,6 +45,7 @@ from .util import (
     has_naming_flag,
     normalize_path,
 )
+from .voting import filter_act_by_votes_count
 
 __all__ = ('at_interrupt', 'download')
 
@@ -120,6 +121,8 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         Log.info(f'Warning: album {sname} has no tags!')
     tags: list[str] = [' '.join(str(t.text).lower().split(' ')[:-1]) for t in tdiv.parent.find_all('a')] if tdiv else []
     arts_raw, cats_raw, tags_raw = tuple([_.replace(' ', '_').lower() for _ in actlist] for actlist in (arts, cats, tags))
+    if Config.check_votes:
+        await filter_act_by_votes_count(ai, sname, arts_raw, cats_raw, tags_raw)
     for calist in (cats_raw, arts_raw):
         for add_tag in [ca for ca in calist if ca]:
             if add_tag not in tags_raw:
