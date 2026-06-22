@@ -52,7 +52,7 @@ def test_prepare(log=False) -> Callable[[], Callable[[], None]]:
                 AlbumDownloadWorker._instance = None
                 ImageDownloadWorker._instance = None
                 found_foldernames_dict.clear()
-                Log._disabled = not log
+                Log._disabled = not log and not RUN_CONN_TESTS
                 Config._reset()
                 RequestQueue._reset()
             set_up_test()
