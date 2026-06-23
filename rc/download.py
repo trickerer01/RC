@@ -404,8 +404,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             if (r is None or r.status != 403) and not isinstance(e, (ClientPayloadError, ClientConnectorError)):
                 try_num += 1
                 Log.error(f'{sfilename}: error #{try_num:d}...')
-            if r is not None and r.closed is False:
-                r.close()
+            ensure_conn_closed(r)
             # Network error may be thrown before item is added to active downloads
             await idwn.remove_from_writes(ii, True)
             status_checker.reset()
@@ -415,6 +414,8 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
                 Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
                 os.remove(ii.my_fullpath)
+        finally:
+            ensure_conn_closed(r)
 
     ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS) else
            DownloadResult.SUCCESS if try_num <= Config.retries else
