@@ -21,7 +21,7 @@ from .downloader import AlbumDownloadWorker, ImageDownloadWorker
 from .fetch_html import RequestQueue
 from .logger import Log
 from .main import main_sync
-from .path_util import found_foldernames_dict
+from .path_util import _found_foldernames_dict
 from .rex import prepare_regex_fullmatch
 from .tagger import (
     ART_NUMS,
@@ -51,7 +51,7 @@ def test_prepare(log=False) -> Callable[[], Callable[[], None]]:
             def set_up_test() -> None:
                 AlbumDownloadWorker._instance = None
                 ImageDownloadWorker._instance = None
-                found_foldernames_dict.clear()
+                _found_foldernames_dict.clear()
                 Log._disabled = not log and not RUN_CONN_TESTS
                 Config._reset()
                 RequestQueue._reset()
