@@ -116,16 +116,15 @@ def _folder_exists_in_folder(base_folder: str, idi: int, check_folder: bool) -> 
 
 def folder_already_exists(idi: int, check_folder=True) -> str:
     for fullpath in _found_foldernames_dict:
-        fullpath = _folder_exists_in_folder(fullpath, idi, check_folder)
-        if len(fullpath) > 0:
-            return fullpath
+        if folderpath := _folder_exists_in_folder(fullpath, idi, check_folder):
+            return folderpath
     return ''
 
 
-def _folder_exists_in_folder_arr(base_folder: str, idi: int) -> list[str]:
+def _folder_exists_in_folder_arr(base_folder: str, idi: int, check_folder: bool) -> list[str]:
     orig_folder_names = _found_foldernames_dict.get(base_folder)
     folder_folders: list[str] = []
-    if os.path.isdir(base_folder) and orig_folder_names is not None:
+    if (not check_folder or os.path.isdir(base_folder)) and orig_folder_names is not None:
         for fname in orig_folder_names:
             f_id = _get_foldername_match(fname)
             if f_id and str(idi) == f_id:
@@ -133,10 +132,10 @@ def _folder_exists_in_folder_arr(base_folder: str, idi: int) -> list[str]:
     return folder_folders
 
 
-def folder_already_exists_arr(idi: int) -> list[str]:
+def folder_already_exists_arr(idi: int, check_folder=True) -> list[str]:
     found_folders: list[str] = []
     for fullpath in _found_foldernames_dict:
-        found_folders.extend(_folder_exists_in_folder_arr(fullpath, idi))
+        found_folders.extend(_folder_exists_in_folder_arr(fullpath, idi, check_folder))
     return found_folders
 
 
