@@ -31,7 +31,7 @@ from .defs import (
     DownloadResult,
     Mem,
 )
-from .iinfo import AlbumInfo, ImageInfo, get_min_max_ids
+from .iinfo import AIFlags, AIState, AlbumInfo, IIFlags, IIState, ImageInfo, get_min_max_ids
 from .logger import Log
 from .path_util import folder_already_exists_arr
 from .util import calc_sleep_time_downloader, format_time, get_elapsed_time_i, get_elapsed_time_s
@@ -118,7 +118,7 @@ class AlbumDownloadWorker:
                 Log.info(f'{ai.sname} scan returned {result!s} but it was already downloaded:'
                          f'\n - {f"{newline} - ".join(f"{newline} - ".join(ffs) for ffs in founditems)}')
         if result == DownloadResult.FAIL_NOT_FOUND:
-            ai.set_flag(AlbumInfo.Flags.RETURNED_404)
+            ai.set_flag(AIFlags.RETURNED_404)
         self._404_counter = self._404_counter + 1 if result == DownloadResult.FAIL_NOT_FOUND else 0
         if len(self._seq) + self._queue.qsize() == 0 and Config.lookahead:
             self._extend_with_extra()
@@ -147,7 +147,7 @@ class AlbumDownloadWorker:
                 sempty = not bool(self._seq)
             if qfull is False and sempty is False:
                 ii = self._seq.popleft()
-                ii.set_state(AlbumInfo.State.QUEUED)
+                ii.set_state(AIState.QUEUED)
                 await self._queue.put((ii, self._func(ii)))
             else:
                 await sleep(0.1)
@@ -247,12 +247,12 @@ class AlbumDownloadWorker:
 
     def at_album_completed(self, ai: AlbumInfo) -> None:
         Log.info(f'Album {ai.sname}: all images processed')
-        if all(ii.state == ImageInfo.State.DONE for ii in ai.images):
+        if all(ii.state == IIState.DONE for ii in ai.images):
             self._completed_items.append(ai)
         else:
             self._failed_items.append(ai)
         ai.images.clear()
-        ai.set_state(AlbumInfo.State.PROCESSED)
+        ai.set_state(AIState.PROCESSED)
         if ai.id in self._downloads_active:
             del self._downloads_active[ai.id]
 
@@ -361,7 +361,7 @@ class ImageDownloadWorker:
                 break
             if qfull is False:
                 ii = self._seq.popleft()
-                ii.set_state(ImageInfo.State.QUEUED)
+                ii.set_state(IIState.QUEUED)
                 await self._queue.put((ii, self._func(ii)))
             else:
                 await sleep(0.1)
@@ -457,7 +457,7 @@ class ImageDownloadWorker:
     def at_interrupt(self) -> None:
         if len(self._downloads_active) > 0:
             active_items = sorted([ii for ii in self._downloads_active if os.path.isfile(ii.my_fullpath)
-                                   and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED)], key=lambda ii: ii.id)
+                                   and ii.has_flag(IIFlags.FILE_WAS_CREATED)], key=lambda ii: ii.id)
             if Config.keep_unfinished:
                 unfinished_str = '\n '.join(f'{i + 1:d}) {ii.my_fullpath}' for i, ii in enumerate(active_items))
                 Log.debug(f'at_interrupt: keeping {len(active_items):d} unfinished file(s):\n {unfinished_str}')

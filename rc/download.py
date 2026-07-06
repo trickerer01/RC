@@ -32,9 +32,9 @@ from .downloader import AlbumDownloadWorker, ImageDownloadWorker
 from .dthrottler import ThrottleChecker
 from .fetch_html import ensure_conn_closed, fetch_html, wrap_request
 from .idgaps import IdGapsPredictor
-from .iinfo import AlbumInfo, ImageInfo, export_album_info, get_min_max_ids
+from .iinfo import AIState, AlbumInfo, IIFlags, IIState, ImageInfo, export_album_info, get_min_max_ids
 from .logger import Log
-from .path_util import folder_already_exists, try_rename
+from .path_util import FileLock, FileLockError, folder_already_exists, try_rename
 from .rex import re_album_foldername, re_media_filename, re_replace_symbols
 from .tagger import filtered_tags, is_filtered_out_by_extra_tags, solve_tag_conflicts
 from .util import (
@@ -78,7 +78,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
         gpred.count_nonexisting()
         return DownloadResult.FAIL_NOT_FOUND
 
-    ai.set_state(AlbumInfo.State.ACTIVE)
+    ai.set_state(AIState.ACTIVE)
     a_html = await fetch_html(SITE_AJAX_REQUEST_ALBUM % ai.id)
     if a_html is None:
         Log.error(f'Error: unable to retreive html for {sname}! Aborted!')
@@ -246,7 +246,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                 else:
                     if Config.no_rename_move is False or same_loc:
                         Log.info(f'{ai.sfsname} (or similar) found{loc_str}. Enforcing new name (was \'{existing_folder}\').')
-                        if not try_rename(normalize_path(existing_folder), ai.my_folder):
+                        if not await try_rename(normalize_path(existing_folder), ai.my_folder):
                             Log.warn(f'Warning: unable to rename folder to {ai.my_folder} (already exists?). Old name will be preserved!')
                             ai.name = pathlib.Path(normalize_path(existing_folder)).name
                     else:
@@ -254,7 +254,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
                         Log.info(f'{ai.sfsname} (or similar) found{loc_str}. Enforcing old path + new name '
                                  f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                         ai.subfolder = new_subfolder
-                        if not try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
+                        if not await try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
                             Log.warn(f'Warning: unable to rename folder to {ai.my_folder} (already exists?). Old name will be preserved!')
                             ai.name = pathlib.Path(normalize_path(existing_folder)).name
         else:
@@ -269,14 +269,14 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
             if Config.no_rename_move is False:
                 Log.info(f'{ai.sfsname} (or similar) found{loc_str} but its image set differs! '
                          f'Enforcing new name (was \'{existing_folder}\')')
-                if not try_rename(normalize_path(existing_folder), ai.my_folder):
+                if not await try_rename(normalize_path(existing_folder), ai.my_folder):
                     Log.warn(f'Warning: folder {ai.my_folder} already exists! Old folder will be preserved.')
             else:
                 new_subfolder = normalize_path(os.path.relpath(curalbum_folder, Config.dest_base))
                 Log.info(f'{ai.sfsname} (or similar) found{loc_str} but its image set differs! Enforcing old path + new name '
                          f'\'{curalbum_folder}/{ai.name}\' due to \'--no-rename-move\' flag (was \'{curalbum_name}\').')
                 ai.subfolder = new_subfolder
-                if not try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
+                if not await try_rename(existing_folder, normalize_path(os.path.abspath(ai.my_folder), False)):
                     Log.warn(f'Warning: folder {ai.sfsname} already exists! Old folder will be preserved.')
     elif Config.continue_mode is False and os.path.isdir(ai.my_folder) and all(os.path.isfile(imi.my_fullpath) for imi in ai.images):
         Log.info(f'Album {ai.sfsname} and all its {len(ai.images):d} images already exist. Skipped.')
@@ -286,7 +286,7 @@ async def process_album(ai: AlbumInfo) -> DownloadResult:
     Log.info(f'Saving {ai.sfsname}: {ai.images_count:d} images will be downloaded to {ai.my_sfolder_full}')
     [idwn.store_image_info(ii) for ii in ai.images]
 
-    ai.set_state(AlbumInfo.State.SCANNED)
+    ai.set_state(AIState.SCANNED)
     return DownloadResult.SUCCESS
 
 
@@ -295,10 +295,10 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     skip = Config.download_mode == DOWNLOAD_MODE_SKIP and not ii.is_preview
 
     if skip is True:
-        ii.set_state(ImageInfo.State.DONE)
+        ii.set_state(IIState.DONE)
         ret = DownloadResult.FAIL_SKIPPED
     else:
-        ii.set_state(ImageInfo.State.DOWNLOADING)
+        ii.set_state(IIState.DOWNLOADING)
         if not os.path.isdir(ii.my_folder):
             try:
                 os.makedirs(ii.my_folder)
@@ -307,10 +307,10 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
         else:
             curfile = os.path.isfile(ii.my_fullpath)
             if curfile:
-                ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
+                ii.set_flag(IIFlags.ALREADY_EXISTED_EXACT)
                 if Config.continue_mode is False:
                     Log.info(f'{ii.filename} already exists. Skipped.')
-                    ii.set_state(ImageInfo.State.DONE)
+                    ii.set_state(IIState.DONE)
                     return DownloadResult.FAIL_ALREADY_EXISTS
 
     sfilename = f'{ii.album.my_sfolder_full}{ii.filename}'
@@ -318,111 +318,119 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
     idwn = ImageDownloadWorker.get()
     status_checker = ThrottleChecker(ii)
     try_num = 0
-    while (not skip) and try_num <= Config.retries:
-        r = None
+    while True:
         try:
-            file_exists = os.path.isfile(ii.my_fullpath)
-            if file_exists and try_num == 0:
-                ii.set_flag(ImageInfo.Flags.ALREADY_EXISTED_EXACT)
-            file_size = os.stat(ii.my_fullpath).st_size if file_exists else 0
+            async with FileLock(ii.my_fullpath):
+                while (not skip) and try_num <= Config.retries:
+                    r = None
+                    try:
+                        file_exists = os.path.isfile(ii.my_fullpath)
+                        if file_exists and try_num == 0:
+                            ii.set_flag(IIFlags.ALREADY_EXISTED_EXACT)
+                        file_size = os.stat(ii.my_fullpath).st_size if file_exists else 0
 
-            if Config.download_mode == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
-                if file_exists:
-                    Log.info(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
-                    ii.set_state(ImageInfo.State.DONE)
-                    return DownloadResult.FAIL_ALREADY_EXISTS
-                else:
-                    Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
-                    with open(ii.my_fullpath, 'wb'):
-                        ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
-                        ii.set_state(ImageInfo.State.DONE)
-                break
+                        if Config.download_mode == DOWNLOAD_MODE_TOUCH and not ii.is_preview:
+                            if file_exists:
+                                Log.info(f'{sname} already exists, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
+                                ii.set_state(IIState.DONE)
+                                return DownloadResult.FAIL_ALREADY_EXISTS
+                            else:
+                                Log.info(f'Saving<touch> {sname} {0.0:.2f} Mb to {sfilename}')
+                                with open(ii.my_fullpath, 'wb'):
+                                    ii.set_flag(IIFlags.FILE_WAS_CREATED)
+                                    ii.set_state(IIState.DONE)
+                            break
 
-            hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'} if file_size > 0 else {}}
-            ckwargs = {'allow_redirects': not (Config.proxy and (Config.download_without_proxy or Config.html_without_proxy))}
-            ckwargs.update({'noproxy': bool(Config.proxy and Config.html_without_proxy)})
-            # hkwargs['headers'].update({'Referer': SITE_AJAX_REQUEST_ALBUM % ii.id})
-            r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
-            while r.status in (301, 302):
-                if urllib.parse.urlparse(r.headers['Location']).hostname != urllib.parse.urlparse(ii.link).hostname:
-                    ckwargs.update({'noproxy': Config.download_without_proxy, 'allow_redirects': True})
-                ensure_conn_closed(r)
-                r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
-            content_len: int = r.content_length or 0
-            content_range_s = str(r.headers.get('Content-Range', '/')).split('/', 1)
-            content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
-            if (content_len == 0 or r.status == 416) and file_size >= content_range:
-                Log.warn(f'{sname} is already completed, size: {file_size:d} ({file_size / Mem.MB:.2f} Mb)')
-                ii.set_state(ImageInfo.State.DONE)
-                ret = DownloadResult.FAIL_ALREADY_EXISTS
-                break
-            if r.status == 404:
-                Log.error(f'Got 404 for {sname}...!')
-                try_num = Config.retries
-                ret = DownloadResult.FAIL_NOT_FOUND
-            r.raise_for_status()
-            if r.content_type and 'text' in r.content_type:
-                raise FileNotFoundError(ii.link)
+                        hkwargs: dict[str, dict[str, str]] = {'headers': {'Range': f'bytes={file_size:d}-'} if file_size > 0 else {}}
+                        ckwargs = {'allow_redirects': not (Config.proxy and (Config.download_without_proxy or Config.html_without_proxy))}
+                        ckwargs.update({'noproxy': bool(Config.proxy and Config.html_without_proxy)})
+                        # hkwargs['headers'].update({'Referer': SITE_AJAX_REQUEST_ALBUM % ii.id})
+                        r = await wrap_request('GET', ii.link, **ckwargs, **hkwargs)
+                        while r.status in (301, 302):
+                            if urllib.parse.urlparse(r.headers['Location']).hostname != urllib.parse.urlparse(ii.link).hostname:
+                                ckwargs.update({'noproxy': Config.download_without_proxy, 'allow_redirects': True})
+                            ensure_conn_closed(r)
+                            r = await wrap_request('GET', r.headers['Location'], **ckwargs, **hkwargs)
+                        content_len: int = r.content_length or 0
+                        content_range_s = str(r.headers.get('Content-Range', '/')).split('/', 1)
+                        content_range = int(content_range_s[1]) if len(content_range_s) > 1 and content_range_s[1].isnumeric() else 1
+                        if (content_len == 0 or r.status == 416) and file_size >= content_range:
+                            size_str = f'{file_size:d} ({file_size / Mem.MB:.2f} Mb'
+                            Log.warn(f'{sname} is already completed, size: {size_str})')
+                            ii.set_state(IIState.DONE)
+                            ret = DownloadResult.FAIL_ALREADY_EXISTS
+                            break
+                        if r.status == 404:
+                            Log.error(f'Got 404 for {sname}...!')
+                            try_num = Config.retries
+                            ret = DownloadResult.FAIL_NOT_FOUND
+                        r.raise_for_status()
+                        if r.content_type and 'text' in r.content_type:
+                            raise FileNotFoundError(ii.link)
 
-            status_checker.prepare(r, file_size)
-            ii.expected_size = file_size + content_len
-            starting_str = f' <continuing at {file_size:d}>' if file_size else ''
-            total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
-            Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
+                        status_checker.prepare(r, file_size)
+                        ii.expected_size = file_size + content_len
+                        starting_str = f' <continuing at {file_size:d}>' if file_size else ''
+                        total_str = f' / {ii.expected_size / Mem.MB:.2f}' if file_size else ''
+                        Log.info(f'Saving{starting_str} {sname} {content_len / Mem.MB:.2f}{total_str} Mb to {sfilename}')
 
-            await idwn.add_to_writes(ii)
-            ii.set_state(ImageInfo.State.WRITING)
-            status_checker.run()
-            async with async_open(ii.my_fullpath, 'ab') as outf:
-                ii.set_flag(ImageInfo.Flags.FILE_WAS_CREATED)
-                ii.album.dstart_time = ii.album.dstart_time or get_elapsed_time_i()
-                bytes_written_this_try = 0
-                async for chunk in r.content.iter_chunked(128 * Mem.KB):
-                    await outf.write(chunk)
-                    ii.bytes_written += len(chunk)
-                    bytes_written_this_try += len(chunk)
-                    if try_num > 0 and bytes_written_this_try >= 256 * Mem.KB:
-                        try_num = 0
-            status_checker.reset()
-            await idwn.remove_from_writes(ii)
+                        await idwn.add_to_writes(ii)
+                        ii.set_state(IIState.WRITING)
+                        status_checker.run()
+                        async with async_open(ii.my_fullpath, 'ab') as outf:
+                            ii.set_flag(IIFlags.FILE_WAS_CREATED)
+                            ii.album.dstart_time = ii.album.dstart_time or get_elapsed_time_i()
+                            bytes_written_this_try = 0
+                            async for chunk in r.content.iter_chunked(128 * Mem.KB):
+                                await outf.write(chunk)
+                                ii.bytes_written += len(chunk)
+                                bytes_written_this_try += len(chunk)
+                                if try_num > 0 and bytes_written_this_try >= 256 * Mem.KB:
+                                    try_num = 0
+                        status_checker.reset()
+                        await idwn.remove_from_writes(ii)
 
-            file_size = os.stat(ii.my_fullpath).st_size
-            if ii.expected_size and file_size != ii.expected_size:
-                Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
-                raise OSError(ii.link)
+                        file_size = os.stat(ii.my_fullpath).st_size
+                        if ii.expected_size and file_size != ii.expected_size:
+                            Log.error(f'Error: file size mismatch for {sfilename}: {file_size:d} / {ii.expected_size:d}')
+                            raise OSError(ii.link)
 
-            ii.set_state(ImageInfo.State.DONE)
+                        ii.set_state(IIState.DONE)
 
-            if ii.album.all_done():
-                total_time = (get_elapsed_time_i() - ii.album.dstart_time) or 1
-                total_size = ii.album.total_size()
-                Log.info(f'[download] {ii.album.sfsname} ({total_size / Mem.MB:.1f} Mb) completed in {format_time(total_time)} '
-                         f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
+                        if ii.album.all_done():
+                            total_time = (get_elapsed_time_i() - ii.album.dstart_time) or 1
+                            total_size = ii.album.total_size()
+                            Log.info(f'[download] {ii.album.sfsname} ({total_size / Mem.MB:.1f} Mb) completed in {format_time(total_time)} '
+                                     f'({(total_size / total_time) / Mem.KB:.1f} Kb/s)')
+                        break
+                    except Exception as e:
+                        Log.error(f'{sname}: {sys.exc_info()[0]}: {sys.exc_info()[1]}')
+                        if (r is None or r.status != 403) and not isinstance(e, (ClientPayloadError, ClientConnectorError)):
+                            try_num += 1
+                            Log.error(f'{sfilename}: error #{try_num:d}...')
+                        ensure_conn_closed(r)
+                        # Network error may be thrown before item is added to active downloads
+                        await idwn.remove_from_writes(ii, True)
+                        status_checker.reset()
+                        if try_num <= Config.retries:
+                            ii.set_state(IIState.DOWNLOADING)
+                            await sleep(calc_sleep_time_retry(r))
+                        elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(IIFlags.FILE_WAS_CREATED):
+                            Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
+                            os.remove(ii.my_fullpath)
+                    finally:
+                        ensure_conn_closed(r)
             break
-        except Exception as e:
-            Log.error(f'{ii.sname}: {sys.exc_info()[0]}: {sys.exc_info()[1]}')
-            if (r is None or r.status != 403) and not isinstance(e, (ClientPayloadError, ClientConnectorError)):
-                try_num += 1
-                Log.error(f'{sfilename}: error #{try_num:d}...')
-            ensure_conn_closed(r)
-            # Network error may be thrown before item is added to active downloads
-            await idwn.remove_from_writes(ii, True)
-            status_checker.reset()
-            if try_num <= Config.retries:
-                ii.set_state(ImageInfo.State.DOWNLOADING)
-                await sleep(calc_sleep_time_retry(r))
-            elif Config.keep_unfinished is False and os.path.isfile(ii.my_fullpath) and ii.has_flag(ImageInfo.Flags.FILE_WAS_CREATED):
-                Log.error(f'Failed to download {sfilename}. Removing unfinished file...')
-                os.remove(ii.my_fullpath)
-        finally:
-            ensure_conn_closed(r)
+        except FileLockError:
+            Log.warn(f'Unable to acquire a lock on {sname}! Waiting...')
+            await sleep(calc_sleep_time_retry(None) * 5)
 
     ret = (ret if ret in (DownloadResult.FAIL_NOT_FOUND, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS) else
            DownloadResult.SUCCESS if try_num <= Config.retries else
            DownloadResult.FAIL_RETRIES)
 
     if ret not in (DownloadResult.SUCCESS, DownloadResult.FAIL_SKIPPED, DownloadResult.FAIL_ALREADY_EXISTS):
-        ii.set_state(ImageInfo.State.FAILED)
+        ii.set_state(IIState.FAILED)
 
     return ret
 

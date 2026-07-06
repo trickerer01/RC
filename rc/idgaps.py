@@ -13,7 +13,7 @@ import itertools
 from .config import Config
 from .defs import IDGAP_PREDICTION_AUTO, IDGAP_PREDICTION_OFF, PREDICTION_REENABLE_THRESHOLD, IntPair
 from .downloader import AlbumDownloadWorker
-from .iinfo import AlbumInfo
+from .iinfo import AIFlags, AlbumInfo
 from .logger import Log
 
 __all__ = ('IdGapsPredictor',)
@@ -50,7 +50,7 @@ class IdGapsPredictor:
     def need_skip(self, ai: AlbumInfo) -> int:
         if num_skip := (self._get_skip_num(ai) if self._enabled else 0):
             prevs = tuple(AlbumDownloadWorker.get().find_ainfo_last(ai.id - (_ + 1)) for _ in range(num_skip - 1))
-            prev_stats = tuple((bool(prevs[i]), prevs[i] and prevs[i].has_flag(AlbumInfo.Flags.RETURNED_404)) for i in range(num_skip - 1))
+            prev_stats = tuple((bool(prevs[i]), prevs[i] and prevs[i].has_flag(AIFlags.RETURNED_404)) for i in range(num_skip - 1))
             f_404s: tuple[bool, ...] = ()
             for i in range(1, num_skip):
                 if all(prev_stats[_][0] for _ in range(num_skip - i)):

@@ -6,18 +6,70 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+from __future__ import annotations
+
 import os
+import pathlib
+from typing import BinaryIO
 
 from .config import Config
 from .defs import DEFAULT_EXT, PREFIX
 from .logger import Log
-from .rex import re_album_foldername
+from .rex import re_album_foldername, re_media_filename
 from .util import normalize_path
 
-__all__ = ('folder_already_exists', 'folder_already_exists_arr', 'scan_dest_folder', 'try_rename')
+__all__ = (
+    'FileLock',
+    'FileLockError',
+    'folder_already_exists',
+    'folder_already_exists_arr',
+    'scan_dest_folder',
+    'try_rename',
+)
 
 _found_foldernames_dict: dict[str, list[str]] = {}
 _foldername_matches_cache: dict[str, str] = {}
+
+
+class FileLockError(Exception):
+    pass
+
+
+class FileLock:
+    def __init__(self, filepath: os.PathLike | str) -> None:
+        if Config.lock_files:
+            fpath = pathlib.Path(filepath)
+            assert fpath.parent.is_dir()
+            self._lockpath = self.make_lock_path(fpath)
+        else:
+            self._lockpath = pathlib.Path()
+        self._lockfile: BinaryIO | None = None
+
+    @staticmethod
+    def make_lock_path(filepath: pathlib.Path) -> pathlib.Path:
+        f_match = re_media_filename.fullmatch(filepath.name)
+        f_id = f_match.group(1)
+        return filepath.with_name(f'{PREFIX}{f_id}.lock')
+
+    async def __aenter__(self) -> FileLock:
+        if Config.lock_files:
+            try:
+                # try to remove existing lock if previous run had its process forcefully terminated
+                # raises PermissionError if file exists and is busy
+                self._lockpath.unlink(missing_ok=True)
+                # open in exclusive mode (create file)
+                # raises FileExistsError if file already exists
+                self._lockfile = open(self._lockpath, 'bx')
+            except OSError:
+                raise FileLockError
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        if Config.lock_files:
+            if self._lockpath.is_file():
+                if self._lockfile and not self._lockfile.closed:
+                    self._lockfile.close()
+                self._lockpath.unlink(missing_ok=True)
 
 
 def _report_duplicates() -> None:
@@ -139,14 +191,15 @@ def folder_already_exists_arr(idi: int, check_folder=True) -> list[str]:
     return found_folders
 
 
-def try_rename(oldpath: str, newpath: str) -> bool:
+async def try_rename(oldpath: str, newpath: str) -> bool:
+    if oldpath == newpath:
+        return True
+
     try:
-        if oldpath == newpath:
-            return True
         newpath_folder = os.path.split(newpath.strip('/'))[0]
-        if not os.path.isdir(newpath_folder):
-            os.makedirs(newpath_folder)
-        os.rename(oldpath, newpath)
+        async with FileLock(oldpath):
+            os.makedirs(newpath_folder, exist_ok=True)
+            os.rename(oldpath, newpath)
         return True
     except Exception:
         return False

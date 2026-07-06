@@ -19,21 +19,40 @@ from .logger import Log
 from .rex import re_infolist_filename
 from .util import normalize_filename, normalize_path
 
-__all__ = ('AlbumInfo', 'ImageInfo', 'export_album_info', 'get_min_max_ids')
+__all__ = ('AIFlags', 'AIState', 'AlbumInfo', 'IIFlags', 'IIState', 'ImageInfo', 'export_album_info', 'get_min_max_ids')
+
+
+class AIState(IntEnum):
+    NEW = 0
+    QUEUED = 1
+    ACTIVE = 2
+    SCANNED = 3
+    PROCESSED = 4
+
+
+class AIFlags(IntEnum):
+    NONE = 0x0
+    RETURNED_404 = 0x8
+
+
+class IIState(IntEnum):
+    NEW = 0
+    QUEUED = 1
+    ACTIVE = 2
+    DOWNLOADING = 3
+    WRITING = 4
+    DONE = 5
+    FAILED = 6
+
+
+class IIFlags(IntEnum):
+    NONE = 0x0
+    ALREADY_EXISTED_EXACT = 0x1
+    ALREADY_EXISTED_SIMILAR = 0x2
+    FILE_WAS_CREATED = 0x4
 
 
 class AlbumInfo:
-    class State(IntEnum):
-        NEW = 0
-        QUEUED = 1
-        ACTIVE = 2
-        SCANNED = 3
-        PROCESSED = 4
-
-    class Flags(IntEnum):
-        NONE = 0x0
-        RETURNED_404 = 0x8
-
     def __init__(self, m_id: int, m_title='', *, preview_link='') -> None:
         self._id = m_id or 0
 
@@ -50,20 +69,20 @@ class AlbumInfo:
         self.images: list[ImageInfo] = []
         self.dstart_time: int = 0
 
-        self._state = AlbumInfo.State.NEW
-        self._flags = AlbumInfo.Flags.NONE
+        self._state = AIState.NEW
+        self._flags = AIFlags.NONE
 
-    def set_state(self, state: AlbumInfo.State) -> None:
+    def set_state(self, state: AIState) -> None:
         self._state = state
 
-    def set_flag(self, flag: ImageInfo.Flags) -> None:
+    def set_flag(self, flag: AIFlags) -> None:
         self._flags |= flag
 
-    def has_flag(self, flag: int | ImageInfo.Flags) -> bool:
+    def has_flag(self, flag: int | AIFlags) -> bool:
         return bool(self._flags & flag)
 
     def all_done(self) -> bool:
-        return all(ii.state in (ImageInfo.State.DONE, ImageInfo.State.FAILED) for ii in self.images) if self.images else False
+        return all(ii.state in (IIState.DONE, IIState.FAILED) for ii in self.images) if self.images else False
 
     def total_size(self) -> int:
         return sum(ii.bytes_written for ii in self.images)
@@ -82,7 +101,7 @@ class AlbumInfo:
         return self._id
 
     @property
-    def state(self) -> AlbumInfo.State:
+    def state(self) -> AIState:
         return self._state
 
     @property
@@ -121,21 +140,6 @@ class AlbumInfo:
 
 
 class ImageInfo:
-    class State(IntEnum):
-        NEW = 0
-        QUEUED = 1
-        ACTIVE = 2
-        DOWNLOADING = 3
-        WRITING = 4
-        DONE = 5
-        FAILED = 6
-
-    class Flags(IntEnum):
-        NONE = 0x0
-        ALREADY_EXISTED_EXACT = 0x1
-        ALREADY_EXISTED_SIMILAR = 0x2
-        FILE_WAS_CREATED = 0x4
-
     def __init__(self, album_info: AlbumInfo, m_id: int, m_link: str, m_filename: str, *, num=1) -> None:
         self._album = album_info
         self._id = m_id or 0
@@ -147,16 +151,16 @@ class ImageInfo:
         self.expected_size: int = 0
         self.bytes_written: int = 0
 
-        self._state = ImageInfo.State.NEW
-        self._flags = ImageInfo.Flags.NONE
+        self._state = IIState.NEW
+        self._flags = IIFlags.NONE
 
-    def set_state(self, state: ImageInfo.State) -> None:
+    def set_state(self, state: IIState) -> None:
         self._state = state
 
-    def set_flag(self, flag: ImageInfo.Flags) -> None:
+    def set_flag(self, flag: IIFlags) -> None:
         self._flags |= flag
 
-    def has_flag(self, flag: int | ImageInfo.Flags) -> bool:
+    def has_flag(self, flag: int | IIFlags) -> bool:
         return bool(self._flags & flag)
 
     def __eq__(self, other: ImageInfo | int) -> bool:
@@ -207,7 +211,7 @@ class ImageInfo:
         return normalize_filename(self.filename, self.my_folder)
 
     @property
-    def state(self) -> ImageInfo.State:
+    def state(self) -> IIState:
         return self._state
 
     @property
@@ -286,7 +290,7 @@ def export_album_info(info_list: Iterable[AlbumInfo]) -> None:
     desc_dict: dict[str, dict[int, str]] = {}
     comm_dict: dict[str, dict[int, str]] = {}
     for ai in info_list:
-        if ai.state == AlbumInfo.State.PROCESSED:
+        if ai.state == AIState.PROCESSED:
             for d, s in zip((tags_dict, desc_dict, comm_dict), (ai.tags, ai.description, ai.comments), strict=True):
                 if ai.my_sfolder not in d:
                     d[ai.my_sfolder] = {}

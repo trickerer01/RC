@@ -6,6 +6,7 @@ Author: trickerer (https://github.com/trickerer, https://github.com/trickerer01)
 #
 #
 
+import asyncio
 import functools
 import pathlib
 from collections.abc import Callable
@@ -16,12 +17,12 @@ from unittest.mock import patch
 
 from .cmdargs import prepare_arglist
 from .config import Config
-from .defs import DOWNLOAD_MODE_TOUCH, SEARCH_RULE_DEFAULT, SITE
+from .defs import DOWNLOAD_MODE_TOUCH, PREFIX, SEARCH_RULE_DEFAULT, SITE
 from .downloader import AlbumDownloadWorker, ImageDownloadWorker
 from .fetch_html import RequestQueue
 from .logger import Log
 from .main import main_sync
-from .path_util import _found_foldernames_dict
+from .path_util import FileLock, FileLockError, _found_foldernames_dict
 from .rex import prepare_regex_fullmatch
 from .tagger import (
     ART_NUMS,
@@ -97,6 +98,24 @@ class FileCheckTests(TestCase):
         load_tag_conflicts()
         self.assertIsNone(TAG_CONFLICTS.get(''))
         print(f'{self._testMethodName} passed')
+
+
+class FileLockTests(TestCase):
+    @test_prepare()
+    def test_filelock01(self) -> None:
+        Config.lock_files = True
+
+        async def test_inner() -> None:
+            async with FileLock(tempfile_fullpath):
+                self.assertTrue(tempfile_lock_fullpath.is_file())
+                async with FileLock(tempfile_fullpath):
+                    pass
+
+        tempfile_name = f'{PREFIX}1324.jpeg'
+        with TemporaryDirectory(prefix=f'{APP_NAME}_{self._testMethodName}_') as tempdir:
+            tempfile_fullpath = pathlib.Path(tempdir).joinpath(tempfile_name)
+            tempfile_lock_fullpath = FileLock.make_lock_path(tempfile_fullpath)
+            self.assertRaises(FileLockError, lambda: asyncio.run(test_inner()))
 
 
 class CmdTests(TestCase):
@@ -258,7 +277,7 @@ class CmdTests(TestCase):
 
 
 class DownloadTests(TestCase):
-    @test_prepare()
+    @test_prepare(True)
     def test_ids_touch(self):
         if not RUN_CONN_TESTS:
             return
@@ -277,7 +296,7 @@ class DownloadTests(TestCase):
             self.assertEqual(0, tempfile_fullpaths[1].stat().st_size)
         print(f'{self._testMethodName} passed')
 
-    @test_prepare()
+    @test_prepare(True)
     def test_pages_touch(self):
         if not RUN_CONN_TESTS:
             return
@@ -297,7 +316,7 @@ class DownloadTests(TestCase):
             self.assertEqual(0, tempfile_fullpaths[1].stat().st_size)
         print(f'{self._testMethodName} passed')
 
-    @test_prepare()
+    @test_prepare(True)
     def test_ids_full(self):
         if not RUN_CONN_TESTS:
             return
@@ -316,7 +335,7 @@ class DownloadTests(TestCase):
             self.assertGreater(tempfile_fullpaths[1].stat().st_size, 0)
         print(f'{self._testMethodName} passed')
 
-    @test_prepare()
+    @test_prepare(True)
     def test_pages_full(self):
         if not RUN_CONN_TESTS:
             return
