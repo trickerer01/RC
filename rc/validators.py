@@ -97,6 +97,11 @@ def find_and_resolve_config_conflicts() -> bool:
     #     Config.check_votes = False
     #     delay_for_message = True
 
+    if Config.lock_files is True and not Config.no_rename_move:
+        Log.info('\nInfo: file locks require \'--no-rename-move\' flag will be set!')
+        Config.no_rename_move = True
+        delay_for_message = True
+
     if Config.save_comments is True and Config.session_id is None:
         Log.info('Info: Comments cannot be accessed without `-session_id`, saving comments is impossible. Disabled!')
         Config.save_comments = False
