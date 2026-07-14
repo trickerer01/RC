@@ -21,6 +21,7 @@ CONNECT_TIMEOUT_SOCKET_READ = 30
 CONNECT_REQUEST_DELAY = 0.2
 CONNECT_RETRY_DELAYS = {
     504: (20.0, 25.0),
+    429: (60.0, 60.0),
     403: (8.0, 10.0),
     0: (4.0, 8.0),
 }
@@ -48,8 +49,8 @@ PREFIX = 'rc_'
 SLASH = '/'
 UTF8 = 'utf-8'
 TAGS_CONCAT_CHAR = ','
-DEFAULT_EXT = 'jpg'
-EXTENSIONS_I = (DEFAULT_EXT, 'jpeg')
+EXTENSIONS_I = ('jpg', 'jpeg')
+DEFAULT_EXT = EXTENSIONS_I[0]
 HTTPS_PREFIX = 'https://'
 START_TIME = datetime.datetime.now()
 
