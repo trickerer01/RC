@@ -17,7 +17,7 @@ from .config import Config
 from .defs import DEFAULT_EXT, PREFIX, UTF8
 from .logger import Log
 from .rex import re_infolist_filename
-from .util import normalize_filename, normalize_path
+from .util import get_elapsed_time_i, normalize_filename, normalize_path
 
 __all__ = ('AIFlags', 'AIState', 'AlbumInfo', 'IIFlags', 'IIState', 'ImageInfo', 'export_album_info', 'get_min_max_ids')
 
@@ -150,6 +150,7 @@ class ImageInfo:
         self.ext: str = self.filename[self.filename.rfind('.'):]
         self.expected_size: int = 0
         self.bytes_written: int = 0
+        self.start_time_write: int = 0
 
         self._state = IIState.NEW
         self._flags = IIFlags.NONE
@@ -217,6 +218,16 @@ class ImageInfo:
     @property
     def state_str(self) -> str:
         return self._state.name
+
+    @property
+    def time_spent_writing(self) -> int:
+        """in seconds"""
+        return max(1, get_elapsed_time_i() - self.start_time_write)
+
+    @property
+    def average_write_speed(self) -> float:
+        """in bytes"""
+        return self.bytes_written / self.time_spent_writing
 
     __repr__ = __str__
 

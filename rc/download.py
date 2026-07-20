@@ -389,6 +389,7 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
             async with async_open(ii.my_fullpath, 'ab') as outf:
                 ii.set_flag(IIFlags.FILE_WAS_CREATED)
                 ii.album.dstart_time = ii.album.dstart_time or get_elapsed_time_i()
+                ii.start_time_write = ii.start_time_write or get_elapsed_time_i()
                 bytes_written_this_try = 0
                 async for chunk in r.content.iter_chunked(128 * Mem.KB):
                     await outf.write(chunk)
@@ -396,6 +397,9 @@ async def download_image(ii: ImageInfo) -> DownloadResult:
                     bytes_written_this_try += len(chunk)
                     if try_num > 0 and bytes_written_this_try >= 256 * Mem.KB:
                         try_num = 0
+                    if Config.download_speed_limit:
+                        while ii.average_write_speed > Config.download_speed_limit * Mem.KB:
+                            await sleep(0.5)
             status_checker.reset()
             await idwn.remove_from_writes(ii)
 
